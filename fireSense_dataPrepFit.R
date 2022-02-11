@@ -74,8 +74,10 @@ defineModule(sim, list(
     defineParameter(name = "useCentroids", class = "logical", default = TRUE,
                     desc = paste("Should fire ignitions start at the sim$firePolygons centroids (TRUE)",
                                  "or at the ignition points in sim$firePoints?")),
-    defineParameter(name = "usePCA", class = "logical", default = TRUE, NA, NA,
+    defineParameter(name = "usePCA", class = "logical", default = FALSE, NA, NA,
                     desc = "use PCA approach to covariates, as opposed to fuel class approach"),
+    defineParameter(name = "useFireRaster", class = "logical", default = TRUE, NA, NA,
+                    desc = "if TRUE, will download and use fire rasters to augment NFDB"),
     defineParameter(name = "whichModulesToPrepare", class = "character",
                     default = c("fireSense_IgnitionFit", "fireSense_SpreadFit", "fireSense_EscapeFit"),
                     NA, NA, desc = "Which fireSense fit modules to prep? defaults to all 3")
@@ -93,6 +95,9 @@ defineModule(sim, list(
                                "List must be named with followign convention: 'year<numeric year>'")),
     expectsInput(objectName = 'firePolysForAge', objectClass = 'list', sourceURL = NA,
                  desc = "firePolys used to classify timeSinceDisturbance in nonforest LCC"),
+    expectsInput(objectName = "fireRaster", objectClass = "RasterLayer", sourceURL = NA,
+                 desc = paste("if using raster approach, a raster with values representing year of burn.",
+                              "should extent back to 1985 to capture youngAge")),
     expectsInput(objectName = "flammableRTM", objectClass = "RasterLayer", sourceURL = NA,
                  desc = "RTM without ice/rocks/urban/water. Flammable map with 0 and 1."),
     expectsInput(objectName = "historicalClimateRasters", objectClass = "list", sourceURL = NA,
@@ -1047,6 +1052,14 @@ plotAndMessage <- function(sim) {
       "nonForest_highFlam" = c(8, 10, 14),#shrubland, grassland, wetland
       "nonForest_lowFlam" = c(11, 12, 15) #shrub-lichen-moss + cropland. 2 barren classes are nonflam
     )
+  }
+
+  if (!suppliedElsewhere("fireRaster", sim)){
+    if (P(sim)$useFireRaster){
+      sim$fireRaster <- getWildfire_NFI(dPath = dPath,
+                                        rasterToMatch = sim$rasterToMatch)
+
+    }
   }
 
   return(invisible(sim))
