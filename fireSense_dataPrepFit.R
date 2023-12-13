@@ -227,6 +227,21 @@ Init <- function(sim) {
     stop("studyArea must be either an sf or SpatVector object")
   }
 
+  if (!terra::same.crs(sim$rasterToMatch, mod$studyAreaUnion)) {
+    mod$studyAreaUnion <- projectTo(mod$studyAreaUnion, terra::crs(sim$rasterToMatch))
+  }
+
+  if (!terra::same.crs(sim$ignitionFirePoints, sim$rasterToMatch)) {
+    # project it first, faster than the postProcessTo sequence pre-crop, project, mask, crop
+    sim$ignitionFirePoints <- projectTo(sim$ignitionFirePoints, sim$rasterToMatch) |>
+      cropTo(sim$rasterToMatch) |>
+      maskTo(sim$rasterToMatch)
+  }
+  if (!terra::same.crs(sim$firePolys[[1]], sim$rasterToMatch)) {
+    sim$firePolygs <- Map(fp = sim$firePolys, function(fp)
+      projectTo(fp, terra::crs(sim$rasterToMatch)))
+  }
+
   ## sanity checks
   if (!LandR::.compareRas(sim$standAgeMap2001, sim$standAgeMap2011, sim$rasterToMatch,
                           stopOnError = FALSE)) {
