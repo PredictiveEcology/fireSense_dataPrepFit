@@ -761,6 +761,14 @@ prepare_IgnitionFit <- function(sim) {
   firstCols <- c("pixelID", "ignitions", climVar, "youngAge")
   firstCols <- firstCols[firstCols %in% names(fireSense_ignitionCovariates)]
   setcolorder(fireSense_ignitionCovariates, neworder = firstCols)
+  if (isTRUE(P(sim)$usePiecewiseRegression)) {
+    response <- "ignitions"
+  } else {
+    response <- "ignitionsNoGT1"
+    set(fireSense_ignitionCovariates, NULL, response, pmin(fireSense_ignitionCovariates$ignitions, 1))
+    # fireSense_ignitionCovariates[, ignitionsNoGT1 := ifelse(ignitions > 1, 1, ignitions)]
+  }
+
   sim$fireSense_ignitionCovariates <- fireSense_ignitionCovariates
 
   #make new ignition object, ignitionFitRTM
@@ -771,7 +779,7 @@ prepare_IgnitionFit <- function(sim) {
   #build formula
   igCovariates <- names(sim$fireSense_ignitionCovariates)
   igCovariates <- igCovariates[!igCovariates %in%
-                                 c(climVar, "year", "yearChar", "ignitions", "pixelID")]
+                                 c(climVar, "year", "yearChar", "ignitions", "ignitionsNoGT1", "pixelID")]
   pwNames <- abbreviate(igCovariates, minlength = 3, use.classes = TRUE, strict = FALSE)
   interactions <- paste0(igCovariates, ":", climVar)
   pw <- paste0(igCovariates, ":", "pw(", climVar, ", k_", pwNames, ")")
@@ -780,10 +788,10 @@ prepare_IgnitionFit <- function(sim) {
     warning("automated ignition formula construction needs review")
   }
   if (isTRUE(P(sim)$usePiecewiseRegression)) {
-    sim$fireSense_ignitionFormula <- paste0("ignitions ~ ", paste0(interactions, collapse = " + "), " + ",
+    sim$fireSense_ignitionFormula <- paste0(response, " ~ ", paste0(interactions, collapse = " + "), " + ",
                                             paste0(pw, collapse  = " + "), "- 1")
   } else {
-    sim$fireSense_ignitionFormula <- paste0("ignitions ~ ",
+    sim$fireSense_ignitionFormula <- paste0(response, " ~ ",
                                             paste0("(1|", ranEffs, ")"), " + ",
                                             paste0(igCovariates, collapse = " + "), " + ",
                                             paste0(interactions, collapse = " + "),
