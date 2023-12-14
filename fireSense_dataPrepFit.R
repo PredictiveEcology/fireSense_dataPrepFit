@@ -793,6 +793,7 @@ prepare_IgnitionFit <- function(sim) {
   } else {
     sim$fireSense_ignitionFormula <- paste0(response, " ~ ",
                                             paste0("(1|", ranEffs, ")"), " + ",
+                                            climVar, " + ",
                                             paste0(igCovariates, collapse = " + "), " + ",
                                             paste0(interactions, collapse = " + "),
                                             " - 1")
