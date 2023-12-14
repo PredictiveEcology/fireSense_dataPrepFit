@@ -726,7 +726,7 @@ prepare_IgnitionFit <- function(sim) {
                                       MoreArgs = list(climate = climate,
                                                       fires = sim$ignitionFirePoints,
                                                       climVar = climVar ## TODO: this is clunky, rethink
-                                      ))
+                                      )) |> Cache(.functionName = "stackAndExtract")
 
   fireSense_ignitionCovariates <- rbindlist(fireSense_ignitionCovariates)
 
