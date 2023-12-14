@@ -245,7 +245,7 @@ Init <- function(sim) {
       maskTo(sim$rasterToMatch)
   }
   if (!terra::same.crs(sim$firePolys[[1]], sim$rasterToMatch)) {
-    sim$firePolygs <- Map(fp = sim$firePolys, function(fp)
+    sim$firePolys <- Map(fp = sim$firePolys, function(fp)
       projectTo(fp, terra::crs(sim$rasterToMatch)))
   }
 
