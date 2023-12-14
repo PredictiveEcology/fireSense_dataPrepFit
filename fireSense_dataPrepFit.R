@@ -234,7 +234,7 @@ Init <- function(sim) {
     stop("studyArea must be either an sf or SpatVector object")
   }
 
-  if (!terra::same.crs(sim$rasterToMatch, mod$studyAreaUnion)) {
+  if (!terra::same.crs(mod$studyAreaUnion, sim$rasterToMatch)) {
     mod$studyAreaUnion <- projectTo(mod$studyAreaUnion, terra::crs(sim$rasterToMatch))
   }
 
@@ -246,7 +246,8 @@ Init <- function(sim) {
   }
   if (!terra::same.crs(sim$firePolys[[1]], sim$rasterToMatch)) {
     sim$firePolys <- Map(fp = sim$firePolys, function(fp)
-      projectTo(fp, terra::crs(sim$rasterToMatch)))
+      projectTo(fp, terra::crs(sim$rasterToMatch))) |>
+      Cache(.functionName = "projectTo_for_firePolys")
   }
 
   ## sanity checks
