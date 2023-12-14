@@ -66,6 +66,9 @@ defineModule(sim, list(
     defineParameter("useCentroids", "logical", TRUE, NA, NA,
                     paste("Should fire ignitions start at the `sim$firePolygons` centroids",
                           "or at the ignition points in `sim$firePoints`?")),
+    defineParameter("usePiecewiseRegression", "logical", FALSE, NA, NA,
+                    paste("Should fire ignitions fitting use the hockey stick 'piecewise regression' ",
+                          "approach or the newer glmmTMB with zero inflated poisson mixed effect.")),
     defineParameter("useRasterizedFireForSpread", "logical", FALSE, NA, NA,
                     paste("Should rasterized fire be used in place of a vectorized fire dataset?",
                           "This method attributes burned pixels to specific fires,",
@@ -751,6 +754,10 @@ prepare_IgnitionFit <- function(sim) {
   #rename cells to pixelID - though aggregated raster is not saved
   setnames(fireSense_ignitionCovariates, old = "cell", new = "pixelID")
   fireSense_ignitionCovariates[, year := as.numeric(year)]
+
+  # for random effect
+  ranEffs <- "yearChar"
+  set(fireSense_ignitionCovariates, NULL, ranEffs, as.character(fireSense_ignitionCovariates$year))
   firstCols <- c("pixelID", "ignitions", climVar, "youngAge")
   firstCols <- firstCols[firstCols %in% names(fireSense_ignitionCovariates)]
   setcolorder(fireSense_ignitionCovariates, neworder = firstCols)
@@ -763,7 +770,8 @@ prepare_IgnitionFit <- function(sim) {
 
   #build formula
   igCovariates <- names(sim$fireSense_ignitionCovariates)
-  igCovariates <- igCovariates[!igCovariates %in% c(climVar, "year", "ignitions", "pixelID")]
+  igCovariates <- igCovariates[!igCovariates %in%
+                                 c(climVar, "year", "yearChar", "ignitions", "pixelID")]
   pwNames <- abbreviate(igCovariates, minlength = 3, use.classes = TRUE, strict = FALSE)
   interactions <- paste0(igCovariates, ":", climVar)
   pw <- paste0(igCovariates, ":", "pw(", climVar, ", k_", pwNames, ")")
@@ -771,8 +779,16 @@ prepare_IgnitionFit <- function(sim) {
   if (!all(length(unique(pw)), length(unique(interactions)) == length(igCovariates))) {
     warning("automated ignition formula construction needs review")
   }
-  sim$fireSense_ignitionFormula <- paste0("ignitions ~ ", paste0(interactions, collapse = " + "), " + ",
-                                          paste0(pw, collapse  = " + "), "- 1")
+  if (isTRUE(P(sim)$usePiecewiseRegression)) {
+    sim$fireSense_ignitionFormula <- paste0("ignitions ~ ", paste0(interactions, collapse = " + "), " + ",
+                                            paste0(pw, collapse  = " + "), "- 1")
+  } else {
+    sim$fireSense_ignitionFormula <- paste0("ignitions ~ ",
+                                            paste0("(1|", ranEffs, ")"), " + ",
+                                            paste0(igCovariates, collapse = " + "), " + ",
+                                            paste0(interactions, collapse = " + "),
+                                            " - 1")
+  }
   return(invisible(sim))
 }
 
