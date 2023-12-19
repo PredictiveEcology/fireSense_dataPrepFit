@@ -148,6 +148,9 @@ defineModule(sim, list(
                   "ignition covariates with added column of escapes"),
     createsOutput("fireSense_escapeFormula", "character",
                   "formula for escape, using fuel classes and landcover, as character"),
+    createsOutput("fireSense_climateVariable", "character",
+                  "The string representing the name of the climate variable that is in the ",
+                  "historicalClimateRasters, e.g., 'MDC'"),
     createsOutput("fireSense_ignitionCovariates", "data.table",
                   "table of aggregated ignition covariates with annual ignitions"),
     createsOutput("fireSense_ignitionFormula", "character",
@@ -703,7 +706,7 @@ prepare_IgnitionFit <- function(sim) {
   names(fuelClasses) <- c("year2001", "year2011")
 
   climate <- sim$historicalClimateRasters
-  climVar <- names(climate)
+  sim$fireSense_climateVariable <- names(climate)
   climate <- aggregate(sim$historicalClimateRasters[[1]], fact = P(sim)$igAggFactor, fun = mean) |>
     Cache(.functionName = "aggregate_historicalClimateRasters_to_coarse")
 
@@ -736,7 +739,7 @@ prepare_IgnitionFit <- function(sim) {
                                       LCC = list(LCCras$year2001, LCCras$year2011),
                                       MoreArgs = list(climate = climate,
                                                       fires = sim$ignitionFirePoints,
-                                                      climVar = climVar ## TODO: this is clunky, rethink
+                                                      climVar = sim$fireSense_climateVariable ## TODO: this is clunky, rethink
                                       )) |> Cache(.functionName = "stackAndExtract")
 
   fireSense_ignitionCovariates <- rbindlist(fireSense_ignitionCovariates)
@@ -744,7 +747,7 @@ prepare_IgnitionFit <- function(sim) {
   #remove any pixels that are 0 for all classes
   fireSense_ignitionCovariates[, coverSums := rowSums(.SD),
                                .SD = setdiff(names(fireSense_ignitionCovariates),
-                                             c(climVar, "cell", "ignitions", "year"))]
+                                             c(sim$fireSense_climateVariable, "cell", "ignitions", "year"))]
   fireSense_ignitionCovariates <- fireSense_ignitionCovariates[coverSums > 0]
   if (any(fireSense_ignitionCovariates$coverSums > 1)) {
     stop("error with ignition raster aggregation")
@@ -758,7 +761,7 @@ prepare_IgnitionFit <- function(sim) {
   # for random effect
   ranEffs <- "yearChar"
   set(fireSense_ignitionCovariates, NULL, ranEffs, as.character(fireSense_ignitionCovariates$year))
-  firstCols <- c("pixelID", "ignitions", climVar, "youngAge")
+  firstCols <- c("pixelID", "ignitions", sim$fireSense_climateVariable, "youngAge")
   firstCols <- firstCols[firstCols %in% names(fireSense_ignitionCovariates)]
   setcolorder(fireSense_ignitionCovariates, neworder = firstCols)
   if (isTRUE(P(sim)$usePiecewiseRegression)) {
@@ -779,10 +782,10 @@ prepare_IgnitionFit <- function(sim) {
   #build formula
   igCovariates <- names(sim$fireSense_ignitionCovariates)
   igCovariates <- igCovariates[!igCovariates %in%
-                                 c(climVar, "year", "yearChar", "ignitions", "ignitionsNoGT1", "pixelID")]
+                                 c(sim$fireSense_climateVariable, "year", "yearChar", "ignitions", "ignitionsNoGT1", "pixelID")]
   pwNames <- abbreviate(igCovariates, minlength = 3, use.classes = TRUE, strict = FALSE)
-  interactions <- paste0(igCovariates, ":", climVar)
-  pw <- paste0(igCovariates, ":", "pw(", climVar, ", k_", pwNames, ")")
+  interactions <- paste0(igCovariates, ":", sim$fireSense_climateVariable)
+  pw <- paste0(igCovariates, ":", "pw(", sim$fireSense_climateVariable, ", k_", pwNames, ")")
   #sanity check for base::abbreviate
   if (!all(length(unique(pw)), length(unique(interactions)) == length(igCovariates))) {
     warning("automated ignition formula construction needs review")
@@ -793,10 +796,9 @@ prepare_IgnitionFit <- function(sim) {
   } else {
     sim$fireSense_ignitionFormula <- paste0(response, " ~ ",
                                             paste0("(1|", ranEffs, ")"), " + ",
-                                            climVar, " + ",
+                                            sim$fireSense_climateVariable, " + ",
                                             paste0(igCovariates, collapse = " + "), " + ",
-                                            paste0(interactions, collapse = " + "),
-                                            " - 1")
+                                            paste0(interactions, collapse = " + "))
   }
   return(invisible(sim))
 }
