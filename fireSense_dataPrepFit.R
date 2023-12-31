@@ -586,6 +586,8 @@ prepare_SpreadFitFire_Vector <- function(sim) {
                               userTags = c("bufferToArea", P(sim)$.studyAreaName),
                               omitArgs = "cores")
 
+  if (!any(sapply(fireBufferedListDT, is.data.table)))
+    fireBufferedListDT <- lapply(fireBufferedListDT, as.data.table)
   ## drop fire years from these lists that don't have any buffer points pre-harmonization
   omitYears <- sapply(fireBufferedListDT, function(x) nrow(x) == 0)
   fireBufferedListDT[omitYears] <- NULL
