@@ -482,7 +482,7 @@ prepare_SpreadFitFire_Raster <- function(sim) {
   historicalFireRaster <- mask(historicalFireRaster, sim$flammableRTM,
                                maskvalues = 0, updatevalue = NA)
 
-  nCores <- ifelse(grepl("Windows", Sys.info()[["sysname"]]), 1, length(sim$fireYears))
+  nCores <- ifelse(grepl("Windows", Sys.info()[["sysname"]]), 1L, length(sim$fireYears))
 
   #this is analogous to buffer to area but for raster datasets as opposed to polygon
   #the inner looping function is very similar - one difference is that non-flammable
@@ -617,7 +617,8 @@ prepare_SpreadFitFire_Vector <- function(sim) {
   out22 <- Map(f = cleanUpSpreadFirePoints,
                firePoints = sim$spreadFirePoints,
                bufferDT = fireBufferedListDT,
-               MoreArgs = list(flammableRTM = sim$flammableRTM))
+               MoreArgs = list(flammableRTM = sim$flammableRTM)) |>
+    Cache(userTags = P(sim)$.studyAreaName, .functionName = "cleanUpSpreadFirePoints")
 
   out22 <- purrr::transpose(out22)
   sim$spreadFirePoints <- out22$SpatialPoints
@@ -1106,6 +1107,7 @@ runBorealDP_forCohortData <- function(sim) {
       parms[[nm]] <- P(sim, module = nm)
       parms[[nm]][["dataYear"]] <- ny
       parms[[nm]][["exportModels"]] <- "none"
+      parms[[nm]] <- parms[[nm]][!names(parms[[nm]]) %in% SpaDES.core:::paramsDontCacheOn]
     }
 
     if (".globals" %in% names(params(sim))) {
