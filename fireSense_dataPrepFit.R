@@ -389,7 +389,7 @@ prepare_SpreadFit <- function(sim) {
   setnames(fireSenseVegData, "buffer", "burned")
 
   vegCols <- setdiff(names(fireSenseVegData), c("pixelID", "burned", "ids", "year"))
-  dropCols <- names(which(apply(fireSenseVegData[, ..vegCols], 2, sum) == 0))
+  dropCols <- names(which(colSums(fireSenseVegData[, ..vegCols], na.rm = TRUE) == 0))
 
   ## spreadFit will fail if there are empty (all zero) columns
   if (length(dropCols) > 0) {
