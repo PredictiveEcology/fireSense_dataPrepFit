@@ -433,7 +433,7 @@ prepare_SpreadFit <- function(sim) {
     fbl <- rbindlist(sim$fireBufferedListDT, idcol = "year")
   rmCols <- setdiff(colnames(fbl), c("pixelID", "year"))
   set(fbl, NULL, rmCols, NULL)
-  fbl <- mod$climateDT[fbl, on = c("year", "pixelID"), nomatch = NULL]
+  fbl <- climateDT[fbl, on = c("year", "pixelID"), nomatch = NULL]
   fireSense_annualSpreadFitCovariates <- split(fbl, by = "year", keep.by = FALSE)
 
   ## prepare non-annual spread fit covariates by getting the youngAge
@@ -865,7 +865,6 @@ prepare_EscapeFit <- function(sim) {
 cleanUpMod <- function(sim) {
   mod$firePolysForAge <- NULL
   mod$fireSenseVegData <- NULL
-  mod$climateDT <- NULL
 
   return(invisible(sim))
 }
