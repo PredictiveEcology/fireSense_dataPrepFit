@@ -873,6 +873,95 @@ plotAndMessage <- function(sim) {
   return(invisible(sim))
 }
 
+rmMissingPixels <- function(fbldt, pixelIDsAllowed)  {
+  fbldt <- rbindlist(fbldt, idcol = "year")
+  fbldt <- fbldt[pixelID %in% unique(pixelIDsAllowed)]
+  fireBufferedListDT <- split(fbldt, by = "year", keep.by = FALSE)
+}
+
+runBorealDP_forCohortData <- function(sim) {
+  ## Biomass_species should be only run if it is already in the simList
+  neededModule <- "Biomass_borealDataPrep"
+  if ("Biomass_speciesData" %in% modules(sim)) {
+    neededModule <- c("Biomass_borealDataPrep", "Biomass_speciesData")
+  }
+  
+  # neededModule <- "Biomass_borealDataPrep"
+  pathsLocal <- paths(sim)
+  if (any(!neededModule %in% modules(sim))) {
+    ## don't install pkgs mid-stream; already use module metadata to declare pkgs for installation
+    # Require::Install("PredictiveEcology/SpaDES.project@transition")
+    modulePathLocal <- file.path(modulePath(sim), currentModule(sim), "submodules")
+    getModule(file.path("PredictiveEcology", paste0(neededModule, "@development")),
+              modulePath = modulePathLocal, overwrite = FALSE)
+    pathsLocal$modulePath <- modulePathLocal
+  }
+  cohDat <- "cohortData"
+  pixGM <- "pixelGroupMap"
+  saMap <- "standAgeMap"
+  neededYears <- c(2001, 2011)
+  if (!is.null(sim$cohortData)) {
+    alreadyDone <- P(sim, "dataYear", "Biomass_borealDataPrep")
+    cohDatObj <- paste0(cohDat, alreadyDone)
+    pixGrpMap <- paste0(pixGM, alreadyDone)
+    saObj <- paste0(saMap, alreadyDone)
+    sim[[cohDatObj]] <- sim[[cohDat]]
+    sim[[pixGrpMap]] <- sim[[pixGM]]
+    sim[[saObj]] <- sim[[saMap]]
+    
+    messageColoured(colour = "yellow", "fireSense_dataPrepFit will use estimates of ",
+                    paste0("cohortData", alreadyDone, collapse = ", "), " from modules already run")
+    
+    neededYears <- setdiff(neededYears, alreadyDone)
+  }
+  
+  if (is.null(sim$studyAreaLarge)) {
+    sim$studyAreaLarge <- sim$studyArea
+  }
+  
+  ecoFile <- ifelse(is.null(sim$ecoregionRst), "ecoregionLayer", "ecoregionRst")
+  objsNeeded <- c(ecoFile,
+                  "rasterToMatchLarge", "rasterToMatch",
+                  "studyAreaLarge", "studyArea",
+                  "species", "speciesTable", "sppEquiv")
+  objsNeeded <- intersect(ls(sim), objsNeeded)
+  objsNeeded <- mget(objsNeeded, envir = envir(sim))
+  
+  cds <- lapply(neededYears, function(ny, objs = objsNeeded) {
+    messageColoured(colour = "yellow", "Running Biomass_borealDataPrep for year ", ny)
+    messageColoured(colour = "yellow", "  inside fireSense_dataPrepFit to estimate cohortData", ny)
+    
+    parms <- list()
+    ## if needModule is vectorized - we will have to rethink
+    for (nm in neededModule) {
+      parms[[nm]] <- P(sim, module = nm)
+      parms[[nm]][["dataYear"]] <- ny
+      parms[[nm]][["exportModels"]] <- "none"
+      parms[[nm]] <- parms[[nm]][!names(parms[[nm]]) %in% SpaDES.core:::paramsDontCacheOn]
+    }
+    
+    if (".globals" %in% names(params(sim))) {
+      parms[".globals"] <- params(sim)[".globals"]
+    }
+    
+    out <- Cache(do.call(SpaDES.core::simInitAndSpades, list(paths = pathsLocal,
+                                                             params = parms,
+                                                             times = list(start = ny, end = ny),
+                                                             modules = neededModule,
+                                                             objects = objs)),
+                 .functionName = "simInitAndSpades")
+    cohDatObj <- paste0(cohDat, ny)
+    pixGrpMap <- paste0(pixGM, ny)
+    saObj <- paste0(saMap, ny)
+    out[[cohDatObj]] <- out[[cohDat]]
+    out[[pixGrpMap]] <- out[[pixGM]]
+    out[[saObj]] <- out[[saMap]]
+    mget(c(cohDatObj, pixGrpMap, saObj), envir = envir(out))
+  })
+  lapply(cds, function(cd) list2env(cd, envir = envir(sim)))
+  sim
+}
+
 .inputObjects <- function(sim) {
   if (!suppliedElsewhere("studyArea", sim)) {
     stop("Please supply study area - this object is key")
@@ -1045,91 +1134,3 @@ plotAndMessage <- function(sim) {
   return(invisible(sim))
 }
 
-rmMissingPixels <- function(fbldt, pixelIDsAllowed)  {
-  fbldt <- rbindlist(fbldt, idcol = "year")
-  fbldt <- fbldt[pixelID %in% unique(pixelIDsAllowed)]
-  fireBufferedListDT <- split(fbldt, by = "year", keep.by = FALSE)
-}
-
-runBorealDP_forCohortData <- function(sim) {
-  ## Biomass_species should be only run if it is already in the simList
-  neededModule <- "Biomass_borealDataPrep"
-  if ("Biomass_speciesData" %in% modules(sim)) {
-    neededModule <- c("Biomass_borealDataPrep", "Biomass_speciesData")
-  }
-
-  # neededModule <- "Biomass_borealDataPrep"
-  pathsLocal <- paths(sim)
-  if (any(!neededModule %in% modules(sim))) {
-    ## don't install pkgs mid-stream; already use module metadata to declare pkgs for installation
-    # Require::Install("PredictiveEcology/SpaDES.project@transition")
-    modulePathLocal <- file.path(modulePath(sim), currentModule(sim), "submodules")
-    getModule(file.path("PredictiveEcology", paste0(neededModule, "@development")),
-              modulePath = modulePathLocal, overwrite = FALSE)
-    pathsLocal$modulePath <- modulePathLocal
-  }
-  cohDat <- "cohortData"
-  pixGM <- "pixelGroupMap"
-  saMap <- "standAgeMap"
-  neededYears <- c(2001, 2011)
-  if (!is.null(sim$cohortData)) {
-    alreadyDone <- P(sim, "dataYear", "Biomass_borealDataPrep")
-    cohDatObj <- paste0(cohDat, alreadyDone)
-    pixGrpMap <- paste0(pixGM, alreadyDone)
-    saObj <- paste0(saMap, alreadyDone)
-    sim[[cohDatObj]] <- sim[[cohDat]]
-    sim[[pixGrpMap]] <- sim[[pixGM]]
-    sim[[saObj]] <- sim[[saMap]]
-
-    messageColoured(colour = "yellow", "fireSense_dataPrepFit will use estimates of ",
-                    paste0("cohortData", alreadyDone, collapse = ", "), " from modules already run")
-
-    neededYears <- setdiff(neededYears, alreadyDone)
-  }
-
-  if (is.null(sim$studyAreaLarge)) {
-    sim$studyAreaLarge <- sim$studyArea
-  }
-
-  ecoFile <- ifelse(is.null(sim$ecoregionRst), "ecoregionLayer", "ecoregionRst")
-  objsNeeded <- c(ecoFile,
-                  "rasterToMatchLarge", "rasterToMatch",
-                  "studyAreaLarge", "studyArea",
-                  "species", "speciesTable", "sppEquiv")
-  objsNeeded <- intersect(ls(sim), objsNeeded)
-  objsNeeded <- mget(objsNeeded, envir = envir(sim))
-
-  cds <- lapply(neededYears, function(ny, objs = objsNeeded) {
-    messageColoured(colour = "yellow", "Running Biomass_borealDataPrep for year ", ny)
-    messageColoured(colour = "yellow", "  inside fireSense_dataPrepFit to estimate cohortData", ny)
-
-    parms <- list()
-    ## if needModule is vectorized - we will have to rethink
-    for (nm in neededModule) {
-      parms[[nm]] <- P(sim, module = nm)
-      parms[[nm]][["dataYear"]] <- ny
-      parms[[nm]][["exportModels"]] <- "none"
-      parms[[nm]] <- parms[[nm]][!names(parms[[nm]]) %in% SpaDES.core:::paramsDontCacheOn]
-    }
-
-    if (".globals" %in% names(params(sim))) {
-      parms[".globals"] <- params(sim)[".globals"]
-    }
-
-    out <- Cache(do.call(SpaDES.core::simInitAndSpades, list(paths = pathsLocal,
-                                                             params = parms,
-                                                             times = list(start = ny, end = ny),
-                                                             modules = neededModule,
-                                                             objects = objs)),
-                 .functionName = "simInitAndSpades")
-    cohDatObj <- paste0(cohDat, ny)
-    pixGrpMap <- paste0(pixGM, ny)
-    saObj <- paste0(saMap, ny)
-    out[[cohDatObj]] <- out[[cohDat]]
-    out[[pixGrpMap]] <- out[[pixGM]]
-    out[[saObj]] <- out[[saMap]]
-    mget(c(cohDatObj, pixGrpMap, saObj), envir = envir(out))
-  })
-  lapply(cds, function(cd) list2env(cd, envir = envir(sim)))
-  sim
-}
