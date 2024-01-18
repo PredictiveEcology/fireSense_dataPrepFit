@@ -809,7 +809,7 @@ prepare_IgnitionFit <- function(sim) {
   } else {
     sim$fireSense_ignitionFormula <- paste0(response, " ~ ",
                                             paste0("(1|", ranEffs, ")"), " + ",
-                                            sim$fireSense_climateVariable, " + ",
+                                            paste0(sim$climateVariablesforFire$ignition, collapse = " + "), " + ",
                                             paste0(igCovariates, collapse = " + "), " + ",
                                             paste0(interactions, collapse = " + "))
   }
@@ -865,7 +865,6 @@ prepare_EscapeFit <- function(sim) {
 cleanUpMod <- function(sim) {
   mod$firePolysForAge <- NULL
   mod$fireSenseVegData <- NULL
-
   return(invisible(sim))
 }
 
