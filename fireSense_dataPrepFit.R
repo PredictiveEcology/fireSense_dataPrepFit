@@ -14,7 +14,7 @@ defineModule(sim, list(
   documentation = deparse(list("README.md", "fireSense_dataPrepFit.Rmd")),
   loadOrder = list(after = c("Biomass_borealDataPrep", "Biomass_speciesParameters")),
   reqdPkgs = list("data.table", "fastDummies",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9056)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9057)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@development (>= 1.1.0.9073)",
                   "PredictiveEcology/SpaDES.core@development (>= 2.0.2.9006)",
@@ -236,6 +236,11 @@ doEvent.fireSense_dataPrepFit = function(sim, eventTime, eventType) {
 Init <- function(sim) {
   
   #TODO: standardize sim$climateVariablesForFire if user provided
+  #this approach will be wrong if they pass a list length one... 
+  if (length(sim$climateVariablesForFire) == 1) {
+    sim$climateVariablesForFire <- list("ignition" = sim$climateVariablesForFire,
+                                        "spread" = sim$climateVariablesForFire)
+  }
   
   ## ensure studyArea consists of a single polygon
   mod$studyAreaUnion <- if (is(sim$studyArea, "sf")) {
@@ -404,7 +409,7 @@ prepare_SpreadFit <- function(sim) {
            "fireSenseUtils::bufferToArea(..., areaMultiplier = multiplier)")
   }
 
-  RHS <- paste(paste0(names(sim$historicalClimateRasters)), "youngAge",
+  RHS <- paste(paste0(names(sim$historicalClimateRasters), collapse = " + "), "youngAge",
                paste0(vegCols, collapse = " + "), sep =  " + ")
 
   ## this is a funny way to get years but avoids years with 0 fires
@@ -424,13 +429,14 @@ prepare_SpreadFit <- function(sim) {
     .[value == 1,] %>%
     .$index
   spreadClimate <- sim$historicalClimateRasters[sim$climateVariablesForFire$spread]
+
   climateDT <- Cache(climateRasterToDataTable,
-                         historicalClimateRasters = spreadClimate,
-                         Index = flammableIndex, userTags = c("climateRasterToDataTable"))
+                     historicalClimateRasters = spreadClimate,
+                     Index = flammableIndex,
+                     userTags = c("climateRasterToDataTable", names(spreadClimate)))
   rm(flammableIndex)
   
-  
-    fbl <- rbindlist(sim$fireBufferedListDT, idcol = "year")
+  fbl <- rbindlist(sim$fireBufferedListDT, idcol = "year")
   rmCols <- setdiff(colnames(fbl), c("pixelID", "year"))
   set(fbl, NULL, rmCols, NULL)
   fbl <- climateDT[fbl, on = c("year", "pixelID"), nomatch = NULL]
@@ -582,6 +588,7 @@ prepare_SpreadFitFire_Vector <- function(sim) {
   sim$firePolys[sapply(sim$firePolys, is.null)] <- NULL
 
   nCores <- ifelse(grepl("Windows", Sys.info()[["sysname"]]), 1, length(sim$firePolys))
+  
   fireBufferedListDT <- Cache(bufferToArea,
                               poly = sim$firePolys,
                               polyName = names(sim$firePolys),
@@ -710,7 +717,7 @@ prepare_IgnitionFit <- function(sim) {
       LCCras[[i]] <- terra::subset(LCCras[[i]], toKeep) ## to avoid double-counting
     }
   }
-
+  
   LCCras <- lapply(LCCras, aggregate, fact = P(sim)$igAggFactor, fun = mean) |>
     Cache(.functionName = "aggregate_LCCras_to_coarse")
   names(LCCras) <- c("year2001", "year2011")
@@ -719,18 +726,21 @@ prepare_IgnitionFit <- function(sim) {
   names(fuelClasses) <- c("year2001", "year2011")
 
   ignitionClimate <- sim$historicalClimateRasters[sim$climateVariablesForFire$ignition]
-  sim$fireSense_climateVariable <- names(ignitionClimate)
-  ignitionClimate <- aggregate(sim$historicalClimateRasters[[1]], fact = P(sim)$igAggFactor, fun = mean) |>
+  ignitionClimate <- lapply(X = ignitionClimate, FUN = terra::aggregate, 
+                               fact = P(sim)$igAggFactor, fun = mean) |>
     Cache(.functionName = "aggregate_historicalClimateRasters_to_coarse")
-
+  #safety
+  compareGeom(ignitionClimate[[1]], fuelClasses[[1]], fuelClasses[[2]])
+  
   ## ignition won't have same years as spread so we do not use names of init objects
-  ## The reason is some years may have no significant fires, e.g. 2001 in RIA
-  compareGeom(ignitionClimate, fuelClasses[[1]], fuelClasses[[2]])
+  ## The reason is some years may have ignitions but no fires, e.g. 2001 in RIA
   pre2011 <- paste0("year", min(P(sim)$fireYears):2010)
   post2011 <- paste0("year", 2011:max(P(sim)$fireYears))
   allYears <- c(pre2011, post2011)
 
-  whAvailable <- allYears %in% names(ignitionClimate)
+  #assume that if multiple climate variables are present, they are of equal length
+  #else bigger problems exist
+  whAvailable <- allYears %in% names(ignitionClimate[[1]])
   yearsInClimateRast <- allYears[whAvailable]
   yearsNotAvailable <- allYears[!whAvailable]
   if (length(yearsNotAvailable)) {
@@ -742,25 +752,25 @@ prepare_IgnitionFit <- function(sim) {
     post2011 <- intersect(post2011, yearsInClimateRast)
     P(sim)$fireYears <- intersect(as.numeric(gsub("year", "", yearsInClimateRast)),
                                   P(sim)$fireYears)
-
   }
 
+  #TODO: the cache bevavior is too permissive
   #this is joining fuel class, LCC, and climate, subsetting to flamIndex, calculating n of ignitions
   fireSense_ignitionCovariates <- Map(f = fireSenseUtils::stackAndExtract,
                                       years = list(pre2011, post2011),
                                       fuel = list(fuelClasses$year2001, fuelClasses$year2011),
                                       LCC = list(LCCras$year2001, LCCras$year2011),
                                       MoreArgs = list(climate = ignitionClimate,
-                                                      fires = sim$ignitionFirePoints,
-                                                      climVar = sim$fireSense_climateVariable ## TODO: this is clunky, rethink
-                                      )) |> Cache(.functionName = "stackAndExtract")
+                                                      fires = sim$ignitionFirePoints
+                                      )) |> Cache(.functionName = "stackAndExtract", 
+                                                  userTags = names(ignitionClimate))
 
   fireSense_ignitionCovariates <- rbindlist(fireSense_ignitionCovariates)
 
   #remove any pixels that are 0 for all classes
   fireSense_ignitionCovariates[, coverSums := rowSums(.SD),
                                .SD = setdiff(names(fireSense_ignitionCovariates),
-                                             c(sim$fireSense_climateVariable, "cell", "ignitions", "year"))]
+                                            c(names(ignitionClimate), "cell", "ignitions", "year"))]
   fireSense_ignitionCovariates <- fireSense_ignitionCovariates[coverSums > 0]
   if (any(fireSense_ignitionCovariates$coverSums > 1)) {
     stop("error with ignition raster aggregation")
@@ -774,9 +784,10 @@ prepare_IgnitionFit <- function(sim) {
   # for random effect
   ranEffs <- "yearChar"
   set(fireSense_ignitionCovariates, NULL, ranEffs, as.character(fireSense_ignitionCovariates$year))
-  firstCols <- c("pixelID", "ignitions", sim$fireSense_climateVariable, "youngAge")
+  firstCols <- c("pixelID", "ignitions", names(ignitionClimate), "youngAge")
   firstCols <- firstCols[firstCols %in% names(fireSense_ignitionCovariates)]
   setcolorder(fireSense_ignitionCovariates, neworder = firstCols)
+  
   if (isTRUE(P(sim)$usePiecewiseRegression)) {
     response <- "ignitions"
   } else {
@@ -795,21 +806,28 @@ prepare_IgnitionFit <- function(sim) {
   #build formula
   igCovariates <- names(sim$fireSense_ignitionCovariates)
   igCovariates <- igCovariates[!igCovariates %in%
-                                 c(sim$fireSense_climateVariable, "year", "yearChar", "ignitions", "ignitionsNoGT1", "pixelID")]
+                                 c(names(ignitionClimate), 
+                                   "year", "yearChar", "ignitions", "ignitionsNoGT1", "pixelID")]
   pwNames <- abbreviate(igCovariates, minlength = 3, use.classes = TRUE, strict = FALSE)
+  #TODO: we don't want this formula anymore 
   interactions <- paste0(igCovariates, ":", sim$fireSense_climateVariable)
   pw <- paste0(igCovariates, ":", "pw(", sim$fireSense_climateVariable, ", k_", pwNames, ")")
+  
   #sanity check for base::abbreviate
   if (!all(length(unique(pw)), length(unique(interactions)) == length(igCovariates))) {
     warning("automated ignition formula construction needs review")
   }
+
   if (isTRUE(P(sim)$usePiecewiseRegression)) {
+    if (length(sim$climateVariablesForFire$ignition) > 1) {
+      stop("cannot use multiple climate variables with piecewise ignition fit formula")
+    }
     sim$fireSense_ignitionFormula <- paste0(response, " ~ ", paste0(interactions, collapse = " + "), " + ",
                                             paste0(pw, collapse  = " + "), "- 1")
   } else {
     sim$fireSense_ignitionFormula <- paste0(response, " ~ ",
                                             paste0("(1|", ranEffs, ")"), " + ",
-                                            paste0(sim$climateVariablesforFire$ignition, collapse = " + "), " + ",
+                                            paste0(sim$climateVariablesForFire$ignition, collapse = " + "), " + ",
                                             paste0(igCovariates, collapse = " + "), " + ",
                                             paste0(interactions, collapse = " + "))
   }
@@ -949,7 +967,7 @@ runBorealDP_forCohortData <- function(sim) {
     if (".globals" %in% names(params(sim))) {
       parms[".globals"] <- params(sim)[".globals"]
     }
-    
+
     out <- Cache(do.call(SpaDES.core::simInitAndSpades, list(paths = pathsLocal,
                                                              params = parms,
                                                              times = list(start = ny, end = ny),
