@@ -688,6 +688,7 @@ prepare_IgnitionFit <- function(sim) {
         MoreArgs = list(sppEquiv = sim$sppEquiv,
                         sppEquivCol = P(sim)$sppEquivCol,
                         landcoverDT = sim$landcoverDT,
+                        fuelClassCol = P(sim)$ignitionFuelClassCol,
                         flammableRTM = sim$flammableRTM,
                         cutoffForYoungAge = P(sim)$cutoffForYoungAge)) |>
     Cache(.functionName = "cohortsToFuelClasses")
