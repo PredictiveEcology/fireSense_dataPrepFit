@@ -7,14 +7,14 @@ defineModule(sim, list(
     person(c("Alex", "M"), "Chubaty", role = c("ctb"), email = "achubaty@for-cast.ca")
   ),
   childModules = character(0),
-  version = list(fireSense_dataPrepFit = "1.0.0"),
+  version = list(fireSense_dataPrepFit = "1.0.1"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = deparse(list("README.md", "fireSense_dataPrepFit.Rmd")),
   loadOrder = list(after = c("Biomass_borealDataPrep", "Biomass_speciesParameters")),
   reqdPkgs = list("data.table", "fastDummies",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9058)",
+                  "PredictiveEcology/fireSenseUtils@biomassFuel (>= 0.0.5.9059)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@development (>= 1.1.0.9073)",
                   "PredictiveEcology/SpaDES.core@development (>= 2.0.2.9006)",
@@ -37,7 +37,9 @@ defineModule(sim, list(
                     paste("A numeric vector indicating which years should be extracted",
                           "from the fire databases to use for fitting")),
     defineParameter("forestedLCC", "numeric", c(1:6), NA, NA,
-                    "Forested land cover classes. These classes will be excluded from the PCA."),
+                    paste("Forested land cover classes - these differ from non-forest because the biomass", 
+                          "and composition of fuels are taken into account by fireSense, while non-forest",
+                          "classes are treated categorically")),
     defineParameter("igAggFactor", "numeric", 40, 1, NA,
                     "aggregation factor for rasters during ignition prep."),
     defineParameter("ignitionFuelClassCol", "character", "FuelClass", NA, NA,
@@ -53,7 +55,7 @@ defineModule(sim, list(
                           "Must be one of the names in `sim$nonForestedLCCGroups`")),
     defineParameter("nonflammableLCC", "numeric", c(13, 16, 17, 18, 19), NA, NA,
                     "non-flammable LCC in `sim$rstLCC`."),
-    defineParameter("nonForestCanBeYoungAge", "logical", TRUE, NA, NA,
+    defineParameter("nonForestCanBeYoungAge", "logical", FALSE, NA, NA,
                     "if TRUE, burned non-forest will be treated as `youngAge`"),
     defineParameter("sppEquivCol", "character", "LandR", NA, NA,
                     "column name in `sppEquiv` object that defines unique species in `cohortData`"),
@@ -335,7 +337,6 @@ prepare_SpreadFit <- function(sim) {
   #this is necessary when LandR and fireSense have differing concepts of non-forest
   vegData <- Map(f = cohortsToFuelClasses,
                  cohortData = list(sim$cohortData2001, sim$cohortData2011),
-                 yearCohort = list(2001, 2011),
                  pixelGroupMap = list(sim$pixelGroupMap2001, sim$pixelGroupMap2011),
                  MoreArgs = list(sppEquiv = sim$sppEquiv,
                                  sppEquivCol = P(sim)$sppEquivCol,
@@ -359,6 +360,7 @@ prepare_SpreadFit <- function(sim) {
 
   lccNames <- setdiff(names(vegData), c("pixelID", "year"))
   vegData[, missingLC := rowSums(vegData[, .SD, .SDcols = lccNames])]
+  #this assumes missingLCCgroup (forested but absent in cohortData) is nonforest
   vegData[missingLC == 0, eval(P(sim)$missingLCCgroup) := 1]
   vegData[, missingLC := NULL]
 
@@ -458,21 +460,24 @@ prepare_SpreadFit <- function(sim) {
     .[!duplicated(pixelID)] ## remove duplicates from same pixel diff year
 
   ## pmap allows for internal debugging when there are large lists that are passed in; Map does not
-  annualCovariates <- Cache(
-    purrr::pmap,
-    .l = list(
-      #years = list(c(2001:2010), c(2011:max(P(sim)$fireYears))),
-      years = list(pre2011int, post2011int),
-      annualCovariates = list(fireSense_annualSpreadFitCovariates[pre2011],
-                              fireSense_annualSpreadFitCovariates[post2011]),
-      standAgeMap = list(sim$nonForest_timeSinceDisturbance2001,
-                         sim$nonForest_timeSinceDisturbance2011)
-    ),
+  annualCovariates <- list(fireSense_annualSpreadFitCovariates[pre2011],
+                           fireSense_annualSpreadFitCovariates[post2011])
+  
+  if (P(sim)$nonForestCanBeYoungAge){
+    annualCovariates <- Cache(
+      purrr::pmap,
+      .l = list(
+        #years = list(c(2001:2010), c(2011:max(P(sim)$fireYears))),
+        years = list(pre2011int, post2011int),
+        annualCovariates = annualCovariates,
+        standAgeMap = list(sim$nonForest_timeSinceDisturbance2001,
+                           sim$nonForest_timeSinceDisturbance2011)
+      ),
     .f = calcYoungAge,
-    fireBufferedListDT = sim$fireBufferedListDT,
-    cutoffForYoungAge = P(sim)$cutoffForYoungAge
-  )
-
+      fireBufferedListDT = sim$fireBufferedListDT,
+      cutoffForYoungAge = P(sim)$cutoffForYoungAge
+    )
+  }
   sim$fireSense_annualSpreadFitCovariates <- do.call(c, annualCovariates)
 
   sim$fireSense_nonAnnualSpreadFitCovariates <- list(nonAnnualPre2011, nonAnnualPost2011)
@@ -683,7 +688,6 @@ prepare_IgnitionFit <- function(sim) {
 
   fuelClasses <- Map(f = cohortsToFuelClasses,
         cohortData = list(sim$cohortData2001, sim$cohortData2011),
-        yearCohort = list(2001, 2011),
         pixelGroupMap = list(sim$pixelGroupMap2001, sim$pixelGroupMap2011),
         MoreArgs = list(sppEquiv = sim$sppEquiv,
                         sppEquivCol = P(sim)$sppEquivCol,
@@ -773,9 +777,11 @@ prepare_IgnitionFit <- function(sim) {
                                .SD = setdiff(names(fireSense_ignitionCovariates),
                                             c(names(ignitionClimate), "cell", "ignitions", "year"))]
   fireSense_ignitionCovariates <- fireSense_ignitionCovariates[coverSums > 0]
-  if (any(fireSense_ignitionCovariates$coverSums > 1)) {
-    stop("error with ignition raster aggregation")
-  }
+  
+  #this test is only appropriate if units represent leading species, not biomass  
+  # if (any(fireSense_ignitionCovariates$coverSums > 1)) {
+  #   stop("error with ignition raster aggregation")
+  # }
   set(fireSense_ignitionCovariates, NULL, "coverSums", NULL)
 
   #rename cells to pixelID - though aggregated raster is not saved
@@ -809,23 +815,32 @@ prepare_IgnitionFit <- function(sim) {
   igCovariates <- igCovariates[!igCovariates %in%
                                  c(names(ignitionClimate), 
                                    "year", "yearChar", "ignitions", "ignitionsNoGT1", "pixelID")]
-  pwNames <- abbreviate(igCovariates, minlength = 3, use.classes = TRUE, strict = FALSE)
-  #TODO: we don't want this formula anymore 
-  interactions <- paste0(igCovariates, ":", sim$fireSense_climateVariable)
-  pw <- paste0(igCovariates, ":", "pw(", sim$fireSense_climateVariable, ", k_", pwNames, ")")
+  
+  #this is safer for multiple climate variables 
+  interactionsDF <- as.data.table(expand.grid(igCovariates, sim$climateVariablesForFire$ignition))
+  interactionsDF[, interaction := do.call(paste, c(.SD, sep = ":")), .SDcols = names(interactionsDF)]
+  interactions <- interactionsDF$interaction
   
   #sanity check for base::abbreviate
-  if (!all(length(unique(pw)), length(unique(interactions)) == length(igCovariates))) {
-    warning("automated ignition formula construction needs review")
-  }
-
   if (isTRUE(P(sim)$usePiecewiseRegression)) {
     if (length(sim$climateVariablesForFire$ignition) > 1) {
       stop("cannot use multiple climate variables with piecewise ignition fit formula")
     }
+
+    pwNames <- abbreviate(igCovariates, minlength = 3, use.classes = TRUE, strict = FALSE)
+    
+    pw <- paste0(igCovariates, ":", "pw(", sim$climateVariablesForFire$ignition, ", k_", pwNames, ")")
+    if(!all(c(length(unique(pw)), length(unique(interactions))) == length(igCovariates))) {
+      warning("automated ignition formula construction needs review")
+    }
+      
+    
     sim$fireSense_ignitionFormula <- paste0(response, " ~ ", paste0(interactions, collapse = " + "), " + ",
                                             paste0(pw, collapse  = " + "), "- 1")
   } else {
+    if (!length(unique(interactions)) == length(igCovariates) * length(sim$climateVariablesForFire$ignition)) {
+      warning("automated ignition formula construction needs review")
+    }
     sim$fireSense_ignitionFormula <- paste0(response, " ~ ",
                                             paste0("(1|", ranEffs, ")"), " + ",
                                             paste0(sim$climateVariablesForFire$ignition, collapse = " + "), " + ",
