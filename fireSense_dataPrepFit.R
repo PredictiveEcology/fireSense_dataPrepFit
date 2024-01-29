@@ -809,6 +809,13 @@ prepare_IgnitionFit <- function(sim) {
   sim$ignitionFitRTM <- rast(fuelClasses$year2001[[1]])
   sim$ignitionFitRTM <- setValues(sim$ignitionFitRTM, 1) #avoids a warning
   attributes(sim$ignitionFitRTM)$nonNAs <- nrow(sim$fireSense_ignitionCovariates)
+  
+  #assign mean forest biomass- for use in plotting in ignitionFit# 
+  tempCD <- LandR::addPixels2CohortData(sim$cohortData2011, sim$pixelGroupMap2011)
+  bPerPixel <- tempCD[age > 0, .(bPerPixel = sum(B)), .(pixelIndex)]
+  meanForestB <- mean(bPerPixel$bPerPixel)
+  attributes(sim$ignitionFitRTM)$meanForestB <- meanForestB
+  rm(tempCD, bPerPixel)
 
   #build formula
   igCovariates <- names(sim$fireSense_ignitionCovariates)
