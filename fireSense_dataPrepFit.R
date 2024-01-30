@@ -777,12 +777,8 @@ prepare_IgnitionFit <- function(sim) {
                                .SD = setdiff(names(fireSense_ignitionCovariates),
                                             c(names(ignitionClimate), "cell", "ignitions", "year"))]
   fireSense_ignitionCovariates <- fireSense_ignitionCovariates[coverSums > 0]
-  
-  #this test is only appropriate if units represent leading species, not biomass  
-  # if (any(fireSense_ignitionCovariates$coverSums > 1)) {
-  #   stop("error with ignition raster aggregation")
-  # }
   set(fireSense_ignitionCovariates, NULL, "coverSums", NULL)
+  
 
   #rename cells to pixelID - though aggregated raster is not saved
   setnames(fireSense_ignitionCovariates, old = "cell", new = "pixelID")
