@@ -293,27 +293,23 @@ Init <- function(sim) {
 
   # cannot merge because before subsetting due to column differences over time
 
-  ## TODO: spreadFit should not use this object if P(sim)$nonForestCanBeYoungAge is TRUE
-  if (P(sim)$nonForestCanBeYoungAge) {
-    #if fireRaster is null, it will use firePolys
-    sim$nonForest_timeSinceDisturbance2001 <- makeTSD(year = 2001,
-                                                      fireRaster = sim$historicalFireRaster,
-                                                      firePolys = sim$firePolysForAge,
+  ## TODO: this object  be used to track annual youngAge of all pixels, forested or not
+  #so "nonForest" is a poor choice of name 
+  sim$nonForest_timeSinceDisturbance2001 <- makeTSD(year = 2001,
+                                                    fireRaster = sim$historicalFireRaster,
+                                                    firePolys = sim$firePolysForAge,
                                                       standAgeMap = sim$standAgeMap2001, lcc = sim$landcoverDT,
                                                       cutoffForYoungAge = P(sim)$cutoffForYoungAge)
     sim$nonForest_timeSinceDisturbance2011 <- makeTSD(year = 2011, fireRaster = sim$historicalFireRaster,
                                                       firePolys = sim$firePolysForAge,
-                                                      standAgeMap = sim$standAgeMap2011,
-                                                      lcc = sim$landcoverDT,
-                                                      cutoffForYoungAge = P(sim)$cutoffForYoungAge)
-  }
-  origDTThreads <- data.table::setDTthreads(2)
+                                                    standAgeMap = sim$standAgeMap2011,
+                                                    lcc = sim$landcoverDT,
+                                                    cutoffForYoungAge = P(sim)$cutoffForYoungAge)
 
   #until youngAge is standardized between spread and ignition, no point in prepping veg here
   #Currently youngAge is resolved annually in spread, but only once in ignition
   #e.g. if a pixel ignited in 2008, its youngAge status in ignition is still determined by whether it was 15 in 2001,
   #but its youngAge status for spread is deterimined by whether standAge < 15 in 2008
-
 
   #needed by prep spread
   return(invisible(sim))
@@ -463,10 +459,9 @@ prepare_SpreadFit <- function(sim) {
   annualCovariates <- list(fireSense_annualSpreadFitCovariates[pre2011],
                            fireSense_annualSpreadFitCovariates[post2011])
   
-  if (P(sim)$nonForestCanBeYoungAge){
-    annualCovariates <- Cache(
-      purrr::pmap,
-      .l = list(
+  annualCovariates <- Cache(
+    purrr::pmap,
+    .l = list(
         #years = list(c(2001:2010), c(2011:max(P(sim)$fireYears))),
         years = list(pre2011int, post2011int),
         annualCovariates = annualCovariates,
@@ -474,12 +469,31 @@ prepare_SpreadFit <- function(sim) {
                            sim$nonForest_timeSinceDisturbance2011)
       ),
     .f = calcYoungAge,
-      fireBufferedListDT = sim$fireBufferedListDT,
-      cutoffForYoungAge = P(sim)$cutoffForYoungAge
-    )
-  }
+    fireBufferedListDT = sim$fireBufferedListDT,
+    cutoffForYoungAge = P(sim)$cutoffForYoungAge
+  )
+  
   sim$fireSense_annualSpreadFitCovariates <- do.call(c, annualCovariates)
-
+  
+  #TODO
+  #if nonForest cannot be young age, ensure these pixels have youngAge = 0
+  # if nonForest can be young, it is addressed by `makeMutuallyExclusive` in spreadFit
+  #also this is slow
+  # this is bit problematic for summary statistics prior to spreadFit being run...
+  if (!P(sim)$nonForestCanBeYoungAge) {
+    sim$landcoverDT[, foo := rowSums(.SD), .SDcol = names(sim$nonForestedLCCGroups)]
+    nfPix <- sim$landcoverDT[foo == 1]$pixelID
+    fixed <- lapply(sim$fireSense_annualSpreadFitCovariates, 
+                    FUN = function(x, pix = nfPix){
+                      x[pixelID %in% nfPix, youngAge := FALSE]
+                      return(x)
+                    })
+    sim$fireSense_annualSpreadFitCovariates <- fixed
+    #clean up
+    rm(fixed, nfPix)
+    sim$landcoverDT[, foo := NULL]
+  }
+  
   sim$fireSense_nonAnnualSpreadFitCovariates <- list(nonAnnualPre2011, nonAnnualPost2011)
   names(sim$fireSense_nonAnnualSpreadFitCovariates) <- c(paste(names(pre2011Indices), collapse = "_"),
                                                          paste(names(post2011Indices), collapse = "_"))
