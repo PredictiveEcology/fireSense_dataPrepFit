@@ -497,8 +497,9 @@ prepare_SpreadFit <- function(sim) {
   sim$fireSense_nonAnnualSpreadFitCovariates <- list(nonAnnualPre2011, nonAnnualPost2011)
   names(sim$fireSense_nonAnnualSpreadFitCovariates) <- c(paste(names(pre2011Indices), collapse = "_"),
                                                          paste(names(post2011Indices), collapse = "_"))
-
-  sim$fireSense_spreadFormula <- paste0("~ 0 + ", RHS)
+  if (!is.null(sim)$fireSense_spreadFormula) {
+    sim$fireSense_spreadFormula <- paste0("~ 0 + ", RHS)
+  }
 
   return(invisible(sim))
 }
@@ -670,21 +671,21 @@ prepare_IgnitionFit <- function(sim) {
       nrow(st_intersection(st_as_sf(sim$ignitionFirePoints), st_as_sf(mod$studyAreaUnion)))
     )
   )
-
+  
   # if (!terra::same.crs(sim$ignitionFirePoints, sim$rasterToMatch)) {
   #   # project it first, faster than the postProcessTo sequence pre-crop, project, mask, crop
   #   sim$ignitionFirePoints <- projectTo(sim$ignitionFirePoints, sim$rasterToMatch) |>
   #     cropTo(sim$rasterToMatch) |>
   #     maskTo(sim$rasterToMatch)
   # }
-
+  
   # account for forested pixels that aren't in cohortData
   sim$landcoverDT[, rowSums := rowSums(.SD), .SD = setdiff(names(sim$landcoverDT), "pixelID")]
   forestPix <- sim$landcoverDT[rowSums == 0,]$pixelID
   problemPix2001 <- forestPix[is.na(sim$pixelGroupMap2001[forestPix])]
   problemPix2011 <- forestPix[is.na(sim$pixelGroupMap2011[forestPix])]
   set(sim$landcoverDT, NULL, 'rowSums', NULL)
-
+  
   ## The non-forests aren't the same between years, due to cohortData being different
   landcoverDT2001 <- copy(sim$landcoverDT)
   landcoverDT2001[pixelID %in% problemPix2001, eval(P(sim)$missingLCCgroup) := 1]
@@ -693,24 +694,24 @@ prepare_IgnitionFit <- function(sim) {
   ## first put landcover into raster stack
   ## non-flammable pixels require zero values for non-forest landcover, not NA
   LCCras <- Map(
-      f = putBackIntoRaster,
-      landcoverDT = list(landcoverDT2001,landcoverDT2011),
-      MoreArgs = list(lcc = names(sim$nonForestedLCCGroups),
-                      flammableMap = sim$flammableRTM)) |>
+    f = putBackIntoRaster,
+    landcoverDT = list(landcoverDT2001,landcoverDT2011),
+    MoreArgs = list(lcc = names(sim$nonForestedLCCGroups),
+                    flammableMap = sim$flammableRTM)) |>
     Cache(.functionName = "putBackIntoRaster",
           userTags = c("putBackIntoRaster", P(sim)$.studyAreaName))
-
+  
   fuelClasses <- Map(f = cohortsToFuelClasses,
-        cohortData = list(sim$cohortData2001, sim$cohortData2011),
-        pixelGroupMap = list(sim$pixelGroupMap2001, sim$pixelGroupMap2011),
-        MoreArgs = list(sppEquiv = sim$sppEquiv,
-                        sppEquivCol = P(sim)$sppEquivCol,
-                        landcoverDT = sim$landcoverDT,
-                        fuelClassCol = P(sim)$ignitionFuelClassCol,
-                        flammableRTM = sim$flammableRTM,
-                        cutoffForYoungAge = P(sim)$cutoffForYoungAge)) |>
+                     cohortData = list(sim$cohortData2001, sim$cohortData2011),
+                     pixelGroupMap = list(sim$pixelGroupMap2001, sim$pixelGroupMap2011),
+                     MoreArgs = list(sppEquiv = sim$sppEquiv,
+                                     sppEquivCol = P(sim)$sppEquivCol,
+                                     landcoverDT = sim$landcoverDT,
+                                     fuelClassCol = P(sim)$ignitionFuelClassCol,
+                                     flammableRTM = sim$flammableRTM,
+                                     cutoffForYoungAge = P(sim)$cutoffForYoungAge)) |>
     Cache(.functionName = "cohortsToFuelClasses")
-
+  
   if (P(sim)$nonForestCanBeYoungAge) {
     ## this modifies the NF landcover by converting some NF to a new YA layer
     ## it must be done before aggregating
@@ -721,10 +722,10 @@ prepare_IgnitionFit <- function(sim) {
                   LCCras = list(LCCras[[1]], LCCras[[2]]),
                   MoreArgs = list(cutoffForYoungAge = P(sim)$cutoffForYoungAge)) |>
       Cache(.functionName = "calcNonForestYoungAge")
-
+    
     for (i in c(1:2)) {
       if ("youngAge" %in% names(fuelClasses[[i]])) {
-
+        
         YA1 <- fuelClasses[[i]]$youngAge
         YA2 <- LCCras[[i]]$youngAge
         bothYA <- YA1 + YA2
@@ -743,10 +744,10 @@ prepare_IgnitionFit <- function(sim) {
   fuelClasses <- lapply(fuelClasses, FUN = aggregate, fact = P(sim)$igAggFactor, fun = mean) |>
     Cache(.functionName = "aggregate_fuelClasses_to_coarse")
   names(fuelClasses) <- c("year2001", "year2011")
-
+  
   ignitionClimate <- sim$historicalClimateRasters[sim$climateVariablesForFire$ignition]
   ignitionClimate <- lapply(X = ignitionClimate, FUN = terra::aggregate, 
-                               fact = P(sim)$igAggFactor, fun = mean) |>
+                            fact = P(sim)$igAggFactor, fun = mean) |>
     Cache(.functionName = "aggregate_historicalClimateRasters_to_coarse")
   #safety
   compareGeom(ignitionClimate[[1]], fuelClasses[[1]], fuelClasses[[2]])
@@ -756,7 +757,7 @@ prepare_IgnitionFit <- function(sim) {
   pre2011 <- paste0("year", min(P(sim)$fireYears):2010)
   post2011 <- paste0("year", 2011:max(P(sim)$fireYears))
   allYears <- c(pre2011, post2011)
-
+  
   #assume that if multiple climate variables are present, they are of equal length
   #else bigger problems exist
   whAvailable <- allYears %in% names(ignitionClimate[[1]])
@@ -772,7 +773,7 @@ prepare_IgnitionFit <- function(sim) {
     P(sim)$fireYears <- intersect(as.numeric(gsub("year", "", yearsInClimateRast)),
                                   P(sim)$fireYears)
   }
-
+  
   #TODO: the cache bevavior is too permissive
   #this is joining fuel class, LCC, and climate, subsetting to flamIndex, calculating n of ignitions
   fireSense_ignitionCovariates <- Map(f = fireSenseUtils::stackAndExtract,
@@ -783,21 +784,21 @@ prepare_IgnitionFit <- function(sim) {
                                                       fires = sim$ignitionFirePoints
                                       )) |> Cache(.functionName = "stackAndExtract", 
                                                   userTags = names(ignitionClimate))
-
+  
   fireSense_ignitionCovariates <- rbindlist(fireSense_ignitionCovariates)
-
+  
   #remove any pixels that are 0 for all classes
   fireSense_ignitionCovariates[, coverSums := rowSums(.SD),
                                .SD = setdiff(names(fireSense_ignitionCovariates),
-                                            c(names(ignitionClimate), "cell", "ignitions", "year"))]
+                                             c(names(ignitionClimate), "cell", "ignitions", "year"))]
   fireSense_ignitionCovariates <- fireSense_ignitionCovariates[coverSums > 0]
   set(fireSense_ignitionCovariates, NULL, "coverSums", NULL)
   
-
+  
   #rename cells to pixelID - though aggregated raster is not saved
   setnames(fireSense_ignitionCovariates, old = "cell", new = "pixelID")
   fireSense_ignitionCovariates[, year := as.numeric(year)]
-
+  
   # for random effect
   ranEffs <- "yearChar"
   set(fireSense_ignitionCovariates, NULL, ranEffs, as.character(fireSense_ignitionCovariates$year))
@@ -812,9 +813,9 @@ prepare_IgnitionFit <- function(sim) {
     set(fireSense_ignitionCovariates, NULL, response, pmin(fireSense_ignitionCovariates$ignitions, 1))
     # fireSense_ignitionCovariates[, ignitionsNoGT1 := ifelse(ignitions > 1, 1, ignitions)]
   }
-
+  
   sim$fireSense_ignitionCovariates <- fireSense_ignitionCovariates
-
+  
   #make new ignition object, ignitionFitRTM
   sim$ignitionFitRTM <- rast(fuelClasses$year2001[[1]])
   sim$ignitionFitRTM <- setValues(sim$ignitionFitRTM, 1) #avoids a warning
@@ -826,7 +827,7 @@ prepare_IgnitionFit <- function(sim) {
   meanForestB <- mean(bPerPixel$bPerPixel)
   attributes(sim$ignitionFitRTM)$meanForestB <- meanForestB
   rm(tempCD, bPerPixel)
-
+  
   #build formula
   igCovariates <- names(sim$fireSense_ignitionCovariates)
   igCovariates <- igCovariates[!igCovariates %in%
@@ -843,26 +844,31 @@ prepare_IgnitionFit <- function(sim) {
     if (length(sim$climateVariablesForFire$ignition) > 1) {
       stop("cannot use multiple climate variables with piecewise ignition fit formula")
     }
-
+    
     pwNames <- abbreviate(igCovariates, minlength = 3, use.classes = TRUE, strict = FALSE)
     
     pw <- paste0(igCovariates, ":", "pw(", sim$climateVariablesForFire$ignition, ", k_", pwNames, ")")
-    if(!all(c(length(unique(pw)), length(unique(interactions))) == length(igCovariates))) {
+    if (!all(c(length(unique(pw)), length(unique(interactions))) == length(igCovariates))) {
       warning("automated ignition formula construction needs review")
     }
-      
     
-    sim$fireSense_ignitionFormula <- paste0(response, " ~ ", paste0(interactions, collapse = " + "), " + ",
-                                            paste0(pw, collapse  = " + "), "- 1")
+    #don't overwrite if it exists
+    if (!is.null(sim$fireSense_ignitionFormula)) {
+      sim$fireSense_ignitionFormula <- paste0(response, " ~ ", paste0(interactions, collapse = " + "), " + ",
+                                              paste0(pw, collapse  = " + "), "- 1")
+    }
+    
   } else {
     if (!length(unique(interactions)) == length(igCovariates) * length(sim$climateVariablesForFire$ignition)) {
       warning("automated ignition formula construction needs review")
     }
-    sim$fireSense_ignitionFormula <- paste0(response, " ~ ",
-                                            paste0("(1|", ranEffs, ")"), " + ",
-                                            paste0(sim$climateVariablesForFire$ignition, collapse = " + "), " + ",
-                                            paste0(igCovariates, collapse = " + "), " + ",
-                                            paste0(interactions, collapse = " + "))
+    if (!is.null(sim$fireSense_ignitionFormula)) {
+      sim$fireSense_ignitionFormula <- paste0(response, " ~ ",
+                                              paste0("(1|", ranEffs, ")"), " + ",
+                                              paste0(sim$climateVariablesForFire$ignition, collapse = " + "), " + ",
+                                              paste0(igCovariates, collapse = " + "), " + ",
+                                              paste0(interactions, collapse = " + "))
+    }
   }
   return(invisible(sim))
 }
@@ -904,7 +910,10 @@ prepare_EscapeFit <- function(sim) {
   escapeVars <- names(escapeDT)[!names(escapeDT) %in% c("year", "pixelID", "escapes", "ignitions")]
   LHS <- paste0("cbind(escapes, ignitions - escapes) ~ ")
   RHS <- paste0(escapeVars, collapse = " + ")
-  sim$fireSense_escapeFormula <- paste0(LHS, RHS, " - 1")
+  
+  if (!is.null(sim$fireSense_escapeFormula)) {
+    sim$fireSense_escapeFormula <- paste0(LHS, RHS, " - 1")
+  }
 
   if (any(sim$fireSense_escapeCovariates$escapes > sim$fireSense_escapeCovariates$ignitions)) {
     stop("issue with escapes outnumbering ignitions in a pixel - contact module creators")
