@@ -497,7 +497,7 @@ prepare_SpreadFit <- function(sim) {
   sim$fireSense_nonAnnualSpreadFitCovariates <- list(nonAnnualPre2011, nonAnnualPost2011)
   names(sim$fireSense_nonAnnualSpreadFitCovariates) <- c(paste(names(pre2011Indices), collapse = "_"),
                                                          paste(names(post2011Indices), collapse = "_"))
-  if (!is.null(sim)$fireSense_spreadFormula) {
+  if (is.null(sim$fireSense_spreadFormula)) {
     sim$fireSense_spreadFormula <- paste0("~ 0 + ", RHS)
   }
 
@@ -851,9 +851,8 @@ prepare_IgnitionFit <- function(sim) {
     if (!all(c(length(unique(pw)), length(unique(interactions))) == length(igCovariates))) {
       warning("automated ignition formula construction needs review")
     }
-    
     #don't overwrite if it exists
-    if (!is.null(sim$fireSense_ignitionFormula)) {
+    if (is.null(sim$fireSense_ignitionFormula)) {
       sim$fireSense_ignitionFormula <- paste0(response, " ~ ", paste0(interactions, collapse = " + "), " + ",
                                               paste0(pw, collapse  = " + "), "- 1")
     }
@@ -862,7 +861,7 @@ prepare_IgnitionFit <- function(sim) {
     if (!length(unique(interactions)) == length(igCovariates) * length(sim$climateVariablesForFire$ignition)) {
       warning("automated ignition formula construction needs review")
     }
-    if (!is.null(sim$fireSense_ignitionFormula)) {
+    if (is.null(sim$fireSense_ignitionFormula)) {
       sim$fireSense_ignitionFormula <- paste0(response, " ~ ",
                                               paste0("(1|", ranEffs, ")"), " + ",
                                               paste0(sim$climateVariablesForFire$ignition, collapse = " + "), " + ",
@@ -911,7 +910,7 @@ prepare_EscapeFit <- function(sim) {
   LHS <- paste0("cbind(escapes, ignitions - escapes) ~ ")
   RHS <- paste0(escapeVars, collapse = " + ")
   
-  if (!is.null(sim$fireSense_escapeFormula)) {
+  if (is.null(sim$fireSense_escapeFormula)) {
     sim$fireSense_escapeFormula <- paste0(LHS, RHS, " - 1")
   }
 
