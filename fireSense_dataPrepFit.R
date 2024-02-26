@@ -1078,6 +1078,7 @@ runBorealDP_forCohortData <- function(sim) {
   }
 
   if (!suppliedElsewhere("standAgeMap2001", sim)) {
+    ## don't pass fireURL here; nonForest_timeSinceDisturbance will be used to correct ages
     sim$standAgeMap2001 <- Cache(prepInputsStandAgeMap,
                                  rasterToMatch = sim$rasterToMatch,
                                  studyArea = sim$studyArea,
@@ -1088,6 +1089,7 @@ runBorealDP_forCohortData <- function(sim) {
   }
 
   if (!suppliedElsewhere("standAgeMap2011", sim)) {
+    ## don't pass fireURL here; nonForest_timeSinceDisturbance will be used to correct ages
     sim$standAgeMap2011 <- Cache(prepInputsStandAgeMap,
                                  rasterToMatch = sim$rasterToMatch,
                                  studyArea = sim$studyArea,
