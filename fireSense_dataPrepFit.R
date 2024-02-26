@@ -243,7 +243,7 @@ Init <- function(sim) {
   mod$studyAreaUnion <- if (is(sim$studyArea, "sf")) {
     sf::st_union(sim$studyArea)
   } else if (is(sim$studyArea, "SpatVector")) {
-    terra::aggregate(sim$studyArea)
+    terra::aggregate(sim$studyArea) ## TODO: use terra::fillHoles()?
   } else {
     stop("studyArea must be either an sf or SpatVector object")
   }
