@@ -811,27 +811,25 @@ prepare_IgnitionFit <- function(sim) {
   interactions <- interactionsDF$interaction
 
   ## sanity check for base::abbreviate
-  if (isTRUE(P(sim)$usePiecewiseRegression)) {
-    if (length(sim$climateVariablesForFire$ignition) > 1) {
-      stop("cannot use multiple climate variables with piecewise ignition fit formula")
-    }
+  if (is.null(sim$fireSense_ignitionFormula))  {
+    if (isTRUE(P(sim)$usePiecewiseRegression)) {
+      if (length(sim$climateVariablesForFire$ignition) > 1) {
+        stop("cannot use multiple climate variables with piecewise ignition fit formula")
+      }
 
-    pwNames <- abbreviate(igCovariates, minlength = 3, use.classes = TRUE, strict = FALSE)
-    pw <- paste0(igCovariates, ":", "pw(", sim$climateVariablesForFire$ignition, ", k_", pwNames, ")")
+      pwNames <- abbreviate(igCovariates, minlength = 3, use.classes = TRUE, strict = FALSE)
+      pw <- paste0(igCovariates, ":", "pw(", sim$climateVariablesForFire$ignition, ", k_", pwNames, ")")
 
-    if (!all(c(length(unique(pw)), length(unique(interactions))) == length(igCovariates))) {
-      warning("automated ignition formula construction needs review")
-    }
-    ## don't overwrite if it exists
-    if (is.null(sim$fireSense_ignitionFormula)) {
+      if (!all(c(length(unique(pw)), length(unique(interactions))) == length(igCovariates))) {
+        warning("automated ignition formula construction needs review")
+      }
       sim$fireSense_ignitionFormula <- paste0(response, " ~ ", paste0(interactions, collapse = " + "), " + ",
                                               paste0(pw, collapse  = " + "), "- 1")
-    }
-  } else {
-    if (!length(unique(interactions)) == length(igCovariates) * length(sim$climateVariablesForFire$ignition)) {
-      warning("automated ignition formula construction needs review")
-    }
-    if (is.null(sim$fireSense_ignitionFormula)) {
+    } else {
+      if (!length(unique(interactions)) == length(igCovariates) * length(sim$climateVariablesForFire$ignition)) {
+        warning("automated ignition formula construction needs review")
+      }
+
       sim$fireSense_ignitionFormula <- paste0(response, " ~ ",
                                               paste0("(1|", ranEffs, ")"), " + ",
                                               paste0(sim$climateVariablesForFire$ignition, collapse = " + "), " + ",
