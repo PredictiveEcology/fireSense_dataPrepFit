@@ -723,7 +723,7 @@ prepare_IgnitionFit <- function(sim) {
 
   ignitionClimate <- sim$historicalClimateRasters[sim$climateVariablesForFire$ignition]
   ignitionClimate <- lapply(X = ignitionClimate, FUN = terra::aggregate,
-                               fact = P(sim)$igAggFactor, fun = mean) |>
+                            fact = P(sim)$igAggFactor, fun = mean) |>
     Cache(.functionName = "aggregate_historicalClimateRasters_to_coarse")
 
   compareGeom(ignitionClimate[[1]], fuelClasses[[1]], fuelClasses[[2]])
