@@ -922,7 +922,7 @@ runBorealDP_forCohortData <- function(sim) {
     ## don't install pkgs mid-stream; already use module metadata to declare pkgs for installation
     # Require::Install("PredictiveEcology/SpaDES.project@transition")
     modulePathLocal <- file.path(modulePath(sim), currentModule(sim), "submodules")
-    getModule(file.path("PredictiveEcology", paste0(neededModule, "@development")),
+    getModule(paste0("PredictiveEcology/", neededModule, "@development"),
               modulePath = modulePathLocal, overwrite = FALSE)
     pathsLocal$modulePath <- modulePathLocal
   }
