@@ -1,8 +1,6 @@
 "file" "checksum" "filesize" "algorithm"
 "BNDFFC_documentation_FR.pdf" "4f88f586c1d2891e" "493301" "xxhash64"
 "BNDFFC_FR_End-User Agreement.pdf" "c21f7431a58f6eca" "217700" "xxhash64"
-"flammableRTM_83e4a2f93881e577.tif" "85da7af09b04b299" "1196499" "xxhash64"
-"flammableRTM_83e4a2f93881e577.tif.aux.xml" "cc5bc2ed8cfc5ec4" "7336" "xxhash64"
 "NFDB_documentation_EN.pdf" "b457bd0efa2a15dc" "594960" "xxhash64"
 "NFDB_EN_End-User Agreement.pdf" "5d8f92f234f46f3e" "221967" "xxhash64"
 "NFDB_point_20220901.CPG" "a0915c78be995614" "5" "xxhash64"
