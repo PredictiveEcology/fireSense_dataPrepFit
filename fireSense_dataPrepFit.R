@@ -14,7 +14,7 @@ defineModule(sim, list(
   documentation = deparse(list("README.md", "fireSense_dataPrepFit.Rmd")),
   loadOrder = list(after = c("Biomass_borealDataPrep", "Biomass_speciesParameters")),
   reqdPkgs = list("data.table", "fastDummies",
-                  "PredictiveEcology/fireSenseUtils@biomassFuel (>= 0.0.5.9062)",
+                  "PredictiveEcology/fireSenseUtils@lccFix (>= 0.0.5.9062)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@lccFix (>= 1.1.0.9081)",
                   "PredictiveEcology/SpaDES.core@development (>= 2.0.2.9006)",
@@ -275,13 +275,14 @@ Init <- function(sim) {
       Cache(.functionName = "projectTo_for_firePolys")
   }
 
+  
   ## sanity checks
   if (!LandR::.compareRas(sim$standAgeMap2001, sim$standAgeMap2011, sim$rasterToMatch,
                           stopOnError = FALSE)) {
     sim$standAgeMap2001 <- postProcess(sim$standAgeMap2001, cropTo = sim$rasterToMatch,
-                                       projectTo = sim$rasterToMathc, maskTo = mod$studyAreaUnion)
+                                       projectTo = sim$rasterToMatch, maskTo = mod$studyAreaUnion)
     sim$standAgeMap2011 <- postProcess(sim$standAgeMap2011, cropTo = sim$rasterToMatch,
-                                        projectTo = sim$rasterToMathc, maskTo = mod$studyAreaUnion)
+                                        projectTo = sim$rasterToMatch, maskTo = mod$studyAreaUnion)
   }
 
   if (!P(sim)$missingLCCgroup %in% names(sim$nonForestedLCCGroups)) {
