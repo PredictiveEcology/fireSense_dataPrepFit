@@ -622,15 +622,16 @@ prepare_SpreadFitFire_Vector <- function(sim) {
   #and even this duplicated step should be a function of "fire period" for >2 periods 
   #however, the rasterized fire prep is significantly different, and needs review first 
   harmonized2001 <- Cache(harmonizeFireData,
-                          firePolys = sim$firePolys[pre2012], 
+                          firePolys = sim$firePolys[names(sim$firePolys) %in% pre2012], #protects from missing years
                           flammableRTM = sim$flammableRTM2001,
                           spreadFirePoints = sim$spreadFirePoints[pre2012], 
                           areaMultiplier = P(sim)$areaMultiplier, minSize = P(sim)$minBufferSize,
                           pointsIDcolumn = "FIRE_ID",
                           userTags = c("harmonizeFireData", P(sim)$.studyAreaName, "2001"))
   harmonized2011 <- Cache(harmonizeFireData,
-                          sim$firePolys[post2012], sim$flammableRTM2011, 
-                          spreadFirePoints = sim$spreadFirePoints[post2012],
+                          sim$firePolys[names(sim$firePolys) %in% post2012], 
+                          sim$flammableRTM2011, 
+                          spreadFirePoints = sim$spreadFirePoints[names(sim$spreadFirePoints) %in% post2012],
                           areaMultiplier = P(sim)$areaMultiplier, minSize = P(sim)$minBufferSize,
                           pointsIDcolumn = "FIRE_ID",
                           userTags = c("harmonizeFireData", P(sim)$.studyAreaName, "2011"))
@@ -1169,7 +1170,6 @@ runBorealDP_forCohortData <- function(sim) {
                             destinationPath = dPath,
                             userTags = c("rstLCC2001", P(sim)$.studyAreaName))
   }
-  
   
   if (!suppliedElsewhere("flammableRTM2001", sim) & !suppliedElsewhere("flammableRTM2011", sim)) {
     
