@@ -239,6 +239,17 @@ doEvent.fireSense_dataPrepFit = function(sim, eventTime, eventType) {
 
 ### template initialization
 Init <- function(sim) {
+  
+  if (!isInt(sim$rstLCC2001)) sim$rstLCC2001 <- asInt(sim$rstLCC2001)
+  sim$flammableRTM2001 <- defineFlammable(sim$rstLCC2001,
+                                          nonFlammClasses = P(sim)$nonflammableLCC,
+                                          to = sim$rasterToMatch)
+  
+  if (!isInt(sim$rstLCC2011)) sim$rstLCC2011 <- asInt(sim$rstLCC2011)
+  sim$flammableRTM2011 <- defineFlammable(sim$rstLCC2011,
+                                          nonFlammClasses = P(sim)$nonflammableLCC,
+                                          to = sim$rasterToMatch)
+  
  
   #TODO: standardize sim$climateVariablesForFire if user provided
   #this approach will be wrong if they pass a list length one... 
@@ -611,12 +622,15 @@ prepare_SpreadFitFire_Vector <- function(sim) {
   #silly R  
   sim$spreadFirePoints[sapply(sim$spreadFirePoints, is.null)] <- NULL
 
+    
   sim$firePolys <- lapply(sim$firePolys, function(x) {
     x <- x[x$SIZE_HA > pixSizeHa,]
     if (nrow(x) > 0) x else NULL
   })
   sim$firePolys[sapply(sim$firePolys, is.null)] <- NULL
-
+  sim$spreadFirePoints <- sim$spreadFirePoints[names(sim$spreadFirePoints) %in% names(sim$firePolys)]
+  #this covers when years are NA, which are caused by fire years with no available data
+  
   #years run separately because flammableRTM is different
   #ultimately this function should combine the climate data to avoid needless iteration, 
   #and even this duplicated step should be a function of "fire period" for >2 periods 
@@ -983,6 +997,7 @@ runBorealDP_forCohortData <- function(sim) {
       parms[".globals"] <- params(sim)[".globals"]
     }
 
+    browser()
     outNY <- Cache(do.call(SpaDES.core::simInitAndSpades, list(paths = pathsLocal,
                                                              params = parms,
                                                              times = list(start = ny, end = ny),
@@ -1161,28 +1176,12 @@ runBorealDP_forCohortData <- function(sim) {
       "nf_lowFlam" = c(40, 81)) #bryoids + non-treed wetland. 
   }
   
-  if (!suppliedElsewhere("rstLCC2011", sim) & !suppliedElsewhere("rstLCC2001", sim)) {
+  if (!suppliedElsewhere("rstLCC2011", sim)) {
     #these are optional improvements to lcc that are not necessary for BBDP
-    sim$rstLCC2011 <- Cache(LandR::prepInputs_NTEMS_Nonforest, rstLCC = sim$rstLCC2011, 
-                            destinationPath = dPath, 
-                            userTags = c("rstLCC2011", P(sim)$.studyAreaName))
-    sim$rstLCC2001 <- Cache(LandR::prepInputs_NTEMS_Nonforest, rstLCC = sim$rstLCC2001, 
-                            destinationPath = dPath,
-                            userTags = c("rstLCC2001", P(sim)$.studyAreaName))
+    # it should not supply anything, because BBDP will do this. 
+    # BBDP SHOULD do it so that the extent is correct assuming it users RTML
   }
   
-  if (!suppliedElsewhere("flammableRTM2001", sim) & !suppliedElsewhere("flammableRTM2011", sim)) {
-    
-    if (!isInt(sim$rstLCC2001)) sim$rstLCC2001 <- asInt(sim$rstLCC2001)
-    if (!isInt(sim$rstLCC2011)) sim$rstLCC2011 <- asInt(sim$rstLCC2011)
-    
-    sim$flammableRTM2001 <- defineFlammable(sim$rstLCC2001,
-                                            nonFlammClasses = P(sim)$nonflammableLCC,
-                                            to = sim$rasterToMatch)
-    sim$flammableRTM2011 <- defineFlammable(sim$rstLCC2011,
-                                            nonFlammClasses = P(sim)$nonflammableLCC,
-                                            to = sim$rasterToMatch)
-  }
   
   return(invisible(sim))
 }
