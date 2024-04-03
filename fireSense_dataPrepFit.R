@@ -997,7 +997,6 @@ runBorealDP_forCohortData <- function(sim) {
       parms[".globals"] <- params(sim)[".globals"]
     }
 
-    browser()
     outNY <- Cache(do.call(SpaDES.core::simInitAndSpades, list(paths = pathsLocal,
                                                              params = parms,
                                                              times = list(start = ny, end = ny),
@@ -1176,13 +1175,7 @@ runBorealDP_forCohortData <- function(sim) {
       "nf_lowFlam" = c(40, 81)) #bryoids + non-treed wetland. 
   }
   
-  if (!suppliedElsewhere("rstLCC2011", sim)) {
-    #these are optional improvements to lcc that are not necessary for BBDP
-    # it should not supply anything, because BBDP will do this. 
-    # BBDP SHOULD do it so that the extent is correct assuming it users RTML
-  }
-  
-  
+
   return(invisible(sim))
 }
 
