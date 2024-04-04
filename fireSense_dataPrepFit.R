@@ -170,9 +170,9 @@ defineModule(sim, list(
                         "Used to pass this information onto `fireSense_ignitionFitted`",
                         "Needs to have number of non-NA cells as attribute (`attributes(ignitionFitRTM)$nonNAs`).")),
     createsOutput("landcoverDT2001", "data.table", 
-                  "data.table with `pixelID` and relevant landcover classes in 2001"),
+                  "data.table with `pixelID` and relevant landcover classes for flammable pixels in 2001 "),
     createsOutput("landcoverDT2011", "data.table",
-                  "data.table with `pixelID` and relevant landcover classes in 2011"),
+                  "data.table with `pixelID` and relevant landcover classes for flammable pixels in 2011"),
     createsOutput("nonForest_timeSinceDisturbance2001", "SpatRaster",
                   "time since burn for non-forested pixels in 2001"),
     createsOutput("nonForest_timeSinceDisturbance2011", "SpatRaster",
@@ -320,18 +320,21 @@ Init <- function(sim) {
   # cannot merge because before subsetting due to column differences over time
 
   ## TODO: this object  be used to track annual youngAge of all pixels, forested or not
-  #so "nonForest" is a poor choice of name 
+  #so "nonForest" is a poor choice of name
+  #it should not have values for nonflammable pixels
   sim$nonForest_timeSinceDisturbance2001 <- makeTSD(year = 2001,
                                                     fireRaster = sim$historicalFireRaster, #can be NULL
                                                     firePolys = sim$firePolysForAge,
                                                     standAgeMap = sim$standAgeMap2001, lcc = sim$landcoverDT2001,
                                                     cutoffForYoungAge = P(sim)$cutoffForYoungAge)
+  sim$nonForest_timeSinceDisturbance2001[sim$flammableRTM2001[] == 0] <- NA
   sim$nonForest_timeSinceDisturbance2011 <- makeTSD(year = 2011, 
                                                     fireRaster = sim$historicalFireRaster, #can be NULL 
                                                     firePolys = sim$firePolysForAge,
                                                     standAgeMap = sim$standAgeMap2011,
                                                     lcc = sim$landcoverDT2011,
                                                     cutoffForYoungAge = P(sim)$cutoffForYoungAge)
+  sim$nonForest_timeSinceDisturbance2011[sim$flammableRTM2011[] == 0] <- NA
 
   #until youngAge treatment is identical between spread and ignition, no point in prepping veg here
   #Currently youngAge is resolved annually in spread, but only once in ignition
@@ -392,9 +395,7 @@ prepare_SpreadFit <- function(sim) {
   ####join fire and veg data ####
   pre2012 <- paste0("year", min(P(sim)$fireYears):2011)
   post2012 <- paste0("year", 2012:max(P(sim)$fireYears))
-  #these fire year objects get a bit tedious because they need to be in integer, string, 
-  #with and without missing fire years
-  
+
   pre2012Indices <- sim$fireBufferedListDT[pre2012] %>%
     rbindlist(.) %>%
     .[vegData[year < 2012], on = c("pixelID")] %>%
@@ -445,9 +446,8 @@ prepare_SpreadFit <- function(sim) {
 
   ##climate ###
   
-  #TODO: index removed as argument - so if this breaks - this is the issue
-  #we would need to modify this object to account for two sets of flammable indices
-  # as flammable pixels change between 2001 and 2011 (mainly water) 
+  #TODO: index removed as argument - as flammable pixels change between 2001 and 2011 (mainly water)
+  # the wide layout of this object is incompatible (or we have NAs in rows)
   spreadClimate <- sim$historicalClimateRasters[sim$climateVariablesForFire$spread]
 
   climateDT <- Cache(climateRasterToDataTable,
@@ -458,7 +458,11 @@ prepare_SpreadFit <- function(sim) {
   rmCols <- setdiff(colnames(fbl), c("pixelID", "year"))
   set(fbl, NULL, rmCols, NULL)
   fbl <- climateDT[fbl, on = c("year", "pixelID"), nomatch = NULL]
+  
+  
   fireSense_annualSpreadFitCovariates <- split(fbl, by = "year", keep.by = FALSE)
+  
+  
 
   ## prepare non-annual spread fit covariates by getting the youngAge
   pre2012Indices <- sim$fireBufferedListDT[names(sim$fireBufferedListDT) %in% pre2012]
@@ -476,6 +480,7 @@ prepare_SpreadFit <- function(sim) {
     as.data.table(.) %>%
     .[!duplicated(pixelID)] ## remove duplicates from same pixel diff year
 
+  #join the climate variables with the other annual covariate - youngAge (a.k.a. time since fire)
   ## pmap allows for internal debugging when there are large lists that are passed in; Map does not
   annualCovariates <- list(fireSense_annualSpreadFitCovariates[pre2012],
                            fireSense_annualSpreadFitCovariates[post2012])
@@ -493,7 +498,14 @@ prepare_SpreadFit <- function(sim) {
     fireBufferedListDT = sim$fireBufferedListDT,
     cutoffForYoungAge = P(sim)$cutoffForYoungAge
   )
- 
+  
+  #get rid of nonflammable pixels (here because the calcYoungAge function assigns ages to NA values, 
+  # due to inconsistent treatment of non-forest age pixels  in kNN years and other products (0 vs NA)
+  annualCovariates[[1]] <- lapply(annualCovariates[[1]], 
+                                  function(x){ x[pixelID %in% sim$landcoverDT2001$pixelID,]})
+  annualCovariates[[2]] <- lapply(annualCovariates[[2]], 
+                                  function(x){ x[pixelID %in% sim$landcoverDT2011$pixelID,]})
+  
   if (!P(sim)$nonForestCanBeYoungAge) {
     #TODO: test this inversion of makeMutuallyExclusive's regular use
     args <- as.list(rep("youngAge", length = length(sim$nonForestedLCCGroups)))
