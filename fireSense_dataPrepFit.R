@@ -439,8 +439,8 @@ prepare_SpreadFit <- function(sim) {
   ## this is a funny way to get years but avoids years with 0 fires
   years <- paste0("year", P(sim)$fireYears)
   yearsWithFire <- years[years %in% names(sim$fireBufferedListDT)]
-  pre2012int <- as.integer(min(P(sim)$fireYears):2010)
-  post2012int <- as.integer(2011:max(P(sim)$fireYears))
+  pre2012int <- as.integer(min(P(sim)$fireYears):2011)
+  post2012int <- as.integer(2012:max(P(sim)$fireYears))
   pre2012 <- yearsWithFire[yearsWithFire %in% paste0("year", pre2012int)]
   post2012 <- yearsWithFire[yearsWithFire %in% paste0("year", post2012int)]
 
@@ -501,6 +501,7 @@ prepare_SpreadFit <- function(sim) {
   
   #get rid of nonflammable pixels (here because the calcYoungAge function assigns ages to NA values, 
   # due to inconsistent treatment of non-forest age pixels  in kNN years and other products (0 vs NA)
+
   annualCovariates[[1]] <- lapply(annualCovariates[[1]], 
                                   function(x){ x[pixelID %in% sim$landcoverDT2001$pixelID,]})
   annualCovariates[[2]] <- lapply(annualCovariates[[2]], 
@@ -522,6 +523,7 @@ prepare_SpreadFit <- function(sim) {
   sim$fireSense_nonAnnualSpreadFitCovariates <- list(nonAnnualpre2012, nonAnnualpost2012)
   names(sim$fireSense_nonAnnualSpreadFitCovariates) <- c(paste(names(pre2012Indices), collapse = "_"),
                                                          paste(names(post2012Indices), collapse = "_"))
+
   if (is.null(sim$fireSense_spreadFormula)) {
     sim$fireSense_spreadFormula <- paste0("~ 0 + ", RHS)
   }
