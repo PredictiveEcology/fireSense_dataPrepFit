@@ -37,7 +37,7 @@ defineModule(sim, list(
                     paste("A numeric vector indicating which years should be extracted",
                           "from the fire databases to use for fitting")),
     defineParameter("forestedLCC", "numeric", c(210, 220, 230, 240), NA, NA,
-                    paste("Forested land cover classes - these differ from non-forest because the biomass", 
+                    paste("Forested land cover classes - these differ from non-forest because the biomass",
                           "and composition of fuels are taken into account by fireSense, while non-forest",
                           "classes are treated categorically")),
     defineParameter("igAggFactor", "numeric", 40, 1, NA,
@@ -56,7 +56,7 @@ defineModule(sim, list(
     defineParameter("nonflammableLCC", "numeric", c(20, 31, 32, 33), NA, NA,
                     "non-flammable LCC in rstLCC layers - defaulting to water, snow/ice, rock, barren land."),
     defineParameter("nonForestCanBeYoungAge", "logical", TRUE, NA, NA,
-                    paste("if TRUE, burned non-forest will be treated as `youngAge`. Recommended to be TRUE", 
+                    paste("if TRUE, burned non-forest will be treated as `youngAge`. Recommended to be TRUE",
                           "as burned forest is often classified as non-forest")),
     defineParameter("sppEquivCol", "character", "LandR", NA, NA,
                     "column name in `sppEquiv` object that defines unique species in `cohortData`"),
@@ -95,7 +95,7 @@ defineModule(sim, list(
                           "for data-type modules, where stochasticity and time are not relevant"))
   ),
   inputObjects = bindrows(
-    expectsInput("climateVariablesForFire", "list", sourceURL = NA, 
+    expectsInput("climateVariablesForFire", "list", sourceURL = NA,
                  paste("A list detailing which climate variables in `sim$historicalClimateRasters`",
                        "to use for which fire processes (ignition and spread). If the list is length one,",
                        "both processes will use the same variables. The default is to use 'MDC'.")),
@@ -169,7 +169,7 @@ defineModule(sim, list(
                         "resolution and geographical extent of `fireSense_ignitionCovariates`.",
                         "Used to pass this information onto `fireSense_ignitionFitted`",
                         "Needs to have number of non-NA cells as attribute (`attributes(ignitionFitRTM)$nonNAs`).")),
-    createsOutput("landcoverDT2001", "data.table", 
+    createsOutput("landcoverDT2001", "data.table",
                   "data.table with `pixelID` and relevant landcover classes for flammable pixels in 2001 "),
     createsOutput("landcoverDT2011", "data.table",
                   "data.table with `pixelID` and relevant landcover classes for flammable pixels in 2011"),
@@ -239,25 +239,25 @@ doEvent.fireSense_dataPrepFit = function(sim, eventTime, eventType) {
 
 ### template initialization
 Init <- function(sim) {
-  
+
   if (!isInt(sim$rstLCC2001)) sim$rstLCC2001 <- asInt(sim$rstLCC2001)
   sim$flammableRTM2001 <- defineFlammable(sim$rstLCC2001,
                                           nonFlammClasses = P(sim)$nonflammableLCC,
                                           to = sim$rasterToMatch)
-  
+
   if (!isInt(sim$rstLCC2011)) sim$rstLCC2011 <- asInt(sim$rstLCC2011)
   sim$flammableRTM2011 <- defineFlammable(sim$rstLCC2011,
                                           nonFlammClasses = P(sim)$nonflammableLCC,
                                           to = sim$rasterToMatch)
-  
- 
+
+
   #TODO: standardize sim$climateVariablesForFire if user provided
-  #this approach will be wrong if they pass a list length one... 
+  #this approach will be wrong if they pass a list length one...
   if (length(sim$climateVariablesForFire) == 1) {
     sim$climateVariablesForFire <- list("ignition" = sim$climateVariablesForFire,
                                         "spread" = sim$climateVariablesForFire)
   }
-  
+
   ## ensure studyArea consists of a single polygon
   mod$studyAreaUnion <- if (is(sim$studyArea, "sf")) {
     sf::st_union(sim$studyArea)
@@ -277,7 +277,7 @@ Init <- function(sim) {
       cropTo(sim$rasterToMatch) |>
       maskTo(sim$rasterToMatch)
   }
-  
+
   #possible if user-supplied
   if (!terra::same.crs(sim$firePolys[[1]], sim$rasterToMatch)) {
     # projectTo(fp, crs(sim$rasterToMatch))) |> #terrarize
@@ -286,7 +286,7 @@ Init <- function(sim) {
       Cache(.functionName = "projectTo_for_firePolys")
   }
 
-  
+
   ## sanity checks
   if (!LandR::.compareRas(sim$standAgeMap2001, sim$standAgeMap2011, sim$rasterToMatch,
                           stopOnError = FALSE)) {
@@ -299,7 +299,7 @@ Init <- function(sim) {
   if (!P(sim)$missingLCCgroup %in% names(sim$nonForestedLCCGroups)) {
     stop("please review names of sim$nonForestedLCCGroups and param missingLCCGroup")
   }
-  
+
   igFuels <- sim$sppEquiv[[P(sim)$ignitionFuelClassCol]]
   spreadFuels <- sim$sppEquiv[[P(sim)$spreadFuelClassCol]]
 
@@ -316,7 +316,7 @@ Init <- function(sim) {
 
   sim$landcoverDT2001 <- correctMissingLCC(sim$landcoverDT2001, sim$pixelGroupMap2001, P(sim)$missingLCCgroup)
   sim$landcoverDT2011 <- correctMissingLCC(sim$landcoverDT2011, sim$pixelGroupMap2011, P(sim)$missingLCCgroup)
-  
+
   # cannot merge because before subsetting due to column differences over time
 
   ## TODO: this object  be used to track annual youngAge of all pixels, forested or not
@@ -328,8 +328,8 @@ Init <- function(sim) {
                                                     standAgeMap = sim$standAgeMap2001, lcc = sim$landcoverDT2001,
                                                     cutoffForYoungAge = P(sim)$cutoffForYoungAge)
   sim$nonForest_timeSinceDisturbance2001[sim$flammableRTM2001[] == 0] <- NA
-  sim$nonForest_timeSinceDisturbance2011 <- makeTSD(year = 2011, 
-                                                    fireRaster = sim$historicalFireRaster, #can be NULL 
+  sim$nonForest_timeSinceDisturbance2011 <- makeTSD(year = 2011,
+                                                    fireRaster = sim$historicalFireRaster, #can be NULL
                                                     firePolys = sim$firePolysForAge,
                                                     standAgeMap = sim$standAgeMap2011,
                                                     lcc = sim$landcoverDT2011,
@@ -355,20 +355,20 @@ prepare_SpreadFit <- function(sim) {
   compareGeom(sim$rasterToMatch, sim$flammableRTM2011, sim$flammableRTM2001)
   compareGeom(sim$rasterToMatch, sim$standAgeMap2001, sim$standAgeMap2011)
   lapply(sim$historicalClimateRasters, compareGeom, x = sim$rasterToMatch)
-  
+
   #when landcoverDT is included, as is the case here, non-forest pixels in cohortData are masked out
   #this is necessary when LandR and fireSense have differing concepts of non-forest
   vegData <- Map(f = cohortsToFuelClasses,
                  cohortData = list(sim$cohortData2001, sim$cohortData2011),
                  pixelGroupMap = list(sim$pixelGroupMap2001, sim$pixelGroupMap2011),
-                 landcoverDT = list(sim$landcoverDT2001, sim$landcoverDT2011), 
+                 landcoverDT = list(sim$landcoverDT2001, sim$landcoverDT2011),
                  flammableRTM = list(sim$flammableRTM2001, sim$flammableRTM2011),
                  MoreArgs = list(sppEquiv = sim$sppEquiv,
                                  sppEquivCol = P(sim)$sppEquivCol,
                                  fuelClassCol = P(sim)$spreadFuelClassCol,
                                  cutoffForYoungAge = -1)) |>
     Cache(.functionName = "cohortsToFuelClasses") #youngAge will be resolved annually downstream
-    
+
   vegData <- lapply(vegData, FUN = function(x) {
     dt <- as.data.table(values(x))
     dt[, pixelID := 1:ncell(x)]
@@ -383,7 +383,7 @@ prepare_SpreadFit <- function(sim) {
   vegData <- rbindlist(vegData)
 
   lccNames <- setdiff(names(vegData), c("pixelID", "year"))
-  
+
 
   #prep the fire data
   if (P(sim)$useRasterizedFire) {
@@ -401,15 +401,15 @@ prepare_SpreadFit <- function(sim) {
     .[vegData[year < 2012], on = c("pixelID")] %>%
     .[!is.na(buffer)] #some buffered pixels are non-flammable...
   #TODO: discuss if this is expected (as far as I can tell, it is)
- 
+
   post2012Indices <- sim$fireBufferedListDT[post2012] %>%
     rbindlist(.) %>%
     .[vegData[year >= 2012], on = c("pixelID")] %>%
-    .[!is.na(buffer)] 
+    .[!is.na(buffer)]
   rm(vegData)
   gc()
 
-  #TODO: lines from creation of vegData onwards should be reviewed. Seems redundant.. 
+  #TODO: lines from creation of vegData onwards should be reviewed. Seems redundant..
   fireSenseVegData <- rbind(pre2012Indices, post2012Indices)
   setnames(fireSenseVegData, "buffer", "burned")
 
@@ -445,7 +445,7 @@ prepare_SpreadFit <- function(sim) {
   post2012 <- yearsWithFire[yearsWithFire %in% paste0("year", post2012int)]
 
   ##climate ###
-  
+
   #TODO: index removed as argument - as flammable pixels change between 2001 and 2011 (mainly water)
   # the wide layout of this object is incompatible (or we have NAs in rows)
   spreadClimate <- sim$historicalClimateRasters[sim$climateVariablesForFire$spread]
@@ -453,16 +453,16 @@ prepare_SpreadFit <- function(sim) {
   climateDT <- Cache(climateRasterToDataTable,
                      historicalClimateRasters = spreadClimate,
                      userTags = c("climateRasterToDataTable", names(spreadClimate)))
-  
+
   fbl <- rbindlist(sim$fireBufferedListDT, idcol = "year")
   rmCols <- setdiff(colnames(fbl), c("pixelID", "year"))
   set(fbl, NULL, rmCols, NULL)
   fbl <- climateDT[fbl, on = c("year", "pixelID"), nomatch = NULL]
-  
-  
+
+
   fireSense_annualSpreadFitCovariates <- split(fbl, by = "year", keep.by = FALSE)
-  
-  
+
+
 
   ## prepare non-annual spread fit covariates by getting the youngAge
   pre2012Indices <- sim$fireBufferedListDT[names(sim$fireBufferedListDT) %in% pre2012]
@@ -473,7 +473,7 @@ prepare_SpreadFit <- function(sim) {
     na.omit(.) %>%
     as.data.table(.) %>%
     .[!duplicated(pixelID),]
- 
+
 
   nonAnnualpost2012 <- fireSenseVegData[year >= 2012, .SD, .SDcols = colsToExtract] %>%
     na.omit(.) %>%
@@ -484,7 +484,7 @@ prepare_SpreadFit <- function(sim) {
   ## pmap allows for internal debugging when there are large lists that are passed in; Map does not
   annualCovariates <- list(fireSense_annualSpreadFitCovariates[pre2012],
                            fireSense_annualSpreadFitCovariates[post2012])
-  
+
   annualCovariates <- Cache(
     purrr::pmap,
     .l = list(
@@ -498,15 +498,15 @@ prepare_SpreadFit <- function(sim) {
     fireBufferedListDT = sim$fireBufferedListDT,
     cutoffForYoungAge = P(sim)$cutoffForYoungAge
   )
-  
-  #get rid of nonflammable pixels (here because the calcYoungAge function assigns ages to NA values, 
+
+  #get rid of nonflammable pixels (here because the calcYoungAge function assigns ages to NA values,
   # due to inconsistent treatment of non-forest age pixels  in kNN years and other products (0 vs NA)
 
-  annualCovariates[[1]] <- lapply(annualCovariates[[1]], 
+  annualCovariates[[1]] <- lapply(annualCovariates[[1]],
                                   function(x){ x[pixelID %in% sim$landcoverDT2001$pixelID,]})
-  annualCovariates[[2]] <- lapply(annualCovariates[[2]], 
+  annualCovariates[[2]] <- lapply(annualCovariates[[2]],
                                   function(x){ x[pixelID %in% sim$landcoverDT2011$pixelID,]})
-  
+
   if (!P(sim)$nonForestCanBeYoungAge) {
     #TODO: test this inversion of makeMutuallyExclusive's regular use
     args <- as.list(rep("youngAge", length = length(sim$nonForestedLCCGroups)))
@@ -514,12 +514,12 @@ prepare_SpreadFit <- function(sim) {
   } else {
     #this is done later in spreadFit - but done here for accuracy of outputs
     args <- list("youngAge" = names(sim$nonForestedLCCGroups))
-  }  
-  annualCovariates <- lapply(annualCovariates, makeMutuallyExclusive, 
+  }
+  annualCovariates <- lapply(annualCovariates, makeMutuallyExclusive,
                              mutuallyExclusiveCols = args)
 
   sim$fireSense_annualSpreadFitCovariates <- do.call(c, annualCovariates)
-  
+
   sim$fireSense_nonAnnualSpreadFitCovariates <- list(nonAnnualpre2012, nonAnnualpost2012)
   names(sim$fireSense_nonAnnualSpreadFitCovariates) <- c(paste(names(pre2012Indices), collapse = "_"),
                                                          paste(names(post2012Indices), collapse = "_"))
@@ -583,7 +583,7 @@ prepare_SpreadFitFire_Raster <- function(sim) {
 }
 
 prepare_SpreadFitFire_Vector <- function(sim) {
-  
+
   pre2012 <- paste0("year", min(P(sim)$fireYears):2011)
   post2012 <- paste0("year", 2012:max(P(sim)$fireYears))
   ## sanity check
@@ -632,11 +632,11 @@ prepare_SpreadFitFire_Vector <- function(sim) {
     x <- x[x$SIZE_HA > minSize,]
     if (nrow(x) > 0) x else NULL
   })
-  
-  #silly R  
+
+  #silly R
   sim$spreadFirePoints[sapply(sim$spreadFirePoints, is.null)] <- NULL
 
-    
+
   sim$firePolys <- lapply(sim$firePolys, function(x) {
     x <- x[x$SIZE_HA > pixSizeHa,]
     if (nrow(x) > 0) x else NULL
@@ -644,31 +644,31 @@ prepare_SpreadFitFire_Vector <- function(sim) {
   sim$firePolys[sapply(sim$firePolys, is.null)] <- NULL
   sim$spreadFirePoints <- sim$spreadFirePoints[names(sim$spreadFirePoints) %in% names(sim$firePolys)]
   #this covers when years are NA, which are caused by fire years with no available data
-  
+
   #years run separately because flammableRTM is different
-  #ultimately this function should combine the climate data to avoid needless iteration, 
-  #and even this duplicated step should be a function of "fire period" for >2 periods 
-  #however, the rasterized fire prep is significantly different, and needs review first 
+  #ultimately this function should combine the climate data to avoid needless iteration,
+  #and even this duplicated step should be a function of "fire period" for >2 periods
+  #however, the rasterized fire prep is significantly different, and needs review first
   harmonized2001 <- Cache(harmonizeFireData,
                           firePolys = sim$firePolys[names(sim$firePolys) %in% pre2012], #protects from missing years
                           flammableRTM = sim$flammableRTM2001,
-                          spreadFirePoints = sim$spreadFirePoints[pre2012], 
+                          spreadFirePoints = sim$spreadFirePoints[pre2012],
                           areaMultiplier = P(sim)$areaMultiplier, minSize = P(sim)$minBufferSize,
                           pointsIDcolumn = "FIRE_ID",
                           userTags = c("harmonizeFireData", P(sim)$.studyAreaName, "2001"))
   harmonized2011 <- Cache(harmonizeFireData,
-                          sim$firePolys[names(sim$firePolys) %in% post2012], 
-                          sim$flammableRTM2011, 
+                          sim$firePolys[names(sim$firePolys) %in% post2012],
+                          sim$flammableRTM2011,
                           spreadFirePoints = sim$spreadFirePoints[names(sim$spreadFirePoints) %in% post2012],
                           areaMultiplier = P(sim)$areaMultiplier, minSize = P(sim)$minBufferSize,
                           pointsIDcolumn = "FIRE_ID",
                           userTags = c("harmonizeFireData", P(sim)$.studyAreaName, "2011"))
-  
-  sim$fireBufferedListDT <- append(harmonized2001$fireBufferedListDT, 
+
+  sim$fireBufferedListDT <- append(harmonized2001$fireBufferedListDT,
                                    harmonized2011$fireBufferedListDT)
   sim$spreadFirePoints <- append(harmonized2001$spreadFirePoints, harmonized2011$spreadFirePoints)
   sim$firePolys <- append(harmonized2001$firePolys, harmonized2011$firePolys)
-  
+
   ## drop fire years from these lists that don't have any buffer points post-harmonization
   #TOOD: is this necessary?
   omitYears <- sapply(sim$spreadFirePoints, is.null)
@@ -680,7 +680,7 @@ prepare_SpreadFitFire_Vector <- function(sim) {
 }
 
 prepare_IgnitionFit <- function(sim) {
-  
+
   stopifnot(
     "all ignitionFirePoints are not within studyArea" = identical(
       nrow(st_as_sf(sim$ignitionFirePoints)),
@@ -689,7 +689,7 @@ prepare_IgnitionFit <- function(sim) {
   )
 
   # account for forested pixels that aren't in cohortData
-  #TODO: make this elegant 
+  #TODO: make this elegant
   ## first put landcover into raster stack
   ## non-flammable pixels require zero values for non-forest landcover, not NA
   LCCras <- Map(
@@ -699,7 +699,7 @@ prepare_IgnitionFit <- function(sim) {
     MoreArgs = list(lcc = names(sim$nonForestedLCCGroups))) |>
     Cache(.functionName = "putBackIntoRaster",
           userTags = c("putBackIntoRaster", P(sim)$.studyAreaName))
-  
+
   fuelClasses <- Map(f = cohortsToFuelClasses,
                      cohortData = list(sim$cohortData2001, sim$cohortData2011),
                      flammableRTM = list(sim$flammableRTM2001, sim$flammableRTM2011),
@@ -710,7 +710,7 @@ prepare_IgnitionFit <- function(sim) {
                                      fuelClassCol = P(sim)$ignitionFuelClassCol,
                                      cutoffForYoungAge = P(sim)$cutoffForYoungAge)) |>
     Cache(.functionName = "cohortsToFuelClasses")
-  
+
   if (P(sim)$nonForestCanBeYoungAge) {
     ## this modifies the NF landcover by converting some NF to a new YA layer
     ## it must be done before aggregating
@@ -722,10 +722,10 @@ prepare_IgnitionFit <- function(sim) {
                   LCCras = list(LCCras[[1]], LCCras[[2]]),
                   MoreArgs = list(cutoffForYoungAge = P(sim)$cutoffForYoungAge)) |>
       Cache(.functionName = "calcNonForestYoungAge")
-    
+
     for (i in c(1:2)) {
       if ("youngAge" %in% names(fuelClasses[[i]])) {
-        
+
         YA1 <- fuelClasses[[i]]$youngAge
         YA2 <- LCCras[[i]]$youngAge
         bothYA <- YA1 + YA2
@@ -737,27 +737,27 @@ prepare_IgnitionFit <- function(sim) {
       LCCras[[i]] <- terra::subset(LCCras[[i]], toKeep) ## to avoid double-counting
     }
   }
-  
+
   LCCras <- lapply(LCCras, aggregate, fact = P(sim)$igAggFactor, fun = mean) |>
     Cache(.functionName = "aggregate_LCCras_to_coarse")
   names(LCCras) <- c("year2001", "year2011")
   fuelClasses <- lapply(fuelClasses, FUN = aggregate, fact = P(sim)$igAggFactor, fun = mean) |>
     Cache(.functionName = "aggregate_fuelClasses_to_coarse")
   names(fuelClasses) <- c("year2001", "year2011")
-  
+
   ignitionClimate <- sim$historicalClimateRasters[sim$climateVariablesForFire$ignition]
-  ignitionClimate <- lapply(X = ignitionClimate, FUN = terra::aggregate, 
+  ignitionClimate <- lapply(X = ignitionClimate, FUN = terra::aggregate,
                             fact = P(sim)$igAggFactor, fun = mean) |>
     Cache(.functionName = "aggregate_historicalClimateRasters_to_coarse")
   #safety
   compareGeom(ignitionClimate[[1]], fuelClasses[[1]], fuelClasses[[2]])
-  
+
   ## ignition won't have same years as spread so we do not use names of init objects
   ## The reason is some years may have ignitions but no fires, e.g. 2001 in RIA
   pre2012 <- paste0("year", min(P(sim)$fireYears):2011)
   post2012 <- paste0("year", 2012:max(P(sim)$fireYears))
   allYears <- c(pre2012, post2012)
-  
+
   #assume that if multiple climate variables are present, they are of equal length
   #else bigger problems exist
   whAvailable <- allYears %in% names(ignitionClimate[[1]])
@@ -773,7 +773,7 @@ prepare_IgnitionFit <- function(sim) {
     P(sim)$fireYears <- intersect(as.numeric(gsub("year", "", yearsInClimateRast)),
                                   P(sim)$fireYears)
   }
-  
+
   #TODO: the cache bevavior is too permissive
   #this is joining fuel class, LCC, and climate, subsetting to flamIndex, calculating n of ignitions
   fireSense_ignitionCovariates <- Map(f = fireSenseUtils::stackAndExtract,
@@ -782,30 +782,30 @@ prepare_IgnitionFit <- function(sim) {
                                       LCC = list(LCCras$year2001, LCCras$year2011),
                                       MoreArgs = list(climate = ignitionClimate,
                                                       fires = sim$ignitionFirePoints
-                                      )) |> Cache(.functionName = "stackAndExtract", 
+                                      )) |> Cache(.functionName = "stackAndExtract",
                                                   userTags = names(ignitionClimate))
-  
+
   fireSense_ignitionCovariates <- rbindlist(fireSense_ignitionCovariates)
-  
+
   #remove any pixels that are 0 for all classes
   fireSense_ignitionCovariates[, coverSums := rowSums(.SD),
                                .SD = setdiff(names(fireSense_ignitionCovariates),
                                              c(names(ignitionClimate), "cell", "ignitions", "year"))]
   fireSense_ignitionCovariates <- fireSense_ignitionCovariates[coverSums > 0]
   set(fireSense_ignitionCovariates, NULL, "coverSums", NULL)
-  
-  
+
+
   #rename cells to pixelID - though aggregated raster is not saved
   setnames(fireSense_ignitionCovariates, old = "cell", new = "pixelID")
   fireSense_ignitionCovariates[, year := as.numeric(year)]
-  
+
   # for random effect
   ranEffs <- "yearChar"
   set(fireSense_ignitionCovariates, NULL, ranEffs, as.character(fireSense_ignitionCovariates$year))
   firstCols <- c("pixelID", "ignitions", names(ignitionClimate), "youngAge")
   firstCols <- firstCols[firstCols %in% names(fireSense_ignitionCovariates)]
   setcolorder(fireSense_ignitionCovariates, neworder = firstCols)
-  
+
   if (isTRUE(P(sim)$usePiecewiseRegression)) {
     response <- "ignitions"
   } else {
@@ -813,40 +813,40 @@ prepare_IgnitionFit <- function(sim) {
     set(fireSense_ignitionCovariates, NULL, response, pmin(fireSense_ignitionCovariates$ignitions, 1))
     # fireSense_ignitionCovariates[, ignitionsNoGT1 := ifelse(ignitions > 1, 1, ignitions)]
   }
-  
+
   sim$fireSense_ignitionCovariates <- fireSense_ignitionCovariates
-  
+
   #make new ignition object, ignitionFitRTM
   sim$ignitionFitRTM <- rast(fuelClasses$year2001[[1]])
   sim$ignitionFitRTM <- setValues(sim$ignitionFitRTM, 1) #avoids a warning
   attributes(sim$ignitionFitRTM)$nonNAs <- nrow(sim$fireSense_ignitionCovariates)
-  
-  #assign mean forest biomass- for use in plotting in ignitionFit# 
+
+  #assign mean forest biomass- for use in plotting in ignitionFit#
   tempCD <- LandR::addPixels2CohortData(sim$cohortData2011, sim$pixelGroupMap2011)
   bPerPixel <- tempCD[age > 0, .(bPerPixel = sum(B)), .(pixelIndex)]
   meanForestB <- mean(bPerPixel$bPerPixel)
   attributes(sim$ignitionFitRTM)$meanForestB <- meanForestB
   rm(tempCD, bPerPixel)
-  
+
   #build formula
   igCovariates <- names(sim$fireSense_ignitionCovariates)
   igCovariates <- igCovariates[!igCovariates %in%
-                                 c(names(ignitionClimate), 
+                                 c(names(ignitionClimate),
                                    "year", "yearChar", "ignitions", "ignitionsNoGT1", "pixelID")]
-  
-  #this is safer for multiple climate variables 
+
+  #this is safer for multiple climate variables
   interactionsDF <- as.data.table(expand.grid(igCovariates, sim$climateVariablesForFire$ignition))
   interactionsDF[, interaction := do.call(paste, c(.SD, sep = ":")), .SDcols = names(interactionsDF)]
   interactions <- interactionsDF$interaction
-  
+
   #sanity check for base::abbreviate
   if (isTRUE(P(sim)$usePiecewiseRegression)) {
     if (length(sim$climateVariablesForFire$ignition) > 1) {
       stop("cannot use multiple climate variables with piecewise ignition fit formula")
     }
-    
+
     pwNames <- abbreviate(igCovariates, minlength = 3, use.classes = TRUE, strict = FALSE)
-    
+
     pw <- paste0(igCovariates, ":", "pw(", sim$climateVariablesForFire$ignition, ", k_", pwNames, ")")
     if (!all(c(length(unique(pw)), length(unique(interactions))) == length(igCovariates))) {
       warning("automated ignition formula construction needs review")
@@ -856,7 +856,7 @@ prepare_IgnitionFit <- function(sim) {
       sim$fireSense_ignitionFormula <- paste0(response, " ~ ", paste0(interactions, collapse = " + "), " + ",
                                               paste0(pw, collapse  = " + "), "- 1")
     }
-    
+
   } else {
     if (!length(unique(interactions)) == length(igCovariates) * length(sim$climateVariablesForFire$ignition)) {
       warning("automated ignition formula construction needs review")
@@ -902,7 +902,7 @@ prepare_EscapeFit <- function(sim) {
   escapeVars <- names(escapeDT)[!names(escapeDT) %in% c("year", "pixelID", "escapes", "ignitions")]
   LHS <- paste0("cbind(escapes, ignitions - escapes) ~ ")
   RHS <- paste0(escapeVars, collapse = " + ")
-  
+
   if (is.null(sim$fireSense_escapeFormula)) {
     sim$fireSense_escapeFormula <- paste0(LHS, RHS, " - 1")
   }
@@ -938,17 +938,17 @@ rmMissingPixels <- function(fbldt, pixelIDsAllowed)  {
 }
 
 runBorealDP_forCohortData <- function(sim) {
-  ## Biomass_species should be only run if it is already in the simList
+  ## Biomass_species should be only run if it is already used in project
+  ## TODO: this should really be specified by the user by a param, which would allow additional mods to be run
+  modulesInProject <- c(modules(sim), list.dirs(modulePath(sim), full.names = FALSE, recursive = FALSE))
   neededModule <- "Biomass_borealDataPrep"
-  if ("Biomass_speciesData" %in% modules(sim)) {
+  if ("Biomass_speciesData" %in% modulesInProject) {
     neededModule <- c("Biomass_borealDataPrep", "Biomass_speciesData")
   }
-  
-  # neededModule <- "Biomass_borealDataPrep"
+
   pathsLocal <- paths(sim)
-  if (any(!neededModule %in% modules(sim))) {
-    ## don't install pkgs mid-stream; already use module metadata to declare pkgs for installation
-    # Require::Install("PredictiveEcology/SpaDES.project@transition")
+  if (any(!neededModule %in% modulesInProject)) {
+    ## NOTE: don't install pkgs mid-stream; use module metadata to declare pkgs for installation
     modulePathLocal <- file.path(modulePath(sim), currentModule(sim), "submodules")
     getModule(paste0("PredictiveEcology/", neededModule, "@development"),
               modulePath = modulePathLocal, overwrite = FALSE)
@@ -959,7 +959,7 @@ runBorealDP_forCohortData <- function(sim) {
   saMap <- "standAgeMap"
   rstLCC <- "rstLCC"
   neededYears <- c(2001, 2011)
-  
+
   if (!is.null(sim$cohortData)) {
     alreadyDone <- P(sim, "dataYear", "Biomass_borealDataPrep")
     cohDatObj <- paste0(cohDat, alreadyDone)
@@ -971,20 +971,20 @@ runBorealDP_forCohortData <- function(sim) {
     sim[[pixGrpMap]] <- sim[[pixGM]]
     sim[[saObj]] <- sim[[saMap]]
     sim[[rstLCCobj]] <- sim[[rstLCC]]
-    
+
     messageColoured(colour = "yellow", "fireSense_dataPrepFit will use estimates of ",
                     paste0("cohortData", alreadyDone, collapse = ", "), " from modules already run")
-    
+
     neededYears <- setdiff(neededYears, alreadyDone)
   }
-  
+
   if (is.null(sim$studyAreaLarge)) {
     sim$studyAreaLarge <- sim$studyArea
   }
-  
+
   ecoFile <- ifelse(is.null(sim$ecoregionRst), "ecoregionLayer", "ecoregionRst")
-  objsNeeded <- c(ecoFile, 
-                  "firePerimeters", 
+  objsNeeded <- c(ecoFile,
+                  "firePerimeters",
                   #TODO: fire perimeters is an optional object but it should be passed
                         # because the function call is written incorrectly (isn't unqique to 2001 2011 sims)
                   # and I believe this is triggering some kind of bug somewhere
@@ -993,11 +993,11 @@ runBorealDP_forCohortData <- function(sim) {
                   "species", "speciesTable", "sppEquiv")
   objsNeeded <- intersect(ls(sim), objsNeeded)
   objsNeeded <- mget(objsNeeded, envir = envir(sim))
-  
+
   cds <- lapply(neededYears, function(ny, objs = objsNeeded) {
     messageColoured(colour = "yellow", "Running Biomass_borealDataPrep for year ", ny)
     messageColoured(colour = "yellow", "  inside fireSense_dataPrepFit to estimate cohortData", ny)
-    
+
     parms <- list()
     ## if needModule is vectorized - we will have to rethink
     for (nm in neededModule) {
@@ -1006,16 +1006,16 @@ runBorealDP_forCohortData <- function(sim) {
       parms[[nm]][["exportModels"]] <- "none"
       parms[[nm]] <- parms[[nm]][!names(parms[[nm]]) %in% SpaDES.core:::paramsDontCacheOn]
     }
-    
+
     if (".globals" %in% names(params(sim))) {
       parms[".globals"] <- params(sim)[".globals"]
     }
 
     outNY <- Cache(do.call(SpaDES.core::simInitAndSpades, list(paths = pathsLocal,
-                                                             params = parms,
-                                                             times = list(start = ny, end = ny),
-                                                             modules = neededModule,
-                                                             objects = objs)),
+                                                               params = parms,
+                                                               times = list(start = ny, end = ny),
+                                                               modules = neededModule,
+                                                               objects = objs)),
                  .functionName = "simInitAndSpades")
     cohDatObj <- paste0(cohDat, ny)
     pixGrpMap <- paste0(pixGM, ny)
@@ -1035,34 +1035,34 @@ runBorealDP_forCohortData <- function(sim) {
   if (!suppliedElsewhere("studyArea", sim)) {
     stop("Please supply study area - this object is key")
   }
-  
+
   if (!suppliedElsewhere("sppEquiv", sim)) {
     sp <- LandR::speciesInStudyArea(studyArea = sim$studyArea)
     sp <- LandR::equivalentName(sp$speciesList, df = sppEquivalencies_CA, column = Par$sppEquivCol)
     sim$sppEquiv <- sppEquivalencies_CA[get(Par$sppEquivCol) %in% sp]
   }
-  
+
   SpaDES.core::paramCheckOtherMods(sim, paramToCheck = "sppEquivCol")
-  
+
   if (is.null(P(sim)$.studyAreaName)) {
     P(sim)$.studyAreaName <- studyAreaName(sim$studyArea)
   }
   cacheTags <- c(currentModule(sim), P(sim)$.studyAreaName)
   dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
   message(currentModule(sim), ": using dataPath '", dPath, "'.")
-  
+
   if (!suppliedElsewhere("rasterToMatch", sim)) {
     sim$rasterToMatch <- Cache(LandR::prepInputsLCC(year = 2005, ## TODO: use 2010
                                                     destinationPath = dPath,
                                                     studyArea = sim$studyArea,
                                                     useCache = TRUE))
   }
-  
+
   if (!suppliedElsewhere("climateVariablesForFire", sim)) {
-    sim$climateVariablesForFire <- list("spread" = "MDC", 
+    sim$climateVariablesForFire <- list("spread" = "MDC",
                                         "ignition" = "MDC")
   }
-  
+
   if (!all(suppliedElsewhere("cohortData2011", sim),
            suppliedElsewhere("pixelGroupMap2011", sim),
            suppliedElsewhere("pixelGroupMap2001", sim),
@@ -1072,17 +1072,17 @@ runBorealDP_forCohortData <- function(sim) {
     # This runs simInitAndSpades if needed
     sim <- runBorealDP_forCohortData(sim)
   }
-  
+
   if (!P(sim)$useRasterizedFireForSpread) {
     if (!suppliedElsewhere("firePolys", sim) | !suppliedElsewhere("firePolysForAge", sim)) {
       # don't want to needlessly postProcess the same firePolys objects
-      
+
       saNotLatLong <- if (isTRUE(sf::st_is_longlat(sim$studyArea))) {
         terra::project(sim$studyArea, terra::crs(sim$rasterToMatch))
       } else {
         sim$studyArea
       }
-      
+
       fireYears <- c(min(P(sim)$fireYears - P(sim)$cutoffForYoungAge):max(P(sim)$fireYears))
       #check why this isn't resulting in identical crs between firePolys, studyArea
       allFirePolys <- Cache(fireSenseUtils::getFirePolygons, fun = "st_read",
@@ -1090,15 +1090,15 @@ runBorealDP_forCohortData <- function(sim) {
                             cropTo = sim$rasterToMatch, maskTo = saNotLatLong, projectTo = sim$rasterToMatch,
                             userTags = c(cacheTags, "firePolys", paste0(fireYears, collapse = ":")))
     }
-    
+
     if (!suppliedElsewhere("firePolys", sim)) {
       sim$firePolys <- allFirePolys[names(allFirePolys) %in% paste0("year", P(sim)$fireYears)]
     }
-    
+
     if (!suppliedElsewhere("firePolysForAge", sim)) {
       sim$firePolysForAge <- allFirePolys
     }
-    
+
     if (!suppliedElsewhere("spreadFirePoints", sim)) {
       message("... preparing polyCentroids")
       centerFun <- function(x) {
@@ -1111,13 +1111,13 @@ runBorealDP_forCohortData <- function(sim) {
           return(cent)
         }
       }
- 
+
       sim$spreadFirePoints <- suppressWarnings(lapply(sim$firePolys, centerFun))
       # st_centroid assumes attributes are constant over geometries
-      
+
       names(sim$spreadFirePoints) <- names(sim$firePolys)
     }
-    
+
     if (all(!is.null(sim$spreadFirePoints), !is.null(sim$firePolys))) {
       ## may be NULL if passed by objects - add to Init?
       ## this is necessary because centroids may be fewer than fires if fire polys were small
@@ -1125,14 +1125,14 @@ runBorealDP_forCohortData <- function(sim) {
       sim$spreadFirePoints <- sim$spreadFirePoints[min1Fire]
       sim$firePolys <- sim$firePolys[min1Fire]
     }
-    
+
     if (length(sim$firePolys) != length(sim$spreadFirePoints)) {
       stop("mismatched years between firePolys and firePoints")
       ## TODO: need to implement a better approach that matches each year's IDS
       ## these are mostly edge cases if a user passes only one of spreadFirePoints/firePolys
     }
   }
-  
+
   if (!suppliedElsewhere("standAgeMap2001", sim)) {
     sim$standAgeMap2001 <- Cache(prepInputsStandAgeMap,
                                  rasterToMatch = sim$rasterToMatch,
@@ -1142,7 +1142,7 @@ runBorealDP_forCohortData <- function(sim) {
                                  startTime = 2001,
                                  userTags = c(cacheTags, 'prepInputsStandAgeMap2001'))
   }
-  
+
   if (!suppliedElsewhere("standAgeMap2011", sim)) {
     sim$standAgeMap2011 <- Cache(prepInputsStandAgeMap,
                                  rasterToMatch = sim$rasterToMatch,
@@ -1152,7 +1152,7 @@ runBorealDP_forCohortData <- function(sim) {
                                  startTime = 2011,
                                  userTags = c(cacheTags, 'prepInputsStandAgeMap2011'))
   }
-  
+
   if (!suppliedElsewhere("ignitionFirePoints", sim)) {
     ignitionFirePoints <- Cache(
       getFirePoints_NFDB_V2,
@@ -1164,11 +1164,11 @@ runBorealDP_forCohortData <- function(sim) {
     ) #default redownload means it will update annually - I think this is fine?
     sim$ignitionFirePoints <- ignitionFirePoints[ignitionFirePoints$CAUSE == "L",]
   }
-  
+
   if (!suppliedElsewhere("historicalClimateRasters", sim)) {
     stop("please supply sim$historicalClimateRasters")
   }
-  
+
   if (P(sim)$useRasterizedFire) {
     if (!suppliedElsewhere("historicalFireRaster", sim)) {
       sim$historicalFireRaster <- Cache(prepInputs,
@@ -1182,13 +1182,13 @@ runBorealDP_forCohortData <- function(sim) {
     }
   }
   if (!suppliedElsewhere("nonForestedLCCGroups", sim)) {
-    
+
     #TODO: consider moving this to init - and checking if unsupplied
     sim$nonForestedLCCGroups <- list(
       "nf_highFlam" = c(50, 100), #shrub, herbaceous, non-treed wetland
-      "nf_lowFlam" = c(40, 81)) #bryoids + non-treed wetland. 
+      "nf_lowFlam" = c(40, 81)) #bryoids + non-treed wetland.
   }
-  
+
 
   return(invisible(sim))
 }
