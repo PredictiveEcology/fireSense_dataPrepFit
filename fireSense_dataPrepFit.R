@@ -239,7 +239,6 @@ doEvent.fireSense_dataPrepFit = function(sim, eventTime, eventType) {
 
 ### template initialization
 Init <- function(sim) {
-
   if (!isInt(sim$rstLCC2001)) sim$rstLCC2001 <- asInt(sim$rstLCC2001)
   sim$flammableRTM2001 <- defineFlammable(sim$rstLCC2001,
                                           nonFlammClasses = P(sim)$nonflammableLCC,
@@ -1068,10 +1067,10 @@ runBorealDP_forCohortData <- function(sim) {
                                         "ignition" = "MDC")
   }
 
-  if (!all(suppliedElsewhere("cohortData2011", sim),
+  if (!all(suppliedElsewhere("cohortData2001", sim),
+           suppliedElsewhere("cohortData2011", sim),
            suppliedElsewhere("pixelGroupMap2011", sim),
            suppliedElsewhere("pixelGroupMap2001", sim),
-           suppliedElsewhere("cohortData2001", sim),
            suppliedElsewhere("rstLCC2001", sim),
            suppliedElsewhere("rstLCC2011", sim))) {
     # This runs simInitAndSpades if needed
@@ -1080,7 +1079,7 @@ runBorealDP_forCohortData <- function(sim) {
 
   if (!P(sim)$useRasterizedFireForSpread) {
     if (!suppliedElsewhere("firePolys", sim) | !suppliedElsewhere("firePolysForAge", sim)) {
-      # don't want to needlessly postProcess the same firePolys objects
+      ## don't want to needlessly postProcess the same firePolys objects
 
       saNotLatLong <- if (isTRUE(sf::st_is_longlat(sim$studyArea))) {
         terra::project(sim$studyArea, terra::crs(sim$rasterToMatch))
@@ -1090,9 +1089,14 @@ runBorealDP_forCohortData <- function(sim) {
 
       fireYears <- c(min(P(sim)$fireYears - P(sim)$cutoffForYoungAge):max(P(sim)$fireYears))
       #check why this isn't resulting in identical crs between firePolys, studyArea
-      allFirePolys <- Cache(fireSenseUtils::getFirePolygons, fun = "st_read",
-                            years = fireYears, useInnerCache = TRUE, destinationPath = dPath,
-                            cropTo = sim$rasterToMatch, maskTo = saNotLatLong, projectTo = sim$rasterToMatch,
+      allFirePolys <- Cache(fireSenseUtils::getFirePolygons,
+                            fun = "st_read",
+                            years = fireYears,
+                            useInnerCache = TRUE,
+                            destinationPath = dPath,
+                            cropTo = sim$rasterToMatch,
+                            maskTo = saNotLatLong,
+                            projectTo = sim$rasterToMatch,
                             userTags = c(cacheTags, "firePolys", paste0(fireYears, collapse = ":")))
     }
 
