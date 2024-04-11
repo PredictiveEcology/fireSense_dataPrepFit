@@ -927,7 +927,7 @@ Save <- function(sim) {
 
 ### template for plot events
 plotAndMessage <- function(sim) {
-  #TODO: this could plot the ignition/spread covariates
+  ## TODO: this could plot the ignition/spread covariates
   return(invisible(sim))
 }
 
@@ -940,14 +940,19 @@ rmMissingPixels <- function(fbldt, pixelIDsAllowed)  {
 runBorealDP_forCohortData <- function(sim) {
   ## Biomass_species should be only run if it is already used in project
   ## TODO: this should really be specified by the user by a param, which would allow additional mods to be run
-  modulesInProject <- c(modules(sim), list.dirs(modulePath(sim), full.names = FALSE, recursive = FALSE))
+  modules <- modules(sim)
+  modulesInProject <- list.dirs(modulePath(sim), full.names = TRUE, recursive = FALSE) |> as.list()
+  names(modulesInProject) <- modulesInProject
+  modulesInProject <- lapply(modulesInProject, basename)
+  modules <- modifyList(modules, modulesInProject)
+
   neededModule <- "Biomass_borealDataPrep"
-  if ("Biomass_speciesData" %in% modulesInProject) {
+  if ("Biomass_speciesData" %in% modules) {
     neededModule <- c("Biomass_borealDataPrep", "Biomass_speciesData")
   }
 
   pathsLocal <- paths(sim)
-  if (any(!neededModule %in% modulesInProject)) {
+  if (any(!neededModule %in% modules)) {
     ## NOTE: don't install pkgs mid-stream; use module metadata to declare pkgs for installation
     modulePathLocal <- file.path(modulePath(sim), currentModule(sim), "submodules")
     getModule(paste0("PredictiveEcology/", neededModule, "@development"),
@@ -985,9 +990,9 @@ runBorealDP_forCohortData <- function(sim) {
   ecoFile <- ifelse(is.null(sim$ecoregionRst), "ecoregionLayer", "ecoregionRst")
   objsNeeded <- c(ecoFile,
                   "firePerimeters",
-                  #TODO: fire perimeters is an optional object but it should be passed
-                        # because the function call is written incorrectly (isn't unqique to 2001 2011 sims)
-                  # and I believe this is triggering some kind of bug somewhere
+                  ## TODO: firePerimeters is an optional object but it should be passed
+                  ## because the function call is written incorrectly (isn't unique to 2001 2011 sims)
+                  ## and I believe this is triggering some kind of bug somewhere
                   "rasterToMatchLarge", "rasterToMatch",
                   "studyAreaLarge", "studyArea",
                   "species", "speciesTable", "sppEquiv")
