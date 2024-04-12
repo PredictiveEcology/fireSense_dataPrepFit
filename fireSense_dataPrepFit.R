@@ -142,7 +142,7 @@ defineModule(sim, list(
     expectsInput("standAgeMap2011", "SpatRaster", sourceURL = NA,
                  "map of stand age in 2011 used to create `cohortData2011`"),
     expectsInput("studyArea", "sf", sourceURL = NA,
-                 "studyArea that determines spatial boundaries of all data")
+                 "study area that determines spatial boundaries of all data.")
   ),
   outputObjects = bindrows(
     createsOutput("fireBufferedListDT", "list",
