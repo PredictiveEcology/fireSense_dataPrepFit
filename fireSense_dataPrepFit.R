@@ -1088,9 +1088,9 @@ runBorealDP_forCohortData <- function(sim) {
       }
 
       fireYears <- c(min(P(sim)$fireYears - P(sim)$cutoffForYoungAge):max(P(sim)$fireYears))
-      #check why this isn't resulting in identical crs between firePolys, studyArea
+      ## TODO: check why this isn't resulting in identical crs between firePolys, studyArea
       allFirePolys <- Cache(fireSenseUtils::getFirePolygons,
-                            fun = "st_read",
+                            fun = "sf::st_read",
                             years = fireYears,
                             useInnerCache = TRUE,
                             destinationPath = dPath,
