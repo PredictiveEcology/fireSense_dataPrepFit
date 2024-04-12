@@ -626,15 +626,13 @@ prepare_SpreadFitFire_Vector <- function(sim) {
 
   ## drop fires less than 1 px in size
   pixSizeHa <- prod(res(sim$flammableRTM2011)) / 1e4
-  #using x[x$SIZE_HA] will work with terra or sf, while subset will not (I believe...)
+  ## using x[x$SIZE_HA] will work with terra or sf, while subset will not (I believe...)
   sim$spreadFirePoints <- lapply(sim$spreadFirePoints, function(x, minSize = pixSizeHa) {
     x <- x[x$SIZE_HA > minSize,]
     if (nrow(x) > 0) x else NULL
   })
 
-  #silly R
-  sim$spreadFirePoints[sapply(sim$spreadFirePoints, is.null)] <- NULL
-
+  sim$spreadFirePoints[sapply(sim$spreadFirePoints, is.null)] <- NULL ## silly R
 
   sim$firePolys <- lapply(sim$firePolys, function(x) {
     x <- x[x$SIZE_HA > pixSizeHa,]
@@ -642,26 +640,28 @@ prepare_SpreadFitFire_Vector <- function(sim) {
   })
   sim$firePolys[sapply(sim$firePolys, is.null)] <- NULL
   sim$spreadFirePoints <- sim$spreadFirePoints[names(sim$spreadFirePoints) %in% names(sim$firePolys)]
-  #this covers when years are NA, which are caused by fire years with no available data
+  ## this covers when years are NA, which are caused by fire years with no available data
 
-  #years run separately because flammableRTM is different
-  #ultimately this function should combine the climate data to avoid needless iteration,
-  #and even this duplicated step should be a function of "fire period" for >2 periods
-  #however, the rasterized fire prep is significantly different, and needs review first
-  harmonized2001 <- Cache(harmonizeFireData,
-                          firePolys = sim$firePolys[names(sim$firePolys) %in% pre2012], #protects from missing years
-                          flammableRTM = sim$flammableRTM2001,
-                          spreadFirePoints = sim$spreadFirePoints[pre2012],
-                          areaMultiplier = P(sim)$areaMultiplier, minSize = P(sim)$minBufferSize,
-                          pointsIDcolumn = "FIRE_ID",
-                          userTags = c("harmonizeFireData", P(sim)$.studyAreaName, "2001"))
-  harmonized2011 <- Cache(harmonizeFireData,
-                          sim$firePolys[names(sim$firePolys) %in% post2012],
-                          sim$flammableRTM2011,
-                          spreadFirePoints = sim$spreadFirePoints[names(sim$spreadFirePoints) %in% post2012],
-                          areaMultiplier = P(sim)$areaMultiplier, minSize = P(sim)$minBufferSize,
-                          pointsIDcolumn = "FIRE_ID",
-                          userTags = c("harmonizeFireData", P(sim)$.studyAreaName, "2011"))
+  ## years run separately because flammableRTM is different
+  ## ultimately this function should combine the climate data to avoid needless iteration,
+  ## and even this duplicated step should be a function of "fire period" for >2 periods
+  ## however, the rasterized fire prep is significantly different, and needs review first
+  harmonized2001 <- harmonizeFireData(
+    firePolys = sim$firePolys[names(sim$firePolys) %in% pre2012], ## protects from missing years
+    flammableRTM = sim$flammableRTM2001,
+    spreadFirePoints = sim$spreadFirePoints[names(sim$spreadFirePoints) %in% pre2012], ## protects from missing years
+    areaMultiplier = P(sim)$areaMultiplier, minSize = P(sim)$minBufferSize,
+    pointsIDcolumn = "FIRE_ID"
+  ) |>
+    Cache(userTags = c("harmonizeFireData", P(sim)$.studyAreaName, "2001"))
+  harmonized2011 <- harmonizeFireData(
+    sim$firePolys[names(sim$firePolys) %in% post2012],
+    sim$flammableRTM2011,
+    spreadFirePoints = sim$spreadFirePoints[names(sim$spreadFirePoints) %in% post2012],
+    areaMultiplier = P(sim)$areaMultiplier, minSize = P(sim)$minBufferSize,
+    pointsIDcolumn = "FIRE_ID"
+  ) |>
+    Cache(userTags = c("harmonizeFireData", P(sim)$.studyAreaName, "2011"))
 
   sim$fireBufferedListDT <- append(harmonized2001$fireBufferedListDT,
                                    harmonized2011$fireBufferedListDT)
