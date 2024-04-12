@@ -24,9 +24,23 @@ harmonizeFireData <- function(firePolys, flammableRTM, spreadFirePoints,
     buff = fireBufferedListDT,
     ras = flammableRTM,
     idCol = pointsIDcolumn
-  ) |>
-    Map(f = cleanUpSpreadFirePoints, firePoints = _, bufferDT = fireBufferedListDT,
-        MoreArgs = list(flammableRTM = flammableRTM)) |>
+  )
+
+  ## ensure mismatched (e.g. points w/ no polys) and now missing years actually removed.
+  ## TODO: move this check code into the corresponding fireSenseUtils functions
+  emptyYearsPoints <- which(vapply(harmonized, is.null, logical(1))) |> names()
+  emptyYearsPolys <- which(vapply(fireBufferedListDT, function(x) nrow(x) == 0, logical(1))) |> names()
+  stopifnot(emptyYearsPoints == emptyYearsPolys)
+  emptyYears <- unique(c(emptyYearsPoints, emptyYearsPolys))
+  if (length(emptyYears > 0)) {
+    harmonized[[emptyYears]] <- NULL
+    fireBufferedListDT[[emptyYears]] <- NULL
+  }
+
+  harmonized <- Map(f = cleanUpSpreadFirePoints,
+                    firePoints = harmonized,
+                    bufferDT = fireBufferedListDT,
+                    MoreArgs = list(flammableRTM = flammableRTM)) |>
     purrr::transpose()
 
   return(list(fireBufferedListDT = harmonized$FireBuffered,
