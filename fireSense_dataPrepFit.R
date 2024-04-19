@@ -1053,7 +1053,7 @@ runBorealDP_forCohortData <- function(sim) {
     P(sim)$.studyAreaName <- studyAreaName(sim$studyArea)
   }
   cacheTags <- c(currentModule(sim), P(sim)$.studyAreaName)
-  dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
+  dPath <- asPath(inputPath(sim), 1)
   message(currentModule(sim), ": using dataPath '", dPath, "'.")
 
   if (!suppliedElsewhere("rasterToMatch", sim)) {
