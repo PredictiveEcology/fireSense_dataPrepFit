@@ -14,7 +14,7 @@ defineModule(sim, list(
   documentation = deparse(list("README.md", "fireSense_dataPrepFit.Rmd")),
   loadOrder = list(after = c("Biomass_borealDataPrep", "Biomass_speciesParameters")),
   reqdPkgs = list("data.table", "fastDummies",
-                  "PredictiveEcology/fireSenseUtils@lccFix (>= 0.0.5.9062)",
+                  "PredictiveEcology/fireSenseUtils@lccFix (>= 0.0.5.9065)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@lccFix (>= 1.1.0.9081)",
                   "PredictiveEcology/SpaDES.core@development (>= 2.0.2.9006)",
