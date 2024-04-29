@@ -240,12 +240,12 @@ doEvent.fireSense_dataPrepFit = function(sim, eventTime, eventType) {
 
 ### template initialization
 Init <- function(sim) {
-  if (!isInt(sim$rstLCC2001)) sim$rstLCC2001 <- asInt(sim$rstLCC2001)
+  if (!isInt(sim$rstLCC2001)) sim$rstLCC2001 <- LandR::asInt(sim$rstLCC2001)
   sim$flammableRTM2001 <- defineFlammable(sim$rstLCC2001,
                                           nonFlammClasses = P(sim)$nonflammableLCC,
                                           to = sim$rasterToMatch)
 
-  if (!isInt(sim$rstLCC2011)) sim$rstLCC2011 <- asInt(sim$rstLCC2011)
+  if (!isInt(sim$rstLCC2011)) sim$rstLCC2011 <- LandR::asInt(sim$rstLCC2011)
   sim$flammableRTM2011 <- defineFlammable(sim$rstLCC2011,
                                           nonFlammClasses = P(sim)$nonflammableLCC,
                                           to = sim$rasterToMatch)
