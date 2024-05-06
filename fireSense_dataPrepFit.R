@@ -14,7 +14,7 @@ defineModule(sim, list(
   documentation = deparse(list("README.md", "fireSense_dataPrepFit.Rmd")),
   loadOrder = list(after = c("Biomass_borealDataPrep", "Biomass_speciesParameters")),
   reqdPkgs = list("data.table", "fastDummies",
-                  "PredictiveEcology/fireSenseUtils@lccFix (>= 0.0.5.9065)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9065)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@lccFix (>= 1.1.0.9081)",
                   "PredictiveEcology/SpaDES.core@development (>= 2.0.2.9006)",
@@ -433,7 +433,7 @@ prepare_SpreadFit <- function(sim) {
            "fireSenseUtils::bufferToArea(..., areaMultiplier = multiplier)")
   }
 
-  RHS <- paste(paste0(names(sim$historicalClimateRasters), collapse = " + "), "youngAge",
+  RHS <- paste(paste0(sim$climateVariablesForFire$spread, collapse = " + "), "youngAge",
                paste0(vegCols, collapse = " + "), sep =  " + ")
 
   ## this is a funny way to get years but avoids years with 0 fires
