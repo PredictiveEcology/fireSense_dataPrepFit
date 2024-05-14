@@ -370,9 +370,11 @@ prepare_SpreadFit <- function(sim) {
     Cache(.functionName = "cohortsToFuelClasses") #youngAge will be resolved annually downstream
 
   vegData <- lapply(vegData, FUN = function(x) {
-    dt <- as.data.table(values(x))
-    dt[, pixelID := 1:ncell(x)]
-    return(dt)
+    xYA <- terra::subset(x, names(x) == "youngAge")
+    xNYA <- terra::subset(x, names(x) != "youngAge")
+    xNYA <- log(xNYA + 1) #log transform the biomass values, setting zeroes to zero
+    x <- c(xNYA, xYA)
+    return(x)
   })
   gc()
   vegData[[1]][, year := 2002]
@@ -461,8 +463,6 @@ prepare_SpreadFit <- function(sim) {
 
 
   fireSense_annualSpreadFitCovariates <- split(fbl, by = "year", keep.by = FALSE)
-
-
 
   ## prepare non-annual spread fit covariates by getting the youngAge
   pre2012Indices <- sim$fireBufferedListDT[names(sim$fireBufferedListDT) %in% pre2012]
@@ -710,6 +710,16 @@ prepare_IgnitionFit <- function(sim) {
                                      fuelClassCol = P(sim)$ignitionFuelClassCol,
                                      cutoffForYoungAge = P(sim)$cutoffForYoungAge)) |>
     Cache(.functionName = "cohortsToFuelClasses")
+
+  fuelClasses <- lapply(fuelClasses, function(x){
+    xYA <- terra::subset(x, names(x) == "youngAge")
+    xNYA <- terra::subset(x, names(x) != "youngAge")
+    xNYA <- log(xNYA + 1) #log transform the biomass values, setting zeroes to zero
+    x <- c(xNYA, xYA)
+    #TODO: check ignition
+    return(x)
+  })
+
 
   if (P(sim)$nonForestCanBeYoungAge) {
     ## this modifies the NF landcover by converting some NF to a new YA layer
