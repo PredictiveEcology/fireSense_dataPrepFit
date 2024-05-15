@@ -374,13 +374,13 @@ prepare_SpreadFit <- function(sim) {
     Cache(.functionName = "cohortsToFuelClasses") #youngAge will be resolved annually downstream
 
   #log transform the biomass values, setting zeroes to zero
+  #ideally we move this into cohortsToFuelClasses...
+  #there is no young age here unlike ignition
   vegData <- lapply(vegData, FUN = function(x) {
-    bCols <- unique(sim$sppEquiv[[P(sim)$ignitionFuelClassCol]])
-    xYA <- terra::subset(x, names(x) %in% bCols)
-    xBiomass <- terra::subset(x, !names(x) %in% bCols)
-    xBiomass <- log(xBiomass + 1)
-    x <- c(xBiomass, xYa)
-    return(x)
+    x <- log(x + 1)
+    dt <- as.data.table(values(x))
+    dt[, pixelID := 1:ncell(x)]
+    return(dt)
   })
 
   gc()
@@ -720,11 +720,10 @@ prepare_IgnitionFit <- function(sim) {
 
   fuelClasses <- lapply(fuelClasses, FUN = function(x){
     bCols <- unique(sim$sppEquiv[[P(sim)$ignitionFuelClassCol]])
-    xYA <- terra::subset(x, names(x) != bCols)
-    xBiomass <- terra::subset(x, names(x) == bCols)
+    xYA <- terra::subset(x, !names(x) %in% bCols)
+    xBiomass <- terra::subset(x, names(x) %in% bCols)
     xBiomass <- log(xBiomass + 1) #log transform the biomass values, setting zeroes to zero
     x <- c(xBiomass, xYA)
-
     return(x)
   })
 
