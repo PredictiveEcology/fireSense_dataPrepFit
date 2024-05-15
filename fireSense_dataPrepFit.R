@@ -751,7 +751,8 @@ prepare_IgnitionFit <- function(sim) {
   LCCras <- lapply(LCCras, aggregate, fact = P(sim)$igAggFactor, fun = mean) |>
     Cache(.functionName = "aggregate_LCCras_to_coarse")
   names(LCCras) <- c("year2001", "year2011")
-  fuelClasses <- lapply(fuelClasses, FUN = aggregate, fact = P(sim)$igAggFactor, fun = mean) |>
+  #must specify terra::aggregate to avoid conflict with stats::aggregate
+  fuelClasses <- lapply(fuelClasses, FUN = terra::aggregate, fact = P(sim)$igAggFactor, fun = mean) |>
     Cache(.functionName = "aggregate_fuelClasses_to_coarse")
   names(fuelClasses) <- c("year2001", "year2011")
 
