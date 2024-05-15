@@ -373,13 +373,16 @@ prepare_SpreadFit <- function(sim) {
                                  cutoffForYoungAge = -1)) |>
     Cache(.functionName = "cohortsToFuelClasses") #youngAge will be resolved annually downstream
 
+  #log transform the biomass values, setting zeroes to zero
   vegData <- lapply(vegData, FUN = function(x) {
     bCols <- unique(sim$sppEquiv[[P(sim)$ignitionFuelClassCol]])
     xYA <- terra::subset(x, names(x) %in% bCols)
     xBiomass <- terra::subset(x, !names(x) %in% bCols)
-    xBiomass <- log(xBiomass + 1) #log transform the biomass values, setting zeroes to zero
+    xBiomass <- log(xBiomass + 1)
+    x <- c(xBiomass, xYa)
     return(x)
   })
+
   gc()
   vegData[[1]][, year := 2002]
   vegData[[2]][, year := 2012]
