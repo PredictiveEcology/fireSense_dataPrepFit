@@ -258,6 +258,10 @@ Init <- function(sim) {
                                         "spread" = sim$climateVariablesForFire)
   }
 
+  if (!all(unlist(sim$climateVariablesForFire) %in% names(sim$historicalClimateRasters))) {
+    stop("mismatch between sim$climateVariablesForFire and sim$historicalClimateRasters")
+  }
+
   ## ensure studyArea consists of a single polygon
   mod$studyAreaUnion <- if (is(sim$studyArea, "sf")) {
     sf::st_union(sim$studyArea)
@@ -370,10 +374,10 @@ prepare_SpreadFit <- function(sim) {
     Cache(.functionName = "cohortsToFuelClasses") #youngAge will be resolved annually downstream
 
   vegData <- lapply(vegData, FUN = function(x) {
-    xYA <- terra::subset(x, names(x) == "youngAge")
-    xNYA <- terra::subset(x, names(x) != "youngAge")
-    xNYA <- log(xNYA + 1) #log transform the biomass values, setting zeroes to zero
-    x <- c(xNYA, xYA)
+    bCols <- unique(sim$sppEquiv[[P(sim)$ignitionFuelClassCol]])
+    xYA <- terra::subset(x, names(x) %in% bCols)
+    xBiomass <- terra::subset(x, !names(x) %in% bCols)
+    xBiomass <- log(xBiomass + 1) #log transform the biomass values, setting zeroes to zero
     return(x)
   })
   gc()
@@ -711,12 +715,13 @@ prepare_IgnitionFit <- function(sim) {
                                      cutoffForYoungAge = P(sim)$cutoffForYoungAge)) |>
     Cache(.functionName = "cohortsToFuelClasses")
 
-  fuelClasses <- lapply(fuelClasses, function(x){
-    xYA <- terra::subset(x, names(x) == "youngAge")
-    xNYA <- terra::subset(x, names(x) != "youngAge")
-    xNYA <- log(xNYA + 1) #log transform the biomass values, setting zeroes to zero
-    x <- c(xNYA, xYA)
-    #TODO: check ignition
+  fuelClasses <- lapply(fuelClasses, FUN = function(x){
+    bCols <- unique(sim$sppEquiv[[P(sim)$ignitionFuelClassCol]])
+    xYA <- terra::subset(x, names(x) != bCols)
+    xBiomass <- terra::subset(x, names(x) == bCols)
+    xBiomass <- log(xBiomass + 1) #log transform the biomass values, setting zeroes to zero
+    x <- c(xBiomass, xYA)
+
     return(x)
   })
 
@@ -893,7 +898,7 @@ prepare_EscapeFit <- function(sim) {
   escapes <- sim$ignitionFirePoints[sim$ignitionFirePoints$SIZE_HA > escapeThreshHa,]
 
   #make a template aggregated raster - values are irrelevant, only need pixelID
-  aggregatedRas <- aggregate(sim$historicalClimateRasters[[1]][[1]],
+  aggregatedRas <- terra::aggregate(sim$historicalClimateRasters[[1]][[1]],
                              fact = P(sim)$igAggFactor, fun = mean) |>
     Cache(.functionName = "aggregate_historicalClimateRasters_forTemplate")
 
