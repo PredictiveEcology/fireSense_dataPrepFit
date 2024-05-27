@@ -1032,7 +1032,7 @@ runBorealDP_forCohortData <- function(sim) {
     if (".globals" %in% names(params(sim))) {
       parms[".globals"] <- params(sim)[".globals"]
       #below: safety catch in case a global dataYear was used
-      parms[[".gloabls"]][["dataYear"]] <- NULL
+      parms[[".globals"]][["dataYear"]] <- NULL
     }
     outNY <- Cache(do.call(SpaDES.core::simInitAndSpades, list(paths = pathsLocal,
                                                                params = parms,
