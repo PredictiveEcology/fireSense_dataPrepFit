@@ -1026,14 +1026,14 @@ runBorealDP_forCohortData <- function(sim) {
     for (nm in neededModule) {
       parms[[nm]] <- P(sim, module = nm)
       parms[[nm]][["dataYear"]] <- ny
-      parms[[nm]][["exportModels"]] <- "none"
-      parms[[nm]] <- parms[[nm]][!names(parms[[nm]]) %in% SpaDES.core:::paramsDontCacheOn]
     }
+    parms$Biomass_borealDataPrep$exportModels <- "none"
 
     if (".globals" %in% names(params(sim))) {
       parms[".globals"] <- params(sim)[".globals"]
+      #below: safety catch in case a global dataYear was used
+      parms[[".gloabls"]][["dataYear"]] <- NULL
     }
-
     outNY <- Cache(do.call(SpaDES.core::simInitAndSpades, list(paths = pathsLocal,
                                                                params = parms,
                                                                times = list(start = ny, end = ny),
