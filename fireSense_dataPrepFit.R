@@ -278,13 +278,13 @@ Init <- function(sim) {
   }
 
   if (!terra::same.crs(sim$ignitionFirePoints, sim$rasterToMatch)) {
-    # project it first, faster than the postProcessTo sequence pre-crop, project, mask, crop
+    ## project it first, faster than the postProcessTo sequence pre-crop, project, mask, crop
     sim$ignitionFirePoints <- projectTo(sim$ignitionFirePoints, sim$rasterToMatch) |>
       cropTo(sim$rasterToMatch) |>
       maskTo(sim$rasterToMatch)
   }
 
-  #possible if user-supplied
+  ## possible, if user-supplied
   if (!terra::same.crs(sim$firePolys[[1]], sim$rasterToMatch)) {
     # projectTo(fp, crs(sim$rasterToMatch))) |> #terrarize
     sim$firePolys <- Map(fp = sim$firePolys, function(fp)
@@ -314,7 +314,7 @@ Init <- function(sim) {
     stop("All species must have spread and ignition fuelClasses defined")
   }
 
-  #TODO: make this table multidimensional or a list
+  ## TODO: make this table multidimensional or a list
   sim$landcoverDT2001 <- makeLandcoverDT(rstLCC = sim$rstLCC2001, flammableRTM = sim$flammableRTM2001,
                                          forestedLCC = P(sim)$forestedLCC, sim$nonForestedLCCGroups)
   sim$landcoverDT2011 <- makeLandcoverDT(rstLCC = sim$rstLCC2011, flammableRTM = sim$flammableRTM2011,
@@ -323,29 +323,34 @@ Init <- function(sim) {
   sim$landcoverDT2001 <- correctMissingLCC(sim$landcoverDT2001, sim$pixelGroupMap2001, P(sim)$missingLCCgroup)
   sim$landcoverDT2011 <- correctMissingLCC(sim$landcoverDT2011, sim$pixelGroupMap2011, P(sim)$missingLCCgroup)
 
-  # cannot merge because before subsetting due to column differences over time
+  ## cannot merge because before subsetting due to column differences over time
 
   ## TODO: this object  be used to track annual youngAge of all pixels, forested or not
-  #so "nonForest" is a poor choice of name
-  #it should not have values for nonflammable pixels
-  sim$nonForest_timeSinceDisturbance2001 <- makeTSD(year = 2001,
-                                                    fireRaster = sim$historicalFireRaster, #can be NULL
-                                                    firePolys = sim$firePolysForAge,
-                                                    standAgeMap = sim$standAgeMap2001, lcc = sim$landcoverDT2001,
-                                                    cutoffForYoungAge = P(sim)$cutoffForYoungAge)
+  ## so "nonForest" is a poor choice of name. It should not have values for non-flammable pixels.
+  sim$nonForest_timeSinceDisturbance2001 <- makeTSD(
+    year = 2001,
+    fireRaster = sim$historicalFireRaster, ## can be NULL
+    firePolys = sim$firePolysForAge,
+    standAgeMap = sim$standAgeMap2001,
+    lcc = sim$landcoverDT2001,
+    cutoffForYoungAge = P(sim)$cutoffForYoungAge
+  )
   sim$nonForest_timeSinceDisturbance2001[sim$flammableRTM2001[] == 0] <- NA
-  sim$nonForest_timeSinceDisturbance2011 <- makeTSD(year = 2011,
-                                                    fireRaster = sim$historicalFireRaster, #can be NULL
-                                                    firePolys = sim$firePolysForAge,
-                                                    standAgeMap = sim$standAgeMap2011,
-                                                    lcc = sim$landcoverDT2011,
-                                                    cutoffForYoungAge = P(sim)$cutoffForYoungAge)
+
+  sim$nonForest_timeSinceDisturbance2011 <- makeTSD(
+    year = 2011,
+    fireRaster = sim$historicalFireRaster, ## can be NULL
+    firePolys = sim$firePolysForAge,
+    standAgeMap = sim$standAgeMap2011,
+    lcc = sim$landcoverDT2011,
+    cutoffForYoungAge = P(sim)$cutoffForYoungAge
+  )
   sim$nonForest_timeSinceDisturbance2011[sim$flammableRTM2011[] == 0] <- NA
 
-  #until youngAge treatment is identical between spread and ignition, no point in prepping veg here
-  #Currently youngAge is resolved annually in spread, but only once in ignition
-  #e.g. if a pixel ignited in 2008, its youngAge status in ignition is still determined by whether it was 15 in 2001,
-  #but its youngAge status for spread is deterimined by whether standAge < 15 in 2008
+  ## Until youngAge treatment is identical between spread and ignition, no point in prepping veg here
+  ## Currently youngAge is resolved annually in spread, but only once in ignition
+  ## e.g. if a pixel ignited in 2008, its youngAge status in ignition is still determined by whether it was 15 in 2001,
+  ## but its youngAge status for spread is deterimined by whether standAge < 15 in 2008
 
   return(invisible(sim))
 }
@@ -541,29 +546,28 @@ prepare_SpreadFit <- function(sim) {
 }
 
 prepare_SpreadFitFire_Raster <- function(sim) {
-
   stop("these methods need to be revised for the two flammable RTMs, two landcoverDTs")
-  #TODO: do this, obviously
+  ## TODO: do this, obviously
   historicalFireRaster <- sim$historicalFireRaster
 
-  #build initial burn IDs by buffering  - then using clump(raster) or patches(terra)
-  #historical fire Raster is currently not in outputs - if assigned to sim here, it should be added
-  # as we modify it by removing non-flammable fires.
+  ## build initial burn IDs by buffering  - then using clump(raster) or patches(terra)
+  ## historical fire Raster is currently not in outputs - if assigned to sim here, it should be added
+  ## as we modify it by removing non-flammable fires.
 
   historicalFireRaster <- mask(historicalFireRaster, sim$flammableRTM,
                                maskvalues = 0, updatevalue = NA)
 
   nCores <- ifelse(grepl("Windows", Sys.info()[["sysname"]]), 1L, length(sim$fireYears))
 
-  #this is analogous to buffer to area but for raster datasets as opposed to polygon
-  #the inner looping function is very similar - one difference is that non-flammable
-  #pixels do not count toward the buffer size, unlike the polygonal version.
+  ## this is analogous to buffer to area but for raster datasets as opposed to polygon
+  ## the inner looping function is very similar - one difference is that non-flammable
+  ## pixels do not count toward the buffer size, unlike the polygonal version.
   sim$fireBufferedListDT <- Cache(rasterFireBufferDT, years =  P(sim)$fireYears,
                                   fireRaster = historicalFireRaster, flammableRTM = sim$flammableRTM,
                                   bufferForFireRaster = P(sim)$bufferForFireRaster, verb = 1,
                                   areaMultiplier = P(sim)$areaMultiplier, minSize = P(sim)$minBufferSize,
                                   cores = nCores, userTags = c(currentModule(sim), "rasterFireBufferDT"))
-  #TODO: test that this is the correct method for missing years
+  ## TODO: test that this is the correct method for missing years
   missingYears <- unlist(lapply(sim$fireBufferedListDT, is.null))
 
   if (any(missingYears)) {
@@ -571,7 +575,7 @@ prepare_SpreadFitFire_Raster <- function(sim) {
     sim$fireBufferedListDT <- sim$fireBufferedListDT[!missingYears]
   }
 
-  #next up: generate spread fire points. no harmonization is needed with this approach :)
+  ## next up: generate spread fire points. no harmonization is needed with this approach :)
   sim$spreadFirePoints <- lapply(sim$fireBufferedListDT,
                                  rasterFireSpreadPoints,
                                  flammableRTM = sim$flammableRTM)
@@ -592,12 +596,11 @@ prepare_SpreadFitFire_Raster <- function(sim) {
 }
 
 prepare_SpreadFitFire_Vector <- function(sim) {
-
   pre2012 <- paste0("year", min(P(sim)$fireYears):2011)
   post2012 <- paste0("year", 2012:max(P(sim)$fireYears))
   ## sanity check
   ## TODO: is there a terra version of st_contains?
-  #this takes a long time and shouldn't be necessary if postProcess is functional
+  ## this takes a long time and shouldn't be necessary if postProcess is functional
   # stopifnot(
   #   "all annual firePolys are not within studyArea" = all(unlist(lapply(sim$firePolys, function(x) {
   #     SA <- st_as_sf(mod$studyAreaUnion)
@@ -606,7 +609,7 @@ prepare_SpreadFitFire_Vector <- function(sim) {
   #   })))
   # )
 
-  ####prep fire data ####
+  ## prep fire data -----------------------------------------------------------------
   if (is.null(sim$firePolys[[1]]$FIRE_ID)) {
     stop("firePolys needs a numeric FIRE_ID column")
   }
@@ -697,8 +700,8 @@ prepare_IgnitionFit <- function(sim) {
     )
   )
 
-  # account for forested pixels that aren't in cohortData
-  #TODO: make this elegant
+  ## account for forested pixels that aren't in cohortData
+  ## TODO: make this elegant
   ## first put landcover into raster stack
   ## non-flammable pixels require zero values for non-forest landcover, not NA
   LCCras <- Map(
@@ -724,7 +727,7 @@ prepare_IgnitionFit <- function(sim) {
     bCols <- unique(sim$sppEquiv[[P(sim)$ignitionFuelClassCol]])
     xYA <- terra::subset(x, !names(x) %in% bCols)
     xBiomass <- terra::subset(x, names(x) %in% bCols)
-    xBiomass <- log(xBiomass + 1) #log transform the biomass values, setting zeroes to zero
+    xBiomass <- log(xBiomass + 1) ## log transform the biomass values, setting zeroes to zero
     x <- c(xBiomass, xYA)
     return(x)
   })
@@ -760,7 +763,7 @@ prepare_IgnitionFit <- function(sim) {
   LCCras <- lapply(LCCras, aggregate, fact = P(sim)$igAggFactor, fun = mean) |>
     Cache(.functionName = "aggregate_LCCras_to_coarse")
   names(LCCras) <- c("year2001", "year2011")
-  #must specify terra::aggregate to avoid conflict with stats::aggregate
+  ## must specify terra::aggregate to avoid conflict with stats::aggregate
   fuelClasses <- lapply(fuelClasses, FUN = terra::aggregate, fact = P(sim)$igAggFactor, fun = mean) |>
     Cache(.functionName = "aggregate_fuelClasses_to_coarse")
   names(fuelClasses) <- c("year2001", "year2011")
@@ -769,8 +772,8 @@ prepare_IgnitionFit <- function(sim) {
   ignitionClimate <- lapply(X = ignitionClimate, FUN = terra::aggregate,
                             fact = P(sim)$igAggFactor, fun = mean) |>
     Cache(.functionName = "aggregate_historicalClimateRasters_to_coarse")
-  #safety
-  compareGeom(ignitionClimate[[1]], fuelClasses[[1]], fuelClasses[[2]])
+
+  compareGeom(ignitionClimate[[1]], fuelClasses[[1]], fuelClasses[[2]]) ## safety check
 
   ## ignition won't have same years as spread so we do not use names of init objects
   ## The reason is some years may have ignitions but no fires, e.g. 2001 in RIA
@@ -794,32 +797,33 @@ prepare_IgnitionFit <- function(sim) {
                                   P(sim)$fireYears)
   }
 
-  #TODO: the cache bevavior is too permissive
-  #this is joining fuel class, LCC, and climate, subsetting to flamIndex, calculating n of ignitions
+  ## join fuel class, LCC, and climate, subsetting to flamIndex, calculating n of ignitions
   fireSense_ignitionCovariates <- Map(f = fireSenseUtils::stackAndExtract,
                                       years = list(pre2012, post2012),
                                       fuel = list(fuelClasses$year2001, fuelClasses$year2011),
                                       LCC = list(LCCras$year2001, LCCras$year2011),
                                       MoreArgs = list(climate = ignitionClimate,
                                                       fires = sim$ignitionFirePoints
-                                      )) |> Cache(.functionName = "stackAndExtract",
-                                                  userTags = names(ignitionClimate))
+                                      )) |>
+    Cache(
+      .functionName = "stackAndExtract",
+      userTags = names(ignitionClimate)
+    ) ## TODO: cache behavior is too permissive
 
   fireSense_ignitionCovariates <- rbindlist(fireSense_ignitionCovariates)
 
-  #remove any pixels that are 0 for all classes
+  ## remove any pixels that are 0 for all classes
   fireSense_ignitionCovariates[, coverSums := rowSums(.SD),
                                .SD = setdiff(names(fireSense_ignitionCovariates),
                                              c(names(ignitionClimate), "cell", "ignitions", "year"))]
   fireSense_ignitionCovariates <- fireSense_ignitionCovariates[coverSums > 0]
   set(fireSense_ignitionCovariates, NULL, "coverSums", NULL)
 
-
-  #rename cells to pixelID - though aggregated raster is not saved
+  ## rename cells to pixelID - though aggregated raster is not saved
   setnames(fireSense_ignitionCovariates, old = "cell", new = "pixelID")
   fireSense_ignitionCovariates[, year := as.numeric(year)]
 
-  # for random effect
+  ## for random effect
   ranEffs <- "yearChar"
   set(fireSense_ignitionCovariates, NULL, ranEffs, as.character(fireSense_ignitionCovariates$year))
   firstCols <- c("pixelID", "ignitions", names(ignitionClimate), "youngAge")
@@ -836,30 +840,30 @@ prepare_IgnitionFit <- function(sim) {
 
   sim$fireSense_ignitionCovariates <- fireSense_ignitionCovariates
 
-  #make new ignition object, ignitionFitRTM
+  ## make new ignition object, ignitionFitRTM
   sim$ignitionFitRTM <- rast(fuelClasses$year2001[[1]])
-  sim$ignitionFitRTM <- setValues(sim$ignitionFitRTM, 1) #avoids a warning
+  sim$ignitionFitRTM <- setValues(sim$ignitionFitRTM, 1) ## avoids a warning
   attributes(sim$ignitionFitRTM)$nonNAs <- nrow(sim$fireSense_ignitionCovariates)
 
-  #assign mean forest biomass- for use in plotting in ignitionFit#
+  ## assign mean forest biomass- for use in plotting in ignitionFit
   tempCD <- LandR::addPixels2CohortData(sim$cohortData2011, sim$pixelGroupMap2011)
   bPerPixel <- tempCD[age > 0, .(bPerPixel = sum(B)), .(pixelIndex)]
   meanForestB <- mean(bPerPixel$bPerPixel)
   attributes(sim$ignitionFitRTM)$meanForestB <- meanForestB
   rm(tempCD, bPerPixel)
 
-  #build formula
+  ## build formula
   igCovariates <- names(sim$fireSense_ignitionCovariates)
   igCovariates <- igCovariates[!igCovariates %in%
                                  c(names(ignitionClimate),
                                    "year", "yearChar", "ignitions", "ignitionsNoGT1", "pixelID")]
 
-  #this is safer for multiple climate variables
+  ## this is safer for multiple climate variables
   interactionsDF <- as.data.table(expand.grid(igCovariates, sim$climateVariablesForFire$ignition))
   interactionsDF[, interaction := do.call(paste, c(.SD, sep = ":")), .SDcols = names(interactionsDF)]
   interactions <- interactionsDF$interaction
 
-  #sanity check for base::abbreviate
+  ## sanity check for base::abbreviate
   if (isTRUE(P(sim)$usePiecewiseRegression)) {
     if (length(sim$climateVariablesForFire$ignition) > 1) {
       stop("cannot use multiple climate variables with piecewise ignition fit formula")
@@ -894,16 +898,16 @@ prepare_IgnitionFit <- function(sim) {
 
 prepare_EscapeFit <- function(sim) {
   if (is.null(sim$fireSense_ignitionCovariates)) {
-    #the datasets are essentially the same, with one column difference
+    ## the datasets are essentially the same, with one column difference
     stop("Please include ignitionFit in parameter 'whichModulesToPrepare' if running EscapeFit")
   }
 
   escapeThreshHa <- prod(res(sim$flammableRTM2001))/10000
   escapes <- sim$ignitionFirePoints[sim$ignitionFirePoints$SIZE_HA > escapeThreshHa,]
 
-  #make a template aggregated raster - values are irrelevant, only need pixelID
+  ## make a template aggregated raster - values are irrelevant, only need pixelID
   aggregatedRas <- terra::aggregate(sim$historicalClimateRasters[[1]][[1]],
-                             fact = P(sim)$igAggFactor, fun = mean) |>
+                                    fact = P(sim)$igAggFactor, fun = mean) |>
     Cache(.functionName = "aggregate_historicalClimateRasters_forTemplate")
 
   coords <- st_coordinates(escapes)
