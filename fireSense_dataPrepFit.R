@@ -708,19 +708,22 @@ prepare_IgnitionFit <- function(sim) {
     f = putBackIntoRaster,
     landcoverDT = list(sim$landcoverDT2001, sim$landcoverDT2011),
     flammableMap = list(sim$flammableRTM2001, sim$flammableRTM2011),
-    MoreArgs = list(lcc = names(sim$nonForestedLCCGroups))) |>
+    MoreArgs = list(lcc = names(sim$nonForestedLCCGroups))
+  ) |>
     Cache(.functionName = "putBackIntoRaster",
           userTags = c("putBackIntoRaster", P(sim)$.studyAreaName))
 
-  fuelClasses <- Map(f = cohortsToFuelClasses,
-                     cohortData = list(sim$cohortData2001, sim$cohortData2011),
-                     flammableRTM = list(sim$flammableRTM2001, sim$flammableRTM2011),
-                     landcoverDT = list(sim$landcoverDT2001, sim$landcoverDT2011),
-                     pixelGroupMap = list(sim$pixelGroupMap2001, sim$pixelGroupMap2011),
-                     MoreArgs = list(sppEquiv = sim$sppEquiv,
-                                     sppEquivCol = P(sim)$sppEquivCol,
-                                     fuelClassCol = P(sim)$ignitionFuelClassCol,
-                                     cutoffForYoungAge = P(sim)$cutoffForYoungAge)) |>
+  fuelClasses <- Map(
+    f = cohortsToFuelClasses,
+    cohortData = list(sim$cohortData2001, sim$cohortData2011),
+    flammableRTM = list(sim$flammableRTM2001, sim$flammableRTM2011),
+    landcoverDT = list(sim$landcoverDT2001, sim$landcoverDT2011),
+    pixelGroupMap = list(sim$pixelGroupMap2001, sim$pixelGroupMap2011),
+    MoreArgs = list(sppEquiv = sim$sppEquiv,
+                    sppEquivCol = P(sim)$sppEquivCol,
+                    fuelClassCol = P(sim)$ignitionFuelClassCol,
+                    cutoffForYoungAge = P(sim)$cutoffForYoungAge)
+  ) |>
     Cache(.functionName = "cohortsToFuelClasses")
 
   fuelClasses <- lapply(fuelClasses, FUN = function(x){
@@ -732,17 +735,18 @@ prepare_IgnitionFit <- function(sim) {
     return(x)
   })
 
-
   if (P(sim)$nonForestCanBeYoungAge) {
     ## this modifies the NF landcover by converting some NF to a new YA layer
     ## it must be done before aggregating
 
-    LCCras <- Map(f = calcNonForestYoungAge,
-                  landcoverDT = list(sim$landcoverDT2001, sim$landcoverDT2011),
-                  NFTSD = list(sim$nonForest_timeSinceDisturbance2001,
-                               sim$nonForest_timeSinceDisturbance2011),
-                  LCCras = list(LCCras[[1]], LCCras[[2]]),
-                  MoreArgs = list(cutoffForYoungAge = P(sim)$cutoffForYoungAge)) |>
+    LCCras <- Map(
+      f = calcNonForestYoungAge,
+      landcoverDT = list(sim$landcoverDT2001, sim$landcoverDT2011),
+      NFTSD = list(sim$nonForest_timeSinceDisturbance2001,
+                   sim$nonForest_timeSinceDisturbance2011),
+      LCCras = list(LCCras[[1]], LCCras[[2]]),
+      MoreArgs = list(cutoffForYoungAge = P(sim)$cutoffForYoungAge)
+    ) |>
       Cache(.functionName = "calcNonForestYoungAge")
 
     for (i in c(1:2)) {
