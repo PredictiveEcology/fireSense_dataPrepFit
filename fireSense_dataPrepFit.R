@@ -251,8 +251,8 @@ Init <- function(sim) {
                                           to = sim$rasterToMatch)
 
 
-  #TODO: standardize sim$climateVariablesForFire if user provided
-  #this approach will be wrong if they pass a list length one...
+  ## TODO: standardize sim$climateVariablesForFire if user provided
+  ## this approach will be wrong if they pass a list length one...
   if (length(sim$climateVariablesForFire) == 1) {
     sim$climateVariablesForFire <- list("ignition" = sim$climateVariablesForFire,
                                         "spread" = sim$climateVariablesForFire)
