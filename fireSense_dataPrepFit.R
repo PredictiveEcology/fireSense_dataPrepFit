@@ -196,10 +196,10 @@ doEvent.fireSense_dataPrepFit = function(sim, eventTime, eventType) {
       if (!all(P(sim)$whichModulesToPrepare %in%
                c("fireSense_SpreadFit", "fireSense_IgnitionFit", "fireSense_EscapeFit"))) {
         stop("unrecognized module to prepare - review parameter whichModulesToPrepare")
-        #the camelcase is still different with FS from LandR Biomass
+        ## NOTE: the camelcase is still different with FS from LandR Biomass
       }
 
-      # schedule future event(s)
+      ## schedule future event(s)
       if ("fireSense_IgnitionFit" %in% P(sim)$whichModulesToPrepare)
         sim <- scheduleEvent(sim, start(sim), "fireSense_dataPrepFit", "prepIgnitionFitData", eventPriority = 1)
       if ("fireSense_EscapeFit" %in% P(sim)$whichModulesToPrepare)
@@ -208,11 +208,11 @@ doEvent.fireSense_dataPrepFit = function(sim, eventTime, eventType) {
         sim <- scheduleEvent(sim, start(sim), "fireSense_dataPrepFit", "prepSpreadFitData", eventPriority = 1)
       }
 
-      # do stuff for this event
+      ## do stuff for this event
       sim <- Init(sim)
 
       sim <- scheduleEvent(sim, end(sim), "fireSense_dataPrepFit", "plotAndMessage", eventPriority = 9)
-      sim <- scheduleEvent(sim, start(sim), "fireSense_dataPrepFit", "cleanUp", eventPriority = 10) #cleans up Mod objects
+      sim <- scheduleEvent(sim, start(sim), "fireSense_dataPrepFit", "cleanUp", eventPriority = 10)
     },
     prepIgnitionFitData = {
       sim <- prepare_IgnitionFit(sim)
@@ -400,23 +400,22 @@ prepare_SpreadFit <- function(sim) {
 
   lccNames <- setdiff(names(vegData), c("pixelID", "year"))
 
-
-  #prep the fire data
+  ## prep the fire data
   if (P(sim)$useRasterizedFire) {
     sim <- prepare_SpreadFitFire_Raster(sim)
   } else {
     sim <- prepare_SpreadFitFire_Vector(sim)
   }
 
-  ####join fire and veg data ####
+  ## join fire and veg data
   pre2012 <- paste0("year", min(P(sim)$fireYears):2011)
   post2012 <- paste0("year", 2012:max(P(sim)$fireYears))
 
   pre2012Indices <- sim$fireBufferedListDT[pre2012] %>%
     rbindlist(.) %>%
     .[vegData[year < 2012], on = c("pixelID")] %>%
-    .[!is.na(buffer)] #some buffered pixels are non-flammable...
-  #TODO: discuss if this is expected (as far as I can tell, it is)
+    .[!is.na(buffer)] ## some buffered pixels are non-flammable...
+  ## TODO: discuss if this is expected (as far as I can tell, it is)
 
   post2012Indices <- sim$fireBufferedListDT[post2012] %>%
     rbindlist(.) %>%
@@ -425,7 +424,7 @@ prepare_SpreadFit <- function(sim) {
   rm(vegData)
   gc()
 
-  #TODO: lines from creation of vegData onwards should be reviewed. Seems redundant..
+  ## TODO: lines from creation of vegData onwards should be reviewed. Seems redundant.
   fireSenseVegData <- rbind(pre2012Indices, post2012Indices)
   setnames(fireSenseVegData, "buffer", "burned")
 
@@ -494,7 +493,7 @@ prepare_SpreadFit <- function(sim) {
     as.data.table(.) %>%
     .[!duplicated(pixelID)] ## remove duplicates from same pixel diff year
 
-  #join the climate variables with the other annual covariate - youngAge (a.k.a. time since fire)
+  ## join the climate variables with the other annual covariate - youngAge (a.k.a. time since fire)
   ## pmap allows for internal debugging when there are large lists that are passed in; Map does not
   annualCovariates <- list(fireSense_annualSpreadFitCovariates[pre2012],
                            fireSense_annualSpreadFitCovariates[post2012])
@@ -513,9 +512,8 @@ prepare_SpreadFit <- function(sim) {
     cutoffForYoungAge = P(sim)$cutoffForYoungAge
   )
 
-  #get rid of nonflammable pixels (here because the calcYoungAge function assigns ages to NA values,
-  # due to inconsistent treatment of non-forest age pixels  in kNN years and other products (0 vs NA)
-
+  ## get rid of nonflammable pixels (here because the calcYoungAge function assigns ages to NA values,
+  ## due to inconsistent treatment of non-forest age pixels  in kNN years and other products (0 vs NA)
   annualCovariates[[1]] <- lapply(annualCovariates[[1]],
                                   function(x){ x[pixelID %in% sim$landcoverDT2001$pixelID,]})
   annualCovariates[[2]] <- lapply(annualCovariates[[2]],
@@ -1229,4 +1227,3 @@ runBorealDP_forCohortData <- function(sim) {
 
   return(invisible(sim))
 }
-
