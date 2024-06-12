@@ -1100,7 +1100,7 @@ runBorealDP_forCohortData <- function(sim) {
            suppliedElsewhere("pixelGroupMap2001", sim),
            suppliedElsewhere("rstLCC2001", sim),
            suppliedElsewhere("rstLCC2011", sim))) {
-    # This runs simInitAndSpades if needed
+    ## This runs simInitAndSpades if needed
     sim <- runBorealDP_forCohortData(sim)
   }
 
