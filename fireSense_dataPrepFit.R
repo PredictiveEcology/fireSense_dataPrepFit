@@ -1174,7 +1174,7 @@ runBorealDP_forCohortData <- function(sim) {
                                  destinationPath = dPath,
                                  filename2 = "standAgeMap2001.tif",
                                  startTime = 2001,
-                                 userTags = c(cacheTags, 'prepInputsStandAgeMap2001'))
+                                 userTags = c(cacheTags, "prepInputsStandAgeMap2001"))
   }
 
   if (!suppliedElsewhere("standAgeMap2011", sim)) {
@@ -1184,7 +1184,7 @@ runBorealDP_forCohortData <- function(sim) {
                                  destinationPath = dPath,
                                  filename2 = 'standAgeMap2011.tif',
                                  startTime = 2011,
-                                 userTags = c(cacheTags, 'prepInputsStandAgeMap2011'))
+                                 userTags = c(cacheTags, "prepInputsStandAgeMap2011"))
   }
 
   if (!suppliedElsewhere("ignitionFirePoints", sim)) {
@@ -1195,7 +1195,7 @@ runBorealDP_forCohortData <- function(sim) {
       NFDB_pointPath = dPath,
       userTags = c("ignitionFirePoints", P(sim)$.studyAreaName),
       plot = !is.na(P(sim)$.plotInitialTime)
-    ) #default redownload means it will update annually - I think this is fine?
+    ) ## default redownload means it will update annually - I think this is fine?
     sim$ignitionFirePoints <- ignitionFirePoints[ignitionFirePoints$CAUSE == "L",]
   }
 
@@ -1210,19 +1210,18 @@ runBorealDP_forCohortData <- function(sim) {
                                         rasterToMatch = sim$rasterToMatch,
                                         destinationPath = dPath,
                                         studyArea = sim$studyArea,
-                                        method = "near",  ## make sure this is near or ngb; bilinear is wrong
+                                        method = "near", ## only use near or ngb; bilinear is wrong!
                                         filename2 = paste0("wildfire_", P(sim)$.studyAreaName, ".tif"),
                                         userTags = c("historicalFireRaster", P(sim)$.studyAreaName))
     }
   }
+
   if (!suppliedElsewhere("nonForestedLCCGroups", sim)) {
-
-    #TODO: consider moving this to init - and checking if unsupplied
+    ## TODO: consider moving this to init - and checking if unsupplied
     sim$nonForestedLCCGroups <- list(
-      "nf_highFlam" = c(50, 100), #shrub, herbaceous, non-treed wetland
-      "nf_lowFlam" = c(40, 81)) #bryoids + non-treed wetland.
+      "nf_highFlam" = c(50, 100), # shrub, herbaceous, non-treed wetland
+      "nf_lowFlam" = c(40, 81)) # bryoids + non-treed wetland.
   }
-
 
   return(invisible(sim))
 }
