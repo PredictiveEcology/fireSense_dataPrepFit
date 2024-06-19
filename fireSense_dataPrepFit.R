@@ -949,6 +949,7 @@ cleanUpMod <- function(sim) {
 ### template for save events
 Save <- function(sim) {
   sim <- saveFiles(sim)
+  return(invisible(sim))
 }
 
 ### template for plot events
