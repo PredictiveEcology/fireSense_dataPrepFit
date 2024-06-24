@@ -690,6 +690,7 @@ prepare_SpreadFitFire_Vector <- function(sim) {
 }
 
 prepare_IgnitionFit <- function(sim) {
+
   stopifnot(
     "all ignitionFirePoints are not within studyArea" = identical(
       nrow(st_as_sf(sim$ignitionFirePoints)),
@@ -1199,7 +1200,7 @@ runBorealDP_forCohortData <- function(sim) {
       userTags = c("ignitionFirePoints", P(sim)$.studyAreaName),
       plot = !is.na(P(sim)$.plotInitialTime)
     ) ## default redownload means it will update annually - I think this is fine?
-    sim$ignitionFirePoints <- ignitionFirePoints[ignitionFirePoints$CAUSE == "L",]
+    sim$ignitionFirePoints <- ignitionFirePoints[ignitionFirePoints$CAUSE %in% c("L", "N"),]
   }
 
   if (!suppliedElsewhere("historicalClimateRasters", sim)) {
