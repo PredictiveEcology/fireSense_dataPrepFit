@@ -1201,6 +1201,10 @@ runBorealDP_forCohortData <- function(sim) {
       plot = !is.na(P(sim)$.plotInitialTime)
     ) ## default redownload means it will update annually - I think this is fine?
     sim$ignitionFirePoints <- ignitionFirePoints[ignitionFirePoints$CAUSE %in% c("L", "N"),]
+    if (nrow(sim$ignitionFirePoints) == 0) {
+      stop("no ignitions present - review getFirePoints-NFDB_V2")
+      #this was happening with data update - the module will still run with no fire
+    }
   }
 
   if (!suppliedElsewhere("historicalClimateRasters", sim)) {
