@@ -1032,18 +1032,13 @@ runBorealDP_forCohortData <- function(sim) {
     messageColoured(colour = "yellow", "  inside fireSense_dataPrepFit to estimate cohortData", ny)
 
     parms <- list()
-    ## if needModule is vectorized - we will have to rethink
+
     for (nm in neededModule) {
       parms[[nm]] <- P(sim, module = nm)
       parms[[nm]][["dataYear"]] <- ny
     }
     parms$Biomass_borealDataPrep$exportModels <- "none"
 
-    if (".globals" %in% names(params(sim))) {
-      parms[".globals"] <- params(sim)[".globals"]
-      #below: safety catch in case a global dataYear was used
-      parms[[".globals"]][["dataYear"]] <- NULL
-    }
     outNY <- Cache(do.call(SpaDES.core::simInitAndSpades, list(paths = pathsLocal,
                                                                params = parms,
                                                                times = list(start = ny, end = ny),
@@ -1227,7 +1222,7 @@ runBorealDP_forCohortData <- function(sim) {
   if (!suppliedElsewhere("nonForestedLCCGroups", sim)) {
     ## TODO: consider moving this to init - and checking if unsupplied
     sim$nonForestedLCCGroups <- list(
-      "nf_highFlam" = c(50, 100), # shrub, herbaceous, non-treed wetland
+      "nf_highFlam" = c(50, 100), # shrub, herbaceous
       "nf_lowFlam" = c(40, 81)) # bryoids + non-treed wetland.
   }
 
