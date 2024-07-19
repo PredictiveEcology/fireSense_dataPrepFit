@@ -14,9 +14,9 @@ defineModule(sim, list(
   documentation = deparse(list("README.md", "fireSense_dataPrepFit.Rmd")),
   loadOrder = list(after = c("Biomass_borealDataPrep", "Biomass_speciesParameters")),
   reqdPkgs = list("data.table", "fastDummies",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9065)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9072)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
-                  "PredictiveEcology/LandR@lccFix (>= 1.1.0.9081)",
+                  "PredictiveEcology/LandR@development (>= 1.1.5.9007)",
                   "PredictiveEcology/SpaDES.core@development (>= 2.0.2.9006)",
                   "PredictiveEcology/SpaDES.project@transition",
                   "PredictiveEcology/SpaDES.tools (>= 2.0.4.9002)",
@@ -142,12 +142,16 @@ defineModule(sim, list(
     expectsInput("standAgeMap2011", "SpatRaster", sourceURL = NA,
                  "map of stand age in 2011 used to create `cohortData2011`"),
     expectsInput("studyArea", "sf", sourceURL = NA,
-                 "study area that determines spatial boundaries of all data.")
+                 "study area that determines spatial boundaries of all data. Should be buffered to accomodate edge effects"),
+    expectsInput("studyAreaReporting", "sf", sourceURL = NA,
+                 desc = paste("(optional) study area used for reporting purposes, specifically whether fires inside",
+                              "the studyAreaReporting polygon are being removed for also falling partially outside",
+                              "the studyArea polygon, indicating the buffered studyArea shoudl be expanded."))
   ),
   outputObjects = bindrows(
     createsOutput("fireBufferedListDT", "list",
                   "list of data.tables with fire id, `pixelID`, and buffer status"),
-    createsOutput("firePolys", "list",
+    createsOutput("spreadFirePolys", "list",
                   "list of sf polygon objects representing annual fires"),
     createsOutput("fireSense_annualSpreadFitCovariates", "list",
                   "list of tables with climate covariates, `youngAge`, burn status, `polyID`, and `pixelID`"),
@@ -286,9 +290,11 @@ Init <- function(sim) {
   ## possible, if user-supplied
   if (!terra::same.crs(sim$firePolys[[1]], sim$rasterToMatch)) {
     # projectTo(fp, crs(sim$rasterToMatch))) |> #terrarize
-    sim$firePolys <- Map(fp = sim$firePolys, function(fp)
+    sim$spreadFirePolys <- Map(fp = sim$firePolys, function(fp)
       projectTo(fp, st_crs(sim$rasterToMatch))) |>
       Cache(.functionName = "projectTo_for_firePolys")
+  } else {
+    sim$spreadFirePolys <- sim$firePolys
   }
 
 
@@ -389,7 +395,6 @@ prepare_SpreadFit <- function(sim) {
     dt[, pixelID := 1:ncell(x)]
     return(dt)
   })
-
   gc()
   vegData[[1]][, year := 2002]
   vegData[[2]][, year := 2012]
@@ -400,8 +405,10 @@ prepare_SpreadFit <- function(sim) {
 
   lccNames <- setdiff(names(vegData), c("pixelID", "year"))
 
-  ## prep the fire data
+  #### prep the fire data ####
+  browser()
   if (P(sim)$useRasterizedFire) {
+    #TODO: fix this approach to work with two flammableRTMs
     sim <- prepare_SpreadFitFire_Raster(sim)
   } else {
     sim <- prepare_SpreadFitFire_Vector(sim)
@@ -425,6 +432,8 @@ prepare_SpreadFit <- function(sim) {
   gc()
 
   ## TODO: lines from creation of vegData onwards should be reviewed. Seems redundant.
+  ## TODO: should column ids be in vegData? currently pixels appear > 1 time, within a fire period
+  #because they can be burned or unburned, or in >1 fire years that are < 10 years apart
   fireSenseVegData <- rbind(pre2012Indices, post2012Indices)
   setnames(fireSenseVegData, "buffer", "burned")
 
@@ -460,11 +469,15 @@ prepare_SpreadFit <- function(sim) {
   pre2012 <- yearsWithFire[yearsWithFire %in% paste0("year", pre2012int)]
   post2012 <- yearsWithFire[yearsWithFire %in% paste0("year", post2012int)]
 
-  ## climate ------------------------------------------------------------------------
+  #### prep climate data ####
 
-  ## TODO: index removed as argument - as flammable pixels change between 2001 and 2011 (mainly water)
+  ## index removed as argument - as flammable pixels change between 2001 and 2011 (mainly water)
   ## the wide layout of this object is incompatible (or we have NAs in rows)
   spreadClimate <- sim$historicalClimateRasters[sim$climateVariablesForFire$spread]
+  #don't need climate data for years outside fire years
+  spreadClimate <- lapply(spreadClimate, FUN = function(x){
+    x <- terra::subset(x, subset = names(x) %in% paste0("year", P(sim)$fireYears))
+    })
 
   climateDT <- Cache(climateRasterToDataTable,
                      historicalClimateRasters = spreadClimate,
@@ -590,35 +603,29 @@ prepare_SpreadFitFire_Raster <- function(sim) {
 
   names(sim$spreadFirePoints) <- names(sim$fireBufferedListDT)
 
+  sim$lociList <- makeLociList(ras = sim$rasterToMatch, pts = sim$spreadFirePoints, )
+
+
   return(invisible(sim))
 }
 
 prepare_SpreadFitFire_Vector <- function(sim) {
+
   pre2012 <- paste0("year", min(P(sim)$fireYears):2011)
   post2012 <- paste0("year", 2012:max(P(sim)$fireYears))
 
-  ## TODO: is there a terra version of st_contains we can use to restore this check?
-  ## sanity check - this takes a long time and shouldn't be necessary if postProcess is functional
-  # stopifnot(
-  #   "all annual firePolys are not within studyArea" = all(unlist(lapply(sim$firePolys, function(x) {
-  #     SA <- st_as_sf(mod$studyAreaUnion)
-  #     x <- st_as_sf(x)
-  #     length(sf::st_contains(SA, x)) == 1
-  #   })))
-  # )
-
   ## prep fire data -----------------------------------------------------------------
-  if (is.null(sim$firePolys[[1]]$FIRE_ID)) {
+  if (is.null(sim$spreadFirePolys[[1]]$FIRE_ID)) {
     stop("firePolys needs a numeric FIRE_ID column")
   }
 
-  if (!is.numeric(sim$firePolys[[1]]$FIRE_ID) | !is.numeric(sim$spreadFirePoints[[1]]$FIRE_ID)) {
+  if (!is.numeric(sim$spreadFirePolys[[1]]$FIRE_ID) | !is.numeric(sim$spreadFirePoints[[1]]$FIRE_ID)) {
 
     message("need numeric FIRE_ID column in fire polygons and points. Coercing to numeric...")
     #this is true of the current NFBB
-    origNames <- names(sim$firePolys)
-    PointsAndPolys <- lapply(names(sim$firePolys),
-                             function(year, polys = sim$firePolys, points = sim$spreadFirePoints) {
+    origNames <- names(sim$spreadFirePolys)
+    PointsAndPolys <- lapply(names(sim$spreadFirePolys),
+                             function(year, polys = sim$spreadFirePolys, points = sim$spreadFirePoints) {
                                polys <- polys[[year]]
                                points <- points[[year]]
                                ## ensure matching IDs
@@ -629,9 +636,9 @@ prepare_SpreadFitFire_Vector <- function(sim) {
                                return(list(polys = polys, points = points))
                              })
     sim$spreadFirePoints <- lapply(PointsAndPolys, FUN = function(x) x[["points"]])
-    sim$firePolys <- lapply(PointsAndPolys, FUN = function(x) x[["polys"]])
+    sim$spreadFirePolys <- lapply(PointsAndPolys, FUN = function(x) x[["polys"]])
     rm(PointsAndPolys)
-    names(sim$firePolys) <- origNames
+    names(sim$spreadFirePolys) <- origNames
     names(sim$spreadFirePoints) <- origNames
   }
 
@@ -645,12 +652,12 @@ prepare_SpreadFitFire_Vector <- function(sim) {
 
   sim$spreadFirePoints[sapply(sim$spreadFirePoints, is.null)] <- NULL ## silly R
 
-  sim$firePolys <- lapply(sim$firePolys, function(x) {
+  sim$spreadFirePolys <- lapply(sim$spreadFirePolys, function(x) {
     x <- x[x$SIZE_HA > pixSizeHa,]
     if (nrow(x) > 0) x else NULL
   })
-  sim$firePolys[sapply(sim$firePolys, is.null)] <- NULL
-  sim$spreadFirePoints <- sim$spreadFirePoints[names(sim$spreadFirePoints) %in% names(sim$firePolys)]
+  sim$spreadFirePolys[sapply(sim$spreadFirePolys, is.null)] <- NULL
+  sim$spreadFirePoints <- sim$spreadFirePoints[names(sim$spreadFirePoints) %in% names(sim$spreadFirePolys)]
   ## this covers when years are NA, which are caused by fire years with no available data
 
   ## years run separately because flammableRTM is different
@@ -658,7 +665,8 @@ prepare_SpreadFitFire_Vector <- function(sim) {
   ## and even this duplicated step should be a function of "fire period" for >2 periods
   ## however, the rasterized fire prep is significantly different, and needs review first
   harmonized2001 <- harmonizeFireData(
-    firePolys = sim$firePolys[names(sim$firePolys) %in% pre2012], ## protects from missing years
+    cachePath = cachePath(sim),
+    firePolys = sim$spreadFirePolys[names(sim$spreadFirePolys) %in% pre2012], ## protects from missing years
     flammableRTM = sim$flammableRTM2001,
     spreadFirePoints = sim$spreadFirePoints[names(sim$spreadFirePoints) %in% pre2012], ## protects from missing years
     areaMultiplier = P(sim)$areaMultiplier, minSize = P(sim)$minBufferSize,
@@ -666,8 +674,9 @@ prepare_SpreadFitFire_Vector <- function(sim) {
   ) |>
     Cache(userTags = c("harmonizeFireData", P(sim)$.studyAreaName, "2001"))
   harmonized2011 <- harmonizeFireData(
-    sim$firePolys[names(sim$firePolys) %in% post2012],
-    sim$flammableRTM2011,
+    cachePath = cachePath(sim),
+    firePolys = sim$spreadFirePolys[names(sim$spreadFirePolys) %in% post2012],
+    flammableRTM = sim$flammableRTM2011,
     spreadFirePoints = sim$spreadFirePoints[names(sim$spreadFirePoints) %in% post2012],
     areaMultiplier = P(sim)$areaMultiplier, minSize = P(sim)$minBufferSize,
     pointsIDcolumn = "FIRE_ID"
@@ -677,14 +686,21 @@ prepare_SpreadFitFire_Vector <- function(sim) {
   sim$fireBufferedListDT <- append(harmonized2001$fireBufferedListDT,
                                    harmonized2011$fireBufferedListDT)
   sim$spreadFirePoints <- append(harmonized2001$spreadFirePoints, harmonized2011$spreadFirePoints)
-  sim$firePolys <- append(harmonized2001$firePolys, harmonized2011$firePolys)
+  sim$spreadFirePolys <- append(harmonized2001$firePolys, harmonized2011$firePolys)
 
-  ## drop fire years from these lists that don't have any buffer points post-harmonization
-  ## TOOD: is this necessary?
   omitYears <- sapply(sim$spreadFirePoints, is.null)
   sim$fireBufferedListDT[omitYears] <- NULL
-  sim$firePolys[omitYears] <- NULL
+  sim$spreadFirePolys[omitYears] <- NULL
   sim$spreadFirePoints[omitYears] <- NULL
+
+  ## drop fire years from these lists that don't have any buffer points post-harmonization
+  sim$spreadFirePolys <- lapply(names(sim$spreadFirePolys), FUN = function(year) {
+    poly <- sim$spreadFirePolys[[year]]
+    point <- sim$spreadFirePoints[[year]]
+    poly <- poly[poly$FIRE_ID %in% point$FIRE_ID,]
+    return(poly)
+  })
+  names(sim$spreadFirePolys) <- names(sim$spreadFirePoints)
 
   return(invisible(sim))
 }
@@ -1044,7 +1060,7 @@ runBorealDP_forCohortData <- function(sim) {
                                                                times = list(start = ny, end = ny),
                                                                modules = neededModule,
                                                                objects = objs)),
-                 .functionName = "simInitAndSpades")
+                   .functionName = "simInitAndSpades")
     cohDatObj <- paste0(cohDat, ny)
     pixGrpMap <- paste0(pixGM, ny)
     saObj <- paste0(saMap, ny)
