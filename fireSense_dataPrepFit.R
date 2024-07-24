@@ -14,7 +14,7 @@ defineModule(sim, list(
   documentation = deparse(list("README.md", "fireSense_dataPrepFit.Rmd")),
   loadOrder = list(after = c("Biomass_borealDataPrep", "Biomass_speciesParameters")),
   reqdPkgs = list("data.table", "fastDummies",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9072)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9073)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@development (>= 1.1.5.9007)",
                   "PredictiveEcology/SpaDES.core@development (>= 2.0.2.9006)",
@@ -390,7 +390,11 @@ prepare_SpreadFit <- function(sim) {
   ## ideally we move this into cohortsToFuelClasses...
   ## there is no young age here unlike ignition
   vegData <- lapply(vegData, FUN = function(x) {
-    x <- log(x + 1)
+    #to lessen the leverage of zeroes where there is no biomass
+    #change the zeroes to one log below the minimum in the data (in this case 100 g/m2)
+    minimumB <- exp(log(100) - 1)
+    x[x < minimumB] <- minimumB
+    x <- log(x)
     dt <- as.data.table(values(x))
     dt[, pixelID := 1:ncell(x)]
     return(dt)
@@ -406,7 +410,6 @@ prepare_SpreadFit <- function(sim) {
   lccNames <- setdiff(names(vegData), c("pixelID", "year"))
 
   #### prep the fire data ####
-  browser()
   if (P(sim)$useRasterizedFire) {
     #TODO: fix this approach to work with two flammableRTMs
     sim <- prepare_SpreadFitFire_Raster(sim)
@@ -600,11 +603,7 @@ prepare_SpreadFitFire_Raster <- function(sim) {
 
   sim$spreadFirePoints <- Map(pts = sim$spreadFirePoints,
                               year = P(sim)$fireYears[!missingYears], f = tempFun)
-
   names(sim$spreadFirePoints) <- names(sim$fireBufferedListDT)
-
-  sim$lociList <- makeLociList(ras = sim$rasterToMatch, pts = sim$spreadFirePoints, )
-
 
   return(invisible(sim))
 }
@@ -665,7 +664,6 @@ prepare_SpreadFitFire_Vector <- function(sim) {
   ## and even this duplicated step should be a function of "fire period" for >2 periods
   ## however, the rasterized fire prep is significantly different, and needs review first
   harmonized2001 <- harmonizeFireData(
-    cachePath = cachePath(sim),
     firePolys = sim$spreadFirePolys[names(sim$spreadFirePolys) %in% pre2012], ## protects from missing years
     flammableRTM = sim$flammableRTM2001,
     spreadFirePoints = sim$spreadFirePoints[names(sim$spreadFirePoints) %in% pre2012], ## protects from missing years
@@ -674,7 +672,6 @@ prepare_SpreadFitFire_Vector <- function(sim) {
   ) |>
     Cache(userTags = c("harmonizeFireData", P(sim)$.studyAreaName, "2001"))
   harmonized2011 <- harmonizeFireData(
-    cachePath = cachePath(sim),
     firePolys = sim$spreadFirePolys[names(sim$spreadFirePolys) %in% post2012],
     flammableRTM = sim$flammableRTM2011,
     spreadFirePoints = sim$spreadFirePoints[names(sim$spreadFirePoints) %in% post2012],
@@ -701,8 +698,8 @@ prepare_SpreadFitFire_Vector <- function(sim) {
     return(poly)
   })
   names(sim$spreadFirePolys) <- names(sim$spreadFirePoints)
-
   return(invisible(sim))
+
 }
 
 prepare_IgnitionFit <- function(sim) {
@@ -744,7 +741,12 @@ prepare_IgnitionFit <- function(sim) {
     bCols <- unique(sim$sppEquiv[[P(sim)$ignitionFuelClassCol]])
     xYA <- terra::subset(x, !names(x) %in% bCols)
     xBiomass <- terra::subset(x, names(x) %in% bCols)
-    xBiomass <- log(xBiomass + 1) ## log transform the biomass values, setting zeroes to zero
+    #to lessen the leverage of zeroes where there is no biomass
+    #change the zeroes to one log below the minimum in the data (in this case 100 g/m2)
+    # (this assumes every class has one pixel with minimum B - probably a safe assumption)
+    minimumB <- exp(log(100) - 1)
+    xBiomass[xBiomass < minimumB] <- minimumB
+    xBiomass <- log(xBiomass)
     x <- c(xBiomass, xYA)
     return(x)
   })
