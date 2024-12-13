@@ -13,12 +13,12 @@ defineModule(sim, list(
   citation = list("citation.bib"),
   documentation = deparse(list("README.md", "fireSense_dataPrepFit.Rmd")),
   loadOrder = list(after = c("Biomass_borealDataPrep", "Biomass_speciesParameters")),
-  reqdPkgs = list("data.table", "fastDummies",
+  reqdPkgs = list("data.table", "fastDummies", "reproducible", # studyAreaName
                   "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9073)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@development (>= 1.1.5.9007)",
                   "PredictiveEcology/SpaDES.core@development (>= 2.0.2.9006)",
-                  "PredictiveEcology/SpaDES.project@transition",
+                  "PredictiveEcology/SpaDES.project@development",
                   "PredictiveEcology/SpaDES.tools (>= 2.0.4.9002)",
                   "snow", "terra"),
   parameters = bindrows(
@@ -609,7 +609,6 @@ prepare_SpreadFitFire_Raster <- function(sim) {
 }
 
 prepare_SpreadFitFire_Vector <- function(sim) {
-
   pre2012 <- paste0("year", min(P(sim)$fireYears):2011)
   post2012 <- paste0("year", 2012:max(P(sim)$fireYears))
 
@@ -663,12 +662,36 @@ prepare_SpreadFitFire_Vector <- function(sim) {
   ## ultimately this function should combine the climate data to avoid needless iteration,
   ## and even this duplicated step should be a function of "fire period" for >2 periods
   ## however, the rasterized fire prep is significantly different, and needs review first
+  nCores <- ifelse(grepl("Windows", Sys.info()[["sysname"]]), 1L,
+                   sum(names(sim$spreadFirePolys) %in% pre2012))
+  if (FALSE) {
+    # This chunk visualizes the largest fire in each year, along with the buffers
+    sizes <- lapply(harmonized2001$firePolys, function(x) max(x$SIZE_HA))
+    biggestFires <- Map(size = sizes, fires = harmonized2001$firePolys,
+                        function(size, fires) fires[fires$SIZE_HA == size, c("FIRE_ID", "SIZE_HA")])
+    par(mfrow = c(3,4))
+    dd <- Map(bf = biggestFires, buff = harmonized2001$fireBufferedListDT,
+              function(bf, buff) {
+      a <- sf::st_buffer(bf, dist = 15000)
+      b <- sim$flammableRTM2001
+      b[] <- NA
+      b[buff$pixelID] <- 1
+      b <- terra::crop(b, a)
+    })
+    # terra::plot(b, add = TRUE)
+    Map(p = dd, r = biggestFires, function(p, r) {
+      terra::plot(p$flammable)
+      terra::plot(r, add = TRUE)
+    })
+  }
+
   harmonized2001 <- harmonizeFireData(
     firePolys = sim$spreadFirePolys[names(sim$spreadFirePolys) %in% pre2012], ## protects from missing years
     flammableRTM = sim$flammableRTM2001,
     spreadFirePoints = sim$spreadFirePoints[names(sim$spreadFirePoints) %in% pre2012], ## protects from missing years
     areaMultiplier = P(sim)$areaMultiplier, minSize = P(sim)$minBufferSize,
-    pointsIDcolumn = "FIRE_ID"
+    pointsIDcolumn = "FIRE_ID",
+    cores = nCores
   ) |>
     Cache(userTags = c("harmonizeFireData", P(sim)$.studyAreaName, "2001"))
   harmonized2011 <- harmonizeFireData(
@@ -676,7 +699,8 @@ prepare_SpreadFitFire_Vector <- function(sim) {
     flammableRTM = sim$flammableRTM2011,
     spreadFirePoints = sim$spreadFirePoints[names(sim$spreadFirePoints) %in% post2012],
     areaMultiplier = P(sim)$areaMultiplier, minSize = P(sim)$minBufferSize,
-    pointsIDcolumn = "FIRE_ID"
+    pointsIDcolumn = "FIRE_ID",
+    cores = nCores
   ) |>
     Cache(userTags = c("harmonizeFireData", P(sim)$.studyAreaName, "2011"))
 
@@ -1081,6 +1105,7 @@ runBorealDP_forCohortData <- function(sim) {
   if (!suppliedElsewhere("studyArea", sim)) {
     stop("Please supply study area - this object is key")
   }
+
 
   if (!suppliedElsewhere("sppEquiv", sim)) {
     sp <- LandR::speciesInStudyArea(studyArea = sim$studyArea)
