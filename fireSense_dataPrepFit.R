@@ -909,35 +909,18 @@ prepare_IgnitionFit <- function(sim) {
   interactions <- interactionsDF$interaction
 
   ## sanity check for base::abbreviate
-  if (isTRUE(P(sim)$usePiecewiseRegression)) {
-    if (length(sim$climateVariablesForFire$ignition) > 1) {
-      stop("cannot use multiple climate variables with piecewise ignition fit formula")
-    }
-
-    pwNames <- abbreviate(igCovariates, minlength = 3, use.classes = TRUE, strict = FALSE)
-
-    pw <- paste0(igCovariates, ":", "pw(", sim$climateVariablesForFire$ignition, ", k_", pwNames, ")")
-    if (!all(c(length(unique(pw)), length(unique(interactions))) == length(igCovariates))) {
-      warning("automated ignition formula construction needs review")
-    }
-    #don't overwrite if it exists
-    if (is.null(sim$fireSense_ignitionFormula)) {
-      sim$fireSense_ignitionFormula <- paste0(response, " ~ ", paste0(interactions, collapse = " + "), " + ",
-                                              paste0(pw, collapse  = " + "), "- 1")
-    }
-
-  } else {
-    if (!length(unique(interactions)) == length(igCovariates) * length(sim$climateVariablesForFire$ignition)) {
-      warning("automated ignition formula construction needs review")
-    }
-    if (is.null(sim$fireSense_ignitionFormula)) {
-      sim$fireSense_ignitionFormula <- paste0(response, " ~ ",
-                                              paste0("(1|", ranEffs, ")"), " + ",
-                                              paste0(sim$climateVariablesForFire$ignition, collapse = " + "), " + ",
-                                              paste0(igCovariates, collapse = " + "), " + ",
-                                              paste0(interactions, collapse = " + "))
-    }
+  if (!length(unique(interactions)) == length(igCovariates) * length(sim$climateVariablesForFire$ignition)) {
+    warning("automated ignition formula construction needs review")
   }
+  if (is.null(sim$fireSense_ignitionFormula)) {
+    sim$fireSense_ignitionFormula <- paste0(response, " ~ ",
+                                            paste0("(1|", ranEffs, ")"), " + ",
+                                            # this longer formula has had more unrealistic results 12/12/2024
+                                            # paste0(sim$climateVariablesForFire$ignition, collapse = " + "), " + ",
+                                            # paste0(igCovariates, collapse = " + "), " + ",
+                                            paste0(interactions, collapse = " + "))
+  }
+
   return(invisible(sim))
 }
 
