@@ -1249,7 +1249,7 @@ runBorealDP_forCohortData <- function(sim) {
     ## TODO: consider moving this to init - and checking if unsupplied
     sim$nonForestedLCCGroups <- list(
       "nf_highFlam" = c(50, 100), # shrub, herbaceous
-      "nf_lowFlam" = c(40, 81)) # bryoids + non-treed wetland.
+      "nf_lowFlam" = c(40, 80)) # bryoids + non-treed wetland.
   }
 
   return(invisible(sim))
