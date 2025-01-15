@@ -14,9 +14,9 @@ defineModule(sim, list(
   documentation = deparse(list("README.md", "fireSense_dataPrepFit.Rmd")),
   loadOrder = list(after = c("Biomass_borealDataPrep", "Biomass_speciesParameters")),
   reqdPkgs = list("data.table", "fastDummies", "reproducible", # studyAreaName
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9073)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9079)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
-                  "PredictiveEcology/LandR@development (>= 1.1.5.9007)",
+                  "PredictiveEcology/LandR@development (>= 1.1.5.9029)",
                   "PredictiveEcology/SpaDES.core@development (>= 2.0.2.9006)",
                   "PredictiveEcology/SpaDES.project@development",
                   "PredictiveEcology/SpaDES.tools (>= 2.0.4.9002)",
@@ -43,11 +43,11 @@ defineModule(sim, list(
                           "classes are treated categorically")),
     defineParameter("igAggFactor", "numeric", 40, 1, NA,
                     "aggregation factor for rasters during ignition prep."),
-    defineParameter("ignitionFuelClassCol", "character", "FuelClass", NA, NA,
-                    "the column in `sppEquiv` that defines unique fuel classes for ignition. A column ",
+    defineParameter("fuelClassCol", "character", "FuelClass", NA, NA,
+                    "the column in `sppEquiv` that defines unique fuel classes. A column ",
                     "named `FuelClass` exists in the `LandR::sppEquivalencies_CA` and will be used ",
                     "by default. To change the `FuelClass` classifications, add a column to that table, ",
-                    "or to `sim$sppEquiv` and then modify this `ignitionFuelClassCol` parameter"),
+                    "or to `sim$sppEquiv` and then modify this `fuelClassCol` parameter"),
     defineParameter("minBufferSize", "numeric", 5000, NA, NA,
                     paste("Minimum number of cells in buffer and nonbuffer. This is imposed after the",
                           "multiplier on the `bufferToArea` fn")),
@@ -61,11 +61,6 @@ defineModule(sim, list(
                           "as burned forest is often classified as non-forest")),
     defineParameter("sppEquivCol", "character", "LandR", NA, NA,
                     "column name in `sppEquiv` object that defines unique species in `cohortData`"),
-    defineParameter("spreadFuelClassCol", "character", "FuelClass", NA, NA,
-                    "if using fuel classes for spread, the column in `sppEquiv` that defines unique ",
-                    "fuel classes. The column `FuelClass` in `LandR::sppEquivalencies_CA` and will be used ",
-                    "by default. To change the `FuelClass` classifications, add a column to that table, ",
-                    "or to `sim$sppEquiv` and then modify this `spreadFuelClassCol` parameter"),
     defineParameter("useCentroids", "logical", TRUE, NA, NA,
                     paste("Should fire ignitions start at the `sim$firePolygons` centroids",
                           "or at the ignition points in `sim$firePoints`?")),
@@ -151,6 +146,8 @@ defineModule(sim, list(
   outputObjects = bindrows(
     createsOutput("fireBufferedListDT", "list",
                   "list of data.tables with fire id, `pixelID`, and buffer status"),
+    createsOutput("fuelClassTable", "data.table",
+                  "table with assigend fuel class of each tree species, after running assessFuelClasses"),
     createsOutput("spreadFirePolys", "list",
                   "list of sf polygon objects representing annual fires"),
     createsOutput("fireSense_annualSpreadFitCovariates", "list",
@@ -244,6 +241,7 @@ doEvent.fireSense_dataPrepFit = function(sim, eventTime, eventType) {
 
 ### template initialization
 Init <- function(sim) {
+  #TODO: this fill overestimate non-flammable landcover.
   if (!isInt(sim$rstLCC2001)) sim$rstLCC2001 <- LandR::asInt(sim$rstLCC2001)
   sim$flammableRTM2001 <- defineFlammable(sim$rstLCC2001,
                                           nonFlammClasses = P(sim)$nonflammableLCC,
@@ -311,13 +309,46 @@ Init <- function(sim) {
     stop("please review names of sim$nonForestedLCCGroups and param missingLCCGroup")
   }
 
-  igFuels <- sim$sppEquiv[[P(sim)$ignitionFuelClassCol]]
-  spreadFuels <- sim$sppEquiv[[P(sim)$spreadFuelClassCol]]
+  #glm of burned ~ biomass (of each species) link = logit
+  #which species are similar enough to lump
 
-  if (any(c(is.null(spreadFuels), is.na(spreadFuels),
-            is.null(igFuels), is.na(igFuels)))) {
-    stop("All species must have spread and ignition fuelClasses defined")
-  }
+  #make two firemaps 2002-2011, and 2012-2020 -
+  # use fun = min to ignore repeated burns (since these would become youngAge anyway)
+
+
+  # Apply the function for each time period
+  fires <- do.call(rbind, sim$spreadFirePolys)
+
+  landscape <- Map(
+    f = fuelClassPrep,
+    pixelGroupMap = list(sim$pixelGroupMap2001, sim$pixelGroupMap2011),
+    cohortData = list(sim$cohortData2001, sim$cohortData2011),
+    rstLCC = list(sim$rstLCC2001, sim$rstLCC2011),
+    yearRange = list(c(2002, 2011), c(2012, 2020)),
+    MoreArgs = list(nonflammableLCC = P(sim)$nonflammableLCC,
+                    fires = fires)
+  )
+  # Combine landscapes and finalize data
+  landscape <- rbindlist(landscape)
+  landscape <- landscape[, .(cell, speciesCode, B, totalBiomass, burned, year)]
+
+  summaryDF <- landscape[, .(percentBurn = sum(burned)/.N * 100), .(speciesCode)]
+
+  #TODO: add this to a Plots call?
+  #It is a bar plot of the percent burned of each species and lcc
+  # ggplot(data = summaryDF, aes(x  = speciesCode, y = percentBurn)) +
+  #   geom_bar(stat = "identity") +
+  #   labs(x = "fuel covariate", y = "% burned")
+  sim$fuelClassTable <- Cache(assessFuelClasses,
+                              landscape = landscape,
+                              fuelCol = P(sim)$fuelClassCol,
+                              sppEquiv = sim$sppEquiv,
+                              sppEquivCol = P(sim)$sppEquivCol,
+                              userTags = c("assessFuelClasses", P(sim)$fuelClassCol))
+
+  temp <- sim$fuelClassTable[, .(species, assignedFuelClass)]
+  setnames(temp, c(P(sim)$sppEquivCol, P(sim)$fuelClassCol))
+  mod$sppEquiv <- temp
 
   ## TODO: make this table multidimensional or a list
   sim$landcoverDT2001 <- makeLandcoverDT(rstLCC = sim$rstLCC2001, flammableRTM = sim$flammableRTM2001,
@@ -329,6 +360,7 @@ Init <- function(sim) {
   sim$landcoverDT2011 <- correctMissingLCC(sim$landcoverDT2011, sim$pixelGroupMap2011, P(sim)$missingLCCgroup)
 
   ## cannot merge because before subsetting due to column differences over time
+
 
   ## TODO: this object  be used to track annual youngAge of all pixels, forested or not
   ## so "nonForest" is a poor choice of name. It should not have values for non-flammable pixels.
@@ -379,9 +411,9 @@ prepare_SpreadFit <- function(sim) {
     pixelGroupMap = list(sim$pixelGroupMap2001, sim$pixelGroupMap2011),
     landcoverDT = list(sim$landcoverDT2001, sim$landcoverDT2011),
     flammableRTM = list(sim$flammableRTM2001, sim$flammableRTM2011),
-    MoreArgs = list(sppEquiv = sim$sppEquiv,
+    MoreArgs = list(sppEquiv = mod$sppEquiv,
                     sppEquivCol = P(sim)$sppEquivCol,
-                    fuelClassCol = P(sim)$spreadFuelClassCol,
+                    fuelClassCol = P(sim)$fuelClassCol,
                     cutoffForYoungAge = -1)
   ) |>
     Cache(.functionName = "cohortsToFuelClasses") #youngAge will be resolved annually downstream
@@ -754,15 +786,15 @@ prepare_IgnitionFit <- function(sim) {
     flammableRTM = list(sim$flammableRTM2001, sim$flammableRTM2011),
     landcoverDT = list(sim$landcoverDT2001, sim$landcoverDT2011),
     pixelGroupMap = list(sim$pixelGroupMap2001, sim$pixelGroupMap2011),
-    MoreArgs = list(sppEquiv = sim$sppEquiv,
+    MoreArgs = list(sppEquiv = mod$sppEquiv,
                     sppEquivCol = P(sim)$sppEquivCol,
-                    fuelClassCol = P(sim)$ignitionFuelClassCol,
+                    fuelClassCol = P(sim)$fuelClassCol,
                     cutoffForYoungAge = P(sim)$cutoffForYoungAge)
   ) |>
     Cache(.functionName = "cohortsToFuelClasses")
 
   fuelClasses <- lapply(fuelClasses, FUN = function(x){
-    bCols <- unique(sim$sppEquiv[[P(sim)$ignitionFuelClassCol]])
+    bCols <- unique(mod$sppEquiv[[P(sim)$fuelClassCol]])
     xYA <- terra::subset(x, !names(x) %in% bCols)
     xBiomass <- terra::subset(x, names(x) %in% bCols)
     #to lessen the leverage of zeroes where there is no biomass
@@ -969,6 +1001,7 @@ prepare_EscapeFit <- function(sim) {
 cleanUpMod <- function(sim) {
   mod$firePolysForAge <- NULL
   mod$fireSenseVegData <- NULL
+  mod$sppEquiv <- NULL
   return(invisible(sim))
 }
 
