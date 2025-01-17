@@ -11,8 +11,8 @@
 #                       above10PctRelB = c(0.066, 0.625, 0.223, 0.051, 0.095, 0.352, 0.560))
 
 
-assessFuelClasses <- function(landscape, fuelCol, thresholds = c(0.05, 0.1, 0.15),
-                              sppEquiv = sim$sppEquiv, sppEquivCol) {
+assessFuelClasses <- function(landscape, fuelCol, sppEquiv = sim$sppEquiv,
+                              sppEquivCol, targetFuelClasses) {
 
   landscape$B_MgHa <- landscape$B/100
   makeGLM <- function(species, landscape) {
@@ -79,110 +79,62 @@ assessFuelClasses <- function(landscape, fuelCol, thresholds = c(0.05, 0.1, 0.15
 
     # Function to assign NewFuelClass
 
-  out <- combine_fuel_classes(df = speciesStats)
+  out <- combine_fuel_classes(df = speciesStats, targetFuelClasses = targetFuelClasses)
   return(out)
 }
 
-combine_fuel_classes <- function(df, thresholds = c(0.05, 0.1, 0.15)) {
+combine_fuel_classes <- function(df, targetFuelClasses = 5) {
+  # Sort by FuelClass, sign, and above10PctRelB in ascending order for consistent processing
+  df <- copy(df)
+  nSpecies <- nrow(df)
+  neededJoins <- nSpecies - targetFuelClasses
+  if (neededJoins > 0) {
 
+    df[, possGroups := .N, .(FuelClass)]
+    #if each fuel class is unique no merge is possible
+    #of course may not be able to merge due to sign either
+    if (sum(df$possGroups) - nSpecies <= neededJoins) {
+      warning("will not be able to reduce fuel groups to 5 or fewer")
+    }
 
-  # Initialize the new assignedFuelClass column
-  df$assignedFuelClass <- df$species
-  if (length(unique(df$species) > 5)) {
-    df[, alreadyMerged := FALSE]
+    uniques <- df[possGroups == 1,]
+    possMerge <- df[!species %in% uniques$species]
+    setkey(possMerge, above10PctRelB)
+    #least biomass is now at the top
+    joined <- 0
+    attemptedJoins <- 0
+    toMerge <- possMerge[0]
 
-    for (multiplier in c(1, 2, 4)) { #this will increase thresholds
-      toMerge <- 0
-      count <- 1
-      neededMerge <- length(unique(df$species)) - 5
-
-      #for simplicity, remove those that won't merge
-      guaranteedUnique <- df[, .N, .(FuelClass)]
-      guaranteedUnique <- guaranteedUnique[N == 1]
-      guaranteedUnique <- df[FuelClass %in% guaranteedUnique$FuelClass,]
-      #TODO: Ignore if it is unique but under some threshold of above10PctRelB?
-
-      possMerge <- df[!species %in% guaranteedUnique$species]
-      while (count < length(thresholds) | toMerge < neededMerge) {
-        #start by identifying fuelClasses below the biomass threshold
-        BelowThresh <- possMerge[above10PctRelB <= thresholds[count] * multiplier,]
-        toMerge <- nrow(BelowThresh)
-        count <- count + 1
+    for (i in 1:nrow(possMerge) -1) {
+      toMerge <- possMerge[1]
+      #sort by closest coefficient
+      possMerge[, absCoef := abs(coef - toMerge$coef)]
+      mergeable <- possMerge[species != toMerge$species &
+                               FuelClass == toMerge$FuelClass]
+      if (toMerge$sign != "neutral"){
+        mergeable <- mergeable[sign == "neutral" | sign == toMerge$sign]
       }
-
-      #now, iteratively join BelowThresh speciies to ones in possMerge
-      #track which ones are merged and edit assigned fuel class
-
-      #this resets the matching at each threshold - not sure if necessary
-      matched <- possMerge[0]
-
-      for (i in 1:length(BelowThresh$species)) {
-        #this will iterate over one that is now joined
-        toMerge <- BelowThresh[i,]
-        if (toMerge$alreadyMerged == FALSE) {
-          possMatches <- possMerge[FuelClass == toMerge$FuelClass &
-                                     c(sign == toMerge$sign | sign == "neutral")
-                                   & species != toMerge$species]
-          #cannot merge with itself, otherwise fuelclass must be identical, and sign same or neutral (non-sig)
-          if (nrow(possMatches) > 0) {
-            if (nrow(possMatches) > 1) {
-              #take nearest coefficient
-              possMatches[, coef2 := abs(coef - toMerge$coef)]
-              setkey(possMatches, coef2)
-              possMatches <- possMatches[1,]
-              possMatches[, coef2 := NULL]
-            }
-            matchedTo <- possMatches #guaranteed length 1
-            #adjust for future species matching
-            possMerge[species == matchedTo$species, assignedFuelClass := FuelClass]
-            #adjust the matched species fuel class
-            toMerge[, assignedFuelClass := matchedTo$FuelClass]
-            #track them inside the for loop
-            matched <- rbind(matched, toMerge)
-            #avoid
-            matched[, alreadyMerged := TRUE]
-          }
-        }
+      #confirm this works with zero length (no more mergeable options)
+      if (nrow(mergeable) > 0) {
+        mergeable <- mergeable[absCoef == min(absCoef)] #reduce to 1 choice
+        possMerge[species == mergeable$species, assignedFuelClass := FuelClass]
+        toMerge[, assignedFuelClass := FuelClass]
+        joined <- joined + 1
       }
-
-      #get the ones that weren't matched, combine with matched and uniques
-      unmerged <- possMerge[!species %in% matched$species]
-      allSpecies <- rbind(guaranteedUnique, unmerged, matched)
-
-      # Iterate through each unique FuelClass
-      #correct for different signs being assigned to same FuelClass
-      safetyCatch <- allSpecies[, .N, .(assignedFuelClass, sign)]
-      duplicated <- safetyCatch[duplicated(safetyCatch$assignedFuelClass)]$assignedFuelClass
-      if (length(duplicated) > 0) {
-        allSpecies[assignedFuelClass %in% duplicated,
-                   assignedFuelClass := paste0(assignedFuelClass, "_", sign)]
-      }
-      #the above new class name is only relevant if god forbid 4 species are in one group with 2 each opposing signs
-
-      #keep name the same if there is only one
-      allSpecies[, N := .N, .(assignedFuelClass)]
-      allSpecies[N == 1, assignedFuelClass := species] # catches groups that started with multiple
-
-      setkey(allSpecies, species)
-      setkey(df, species)
-      if (!identical(allSpecies$species, df$species)) {
-        stop("species do not match - possible error in assessFuelClasses")
-      }
-      df <- allSpecies
-      if (length(unique(df$assignedFuelClass)) <= 5) {
+      uniques <- rbind(uniques, toMerge, fill = TRUE) #keep reclassed species
+      attemptedJoins <- attemptedJoins + 1
+      possMerge <- possMerge[!species %in% toMerge$species,] #remove it from list
+      if (joined == neededJoins) {
         break
       }
     }
-    if (length(unique(df$assignedFuelClass)) > 5){
-      #some combinations may never work depending on e.g GLM sign,
-      warning("could not adequately resolve fuel classes - consider editing FuelClass")
-    }
-    df[, alreadyMerged := NULL]
+    newClass <- rbind(uniques, possMerge, fill = TRUE)
+    df <- newClass[, .(species, coef, sign, FuelClass, above10PctRelB, assignedFuelClass)]
+    df[is.na(assignedFuelClass), assignedFuelClass := species]
+
   } else {
     df[, assignedFuelClass := species]
   }
-
-  return(df)
+  return(df[])
 }
-
 

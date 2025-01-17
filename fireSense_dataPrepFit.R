@@ -14,7 +14,7 @@ defineModule(sim, list(
   documentation = deparse(list("README.md", "fireSense_dataPrepFit.Rmd")),
   loadOrder = list(after = c("Biomass_borealDataPrep", "Biomass_speciesParameters")),
   reqdPkgs = list("data.table", "fastDummies", "reproducible", # studyAreaName
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9079)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9080)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@development (>= 1.1.5.9029)",
                   "PredictiveEcology/SpaDES.core@development (>= 2.0.2.9006)",
@@ -63,6 +63,8 @@ defineModule(sim, list(
                           "as burned forest is often classified as non-forest")),
     defineParameter("sppEquivCol", "character", "LandR", NA, NA,
                     "column name in `sppEquiv` object that defines unique species in `cohortData`"),
+    defineParameter("targetFuelClasses", "numeric", 5, 1, 7,
+                    "the target number of unique fuel classes when using semi-automated approach"),
     defineParameter("useCentroids", "logical", TRUE, NA, NA,
                     paste("Should fire ignitions start at the `sim$firePolygons` centroids",
                           "or at the ignition points in `sim$firePoints`?")),
@@ -321,17 +323,21 @@ Init <- function(sim) {
   # Apply the function for each time period
   fires <- do.call(rbind, sim$spreadFirePolys)
 
-  landscape <- Map(
+  landscape <- Cache(
+    Map,
     f = fuelClassPrep,
     pixelGroupMap = list(sim$pixelGroupMap2001, sim$pixelGroupMap2011),
     cohortData = list(sim$cohortData2001, sim$cohortData2011),
     rstLCC = list(sim$rstLCC2001, sim$rstLCC2011),
     yearRange = list(c(2002, 2011), c(2012, 2020)),
     MoreArgs = list(nonflammableLCC = P(sim)$nonflammableLCC,
-                    fires = fires)
+                    fires = fires),
+    userTags = c("fireSenseDataPrepFit", "fuelClassPrep")
   )
+
   # Combine landscapes and finalize data
   landscape <- rbindlist(landscape)
+
   landscape <- landscape[, .(cell, speciesCode, B, totalBiomass, burned, year)]
 
   summaryDF <- landscape[, .(percentBurn = sum(burned)/.N * 100), .(speciesCode)]
@@ -349,6 +355,7 @@ Init <- function(sim) {
                                 fuelCol = P(sim)$fuelClassCol,
                                 sppEquiv = sim$sppEquiv,
                                 sppEquivCol = P(sim)$sppEquivCol,
+                                targetFuelClasses = P(sim)$targetFuelClasses,
                                 userTags = c("assessFuelClasses", P(sim)$fuelClassCol))
 
     temp <- sim$fuelClassTable[, .(species, assignedFuelClass)]
