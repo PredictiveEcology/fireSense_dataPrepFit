@@ -33,6 +33,8 @@ defineModule(sim, list(
                           "minimum sample of burned and unburned pixels to include in each fire.")),
     defineParameter("cutoffForYoungAge", "numeric", 15, NA, NA,
                     "Age at and below which pixels are considered 'young' (`young <- age <= cutoffForYoungAge`)"),
+    defineParameter("estimateFuelClasses", "logical", TRUE, NA, NA,
+                    paste("estimate fuel classes from combination of data and P(sim)$fuelClassCol?")),
     defineParameter("fireYears", "integer", 2002:2021, NA, NA,
                     paste("A numeric vector indicating which years should be extracted",
                           "from the fire databases to use for fitting.",
@@ -147,7 +149,7 @@ defineModule(sim, list(
     createsOutput("fireBufferedListDT", "list",
                   "list of data.tables with fire id, `pixelID`, and buffer status"),
     createsOutput("fuelClassTable", "data.table",
-                  "table with assigend fuel class of each tree species, after running assessFuelClasses"),
+                  "table with assigned fuel class of each tree species, after running assessFuelClasses"),
     createsOutput("spreadFirePolys", "list",
                   "list of sf polygon objects representing annual fires"),
     createsOutput("fireSense_annualSpreadFitCovariates", "list",
@@ -339,17 +341,23 @@ Init <- function(sim) {
   # ggplot(data = summaryDF, aes(x  = speciesCode, y = percentBurn)) +
   #   geom_bar(stat = "identity") +
   #   labs(x = "fuel covariate", y = "% burned")
-  sim$fuelClassTable <- Cache(assessFuelClasses,
-                              landscape = landscape,
-                              fuelCol = P(sim)$fuelClassCol,
-                              sppEquiv = sim$sppEquiv,
-                              sppEquivCol = P(sim)$sppEquivCol,
-                              userTags = c("assessFuelClasses", P(sim)$fuelClassCol))
 
-  temp <- sim$fuelClassTable[, .(species, assignedFuelClass)]
-  setnames(temp, c(P(sim)$sppEquivCol, P(sim)$fuelClassCol))
-  mod$sppEquiv <- temp
+  #t
+  if (P(sim)$estimateFuelClasses) {
+    sim$fuelClassTable <- Cache(assessFuelClasses,
+                                landscape = landscape,
+                                fuelCol = P(sim)$fuelClassCol,
+                                sppEquiv = sim$sppEquiv,
+                                sppEquivCol = P(sim)$sppEquivCol,
+                                userTags = c("assessFuelClasses", P(sim)$fuelClassCol))
 
+    temp <- sim$fuelClassTable[, .(species, assignedFuelClass)]
+    #make a temporary sppEquiv that uses this overwritten fuel class
+    setnames(temp, c(P(sim)$sppEquivCol, P(sim)$fuelClassCol))
+    mod$sppEquiv <- temp
+  } else {
+    mod$sppEquiv <- sim$sppEquiv
+  }
   ## TODO: make this table multidimensional or a list
   sim$landcoverDT2001 <- makeLandcoverDT(rstLCC = sim$rstLCC2001, flammableRTM = sim$flammableRTM2001,
                                          forestedLCC = P(sim)$forestedLCC, sim$nonForestedLCCGroups)
