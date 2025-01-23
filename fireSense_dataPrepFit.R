@@ -14,7 +14,7 @@ defineModule(sim, list(
   documentation = deparse(list("README.md", "fireSense_dataPrepFit.Rmd")),
   loadOrder = list(after = c("Biomass_borealDataPrep", "Biomass_speciesParameters")),
   reqdPkgs = list("data.table", "fastDummies", "reproducible", # studyAreaName
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9082)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9083)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@development (>= 1.1.5.9029)",
                   "PredictiveEcology/SpaDES.core@development (>= 2.0.2.9006)",
@@ -324,7 +324,6 @@ Init <- function(sim) {
 
   # Apply the function for each time period
   fires <- do.call(rbind, sim$spreadFirePolys)
-
   #this must ensure landcover overrides species - it does not currently
   landscape <- Cache(
     Map,
@@ -375,7 +374,7 @@ Init <- function(sim) {
 
     sim$fuelClassTable <- fuelClassObjects$modSppEquiv
     sim$nonForestedLCCGroups <- fuelClassObjects$nonForestedLCCGroups
-    sim$missingLCC <- fuelClassObjects$missingLCCgroup
+    sim$missingLCCgroup <- fuelClassObjects$missingLCCgroup
     #hack to ensure minimal downstream code changes
     #make a temporary sppEquiv that uses this overwritten fuel class
     temp <- fuelClassObjects$modSppEquiv[, .(species, assignedFuelClass)]
@@ -389,7 +388,7 @@ Init <- function(sim) {
                                          forestedLCC = P(sim)$forestedLCC, sim$nonForestedLCCGroups)
   sim$landcoverDT2011 <- makeLandcoverDT(rstLCC = sim$rstLCC2011, flammableRTM = sim$flammableRTM2011,
                                          forestedLCC = P(sim)$forestedLCC, sim$nonForestedLCCGroups)
-
+  browser()
   sim$landcoverDT2001 <- correctMissingLCC(sim$landcoverDT2001, sim$pixelGroupMap2001, sim$missingLCCgroup)
   sim$landcoverDT2011 <- correctMissingLCC(sim$landcoverDT2011, sim$pixelGroupMap2011, sim$missingLCCgroup)
 
