@@ -388,7 +388,6 @@ Init <- function(sim) {
                                          forestedLCC = P(sim)$forestedLCC, sim$nonForestedLCCGroups)
   sim$landcoverDT2011 <- makeLandcoverDT(rstLCC = sim$rstLCC2011, flammableRTM = sim$flammableRTM2011,
                                          forestedLCC = P(sim)$forestedLCC, sim$nonForestedLCCGroups)
-  browser()
   sim$landcoverDT2001 <- correctMissingLCC(sim$landcoverDT2001, sim$pixelGroupMap2001, sim$missingLCCgroup)
   sim$landcoverDT2011 <- correctMissingLCC(sim$landcoverDT2011, sim$pixelGroupMap2011, sim$missingLCCgroup)
 
@@ -1320,7 +1319,7 @@ runBorealDP_forCohortData <- function(sim) {
 
 
   if (!suppliedElsewhere("missingLCCgroup", sim)) {
-    sim$missingLCCGroup <- names(sim$nonForestedLCCGroups)[1]
+    sim$missingLCCgroup <- names(sim$nonForestedLCCGroups)[1]
   }
 
   return(invisible(sim))
