@@ -58,7 +58,6 @@ jobs:
         run: |
           pkgs <- SpaDES.core::packages(modules = "[[name]]", paths = "..")[[1]]
           Require::Require(pkgs[[1]])
-          Require::Require(c("PredictiveEcology/LandR@development"), require = FALSE)
         shell: Rscript {0}
 
       - name: Render module Rmd
