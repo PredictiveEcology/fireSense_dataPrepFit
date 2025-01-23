@@ -14,7 +14,7 @@ defineModule(sim, list(
   documentation = deparse(list("README.md", "fireSense_dataPrepFit.Rmd")),
   loadOrder = list(after = c("Biomass_borealDataPrep", "Biomass_speciesParameters")),
   reqdPkgs = list("data.table", "fastDummies", "reproducible", # studyAreaName
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9083)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9084)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@development (>= 1.1.5.9029)",
                   "PredictiveEcology/SpaDES.core@development (>= 2.0.2.9006)",
@@ -425,6 +425,7 @@ Init <- function(sim) {
 }
 
 prepare_SpreadFit <- function(sim) {
+
   ## Put in format for DEOptim that distinguishes annual and nonannual covariates
   ## Prepare annual spread fit covariates
   ####prep veg data####
@@ -455,9 +456,11 @@ prepare_SpreadFit <- function(sim) {
   ## there is no young age here unlike ignition
   vegData <- lapply(vegData, FUN = function(x) {
     #to lessen the leverage of zeroes where there is no biomass
+    #TODO: discuss implications for spread
     #change the zeroes to one log below the minimum in the data (in this case 100 g/m2)
     minimumB <- exp(log(100) - 1)
-    x[x < minimumB] <- minimumB
+    x[x < minimumB & x > 0] <- minimumB
+    # x[x == 0] <- NA # for NAs
     x <- log(x)
     dt <- as.data.table(values(x))
     dt[, pixelID := 1:ncell(x)]
@@ -608,6 +611,7 @@ prepare_SpreadFit <- function(sim) {
     ## this is done later in spreadFit - but done here for accuracy of outputs
     args <- list("youngAge" = names(sim$nonForestedLCCGroups))
   }
+
   annualCovariates <- lapply(annualCovariates, makeMutuallyExclusive, mutuallyExclusiveCols = args)
 
   sim$fireSense_annualSpreadFitCovariates <- do.call(c, annualCovariates)
