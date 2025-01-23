@@ -14,7 +14,7 @@ defineModule(sim, list(
   documentation = deparse(list("README.md", "fireSense_dataPrepFit.Rmd")),
   loadOrder = list(after = c("Biomass_borealDataPrep", "Biomass_speciesParameters")),
   reqdPkgs = list("data.table", "fastDummies", "reproducible", # studyAreaName
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9080)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9082)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@development (>= 1.1.5.9029)",
                   "PredictiveEcology/SpaDES.core@development (>= 2.0.2.9006)",
@@ -53,9 +53,6 @@ defineModule(sim, list(
     defineParameter("minBufferSize", "numeric", 5000, NA, NA,
                     paste("Minimum number of cells in buffer and nonbuffer. This is imposed after the",
                           "multiplier on the `bufferToArea` fn")),
-    defineParameter("missingLCCgroup", "character", "nf_highFlam", NA, NA,
-                    paste("if a pixel is forested but is absent from `cohortData`, it will be grouped in this class.",
-                          "Must be one of the names in `sim$nonForestedLCCGroups`")),
     defineParameter("nonflammableLCC", "numeric", c(20, 31, 32, 33), NA, NA,
                     "non-flammable LCC in rstLCC layers - defaulting to water, snow/ice, rock, barren land."),
     defineParameter("nonForestCanBeYoungAge", "logical", TRUE, NA, NA,
@@ -120,6 +117,10 @@ defineModule(sim, list(
     expectsInput("ignitionFirePoints", "sf", sourceURL = NA,
                  paste("list of sf polygon objects representing annual ignition locations.",
                        "This includes all fires regardless of size")),
+    expectsInput("missingLCCgroup", "character", NA,
+                 paste("if a pixel is forested but is absent from `cohortData`, it will be grouped in this class.",
+                       "It can be estimated if `P(sim)$estimateFuelClasses` is TRUE.",
+                       "If supplied, it must be one of the names in `sim$nonForestedLCCGroups`")),
     expectsInput("nonForestedLCCGroups", "list",
                  paste("a named list of non-forested landcover groups",
                        "e.g. list('wetland' = c(19, 23, 32))",
@@ -179,6 +180,11 @@ defineModule(sim, list(
                   "data.table with `pixelID` and relevant landcover classes for flammable pixels in 2001 "),
     createsOutput("landcoverDT2011", "data.table",
                   "data.table with `pixelID` and relevant landcover classes for flammable pixels in 2011"),
+    createsOutput("missingLCCgroup", "character",
+                  "if estimating fuel classes, the nonforest class to assign forested pixels absent from `sim$cohortData`"),
+    createsOutput("nonForestedLCCgroups", "list",
+                  paste("a named list of non-forested landcover groups forming distinct fuel classes",
+                        "e.g. list('wetland' = c(19, 23, 32))")),
     createsOutput("nonForest_timeSinceDisturbance2001", "SpatRaster",
                   "time since burn for non-forested pixels in 2001"),
     createsOutput("nonForest_timeSinceDisturbance2011", "SpatRaster",
@@ -309,10 +315,6 @@ Init <- function(sim) {
                                         projectTo = sim$rasterToMatch, maskTo = mod$studyAreaUnion)
   }
 
-  if (!P(sim)$missingLCCgroup %in% names(sim$nonForestedLCCGroups)) {
-    stop("please review names of sim$nonForestedLCCGroups and param missingLCCGroup")
-  }
-
   #glm of burned ~ biomass (of each species) link = logit
   #which species are similar enough to lump
 
@@ -323,6 +325,7 @@ Init <- function(sim) {
   # Apply the function for each time period
   fires <- do.call(rbind, sim$spreadFirePolys)
 
+  #this must ensure landcover overrides species - it does not currently
   landscape <- Cache(
     Map,
     f = fuelClassPrep,
@@ -331,35 +334,51 @@ Init <- function(sim) {
     rstLCC = list(sim$rstLCC2001, sim$rstLCC2011),
     yearRange = list(c(2002, 2011), c(2012, 2020)),
     MoreArgs = list(nonflammableLCC = P(sim)$nonflammableLCC,
-                    fires = fires),
+                    fires = fires,
+                    nonforestLCC = sim$nonForestedLCCGroups),
     userTags = c("fireSenseDataPrepFit", "fuelClassPrep")
   )
 
   # Combine landscapes and finalize data
   landscape <- rbindlist(landscape)
+  landscape <- landscape[, .(cell, speciesCode, lcc, B, totalBiomass, burned, year)]
 
-  landscape <- landscape[, .(cell, speciesCode, B, totalBiomass, burned, year)]
+  nonforestLCC <- unlist(sim$nonForestedLCCGroups) #unlist for backwards compatibility
 
-  summaryDF <- landscape[, .(percentBurn = sum(burned)/.N * 100), .(speciesCode)]
+  #set up plots
+  speciesGG_DF <- landscape[!is.na(B), .(percentBurn = sum(burned)/.N * 100), .(speciesCode)]
+  lccGG_DF <- landscape[is.na(B)]
+  lccGG_DF[!lcc %in% nonforestLCC, newLCC := paste("not LandR forest", lcc)]
+  lccGG_DF[is.na(newLCC), newLCC := lcc]
+  lccGG_DF <- lccGG_DF[, .(percentBurn = sum(burned)/.N * 100), .(newLCC)]
 
-  #TODO: add this to a Plots call?
+  #TODO: add this to a Plots call?#TlccODO: add this to a Plots call?
   #It is a bar plot of the percent burned of each species and lcc
-  # ggplot(data = summaryDF, aes(x  = speciesCode, y = percentBurn)) +
+  # lccGG <- ggplot(lccGG_DF, aes(x = newLCC, y = percentBurn)) +
+  #   geom_bar(stat = "identity") +
+  #   labs(y = "% in study area burned", x = "nonForest LCC")
+  #
+  # sppGG <- ggplot(data = speciesGG_DF, aes(x  = speciesCode, y = percentBurn)) +
   #   geom_bar(stat = "identity") +
   #   labs(x = "fuel covariate", y = "% burned")
 
   #t
   if (P(sim)$estimateFuelClasses) {
-    sim$fuelClassTable <- Cache(assessFuelClasses,
+    fuelClassObjects <- Cache(assessFuelClasses,
                                 landscape = landscape,
                                 fuelCol = P(sim)$fuelClassCol,
                                 sppEquiv = sim$sppEquiv,
                                 sppEquivCol = P(sim)$sppEquivCol,
                                 targetFuelClasses = P(sim)$targetFuelClasses,
+                                nonforestLCC = nonforestLCC,
                                 userTags = c("assessFuelClasses", P(sim)$fuelClassCol))
 
-    temp <- sim$fuelClassTable[, .(species, assignedFuelClass)]
+    sim$fuelClassTable <- fuelClassObjects$modSppEquiv
+    sim$nonForestedLCCGroups <- fuelClassObjects$nonForestedLCCGroups
+    sim$missingLCC <- fuelClassObjects$missingLCCgroup
+    #hack to ensure minimal downstream code changes
     #make a temporary sppEquiv that uses this overwritten fuel class
+    temp <- fuelClassObjects$modSppEquiv[, .(species, assignedFuelClass)]
     setnames(temp, c(P(sim)$sppEquivCol, P(sim)$fuelClassCol))
     mod$sppEquiv <- temp
   } else {
@@ -371,8 +390,8 @@ Init <- function(sim) {
   sim$landcoverDT2011 <- makeLandcoverDT(rstLCC = sim$rstLCC2011, flammableRTM = sim$flammableRTM2011,
                                          forestedLCC = P(sim)$forestedLCC, sim$nonForestedLCCGroups)
 
-  sim$landcoverDT2001 <- correctMissingLCC(sim$landcoverDT2001, sim$pixelGroupMap2001, P(sim)$missingLCCgroup)
-  sim$landcoverDT2011 <- correctMissingLCC(sim$landcoverDT2011, sim$pixelGroupMap2011, P(sim)$missingLCCgroup)
+  sim$landcoverDT2001 <- correctMissingLCC(sim$landcoverDT2001, sim$pixelGroupMap2001, sim$missingLCCgroup)
+  sim$landcoverDT2011 <- correctMissingLCC(sim$landcoverDT2011, sim$pixelGroupMap2011, sim$missingLCCgroup)
 
   ## cannot merge because before subsetting due to column differences over time
 
@@ -1298,6 +1317,11 @@ runBorealDP_forCohortData <- function(sim) {
     sim$nonForestedLCCGroups <- list(
       "nf_highFlam" = c(50, 100), # shrub, herbaceous
       "nf_lowFlam" = c(40, 80)) # bryoids + non-treed wetland.
+  }
+
+
+  if (!suppliedElsewhere("missingLCCgroup", sim)) {
+    sim$missingLCCGroup <- names(sim$nonForestedLCCGroups)[1]
   }
 
   return(invisible(sim))
