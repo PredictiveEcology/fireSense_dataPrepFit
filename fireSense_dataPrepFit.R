@@ -459,7 +459,7 @@ prepare_SpreadFit <- function(sim) {
     #TODO: discuss implications for spread
     #change the zeroes to one log below the minimum in the data (in this case 100 g/m2)
     minimumB <- exp(log(100) - 1)
-    x[x < minimumB & x > 0] <- minimumB
+    x[x < minimumB] <- minimumB
     # x[x == 0] <- NA # for NAs
     x <- log(x)
     dt <- as.data.table(values(x))
