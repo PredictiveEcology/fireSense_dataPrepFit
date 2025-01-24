@@ -361,7 +361,6 @@ Init <- function(sim) {
   #   geom_bar(stat = "identity") +
   #   labs(x = "fuel covariate", y = "% burned")
 
-  #t
   if (P(sim)$estimateFuelClasses) {
     fuelClassObjects <- Cache(assessFuelClasses,
                                 landscape = landscape,
@@ -375,6 +374,9 @@ Init <- function(sim) {
     sim$fuelClassTable <- fuelClassObjects$modSppEquiv
     sim$nonForestedLCCGroups <- fuelClassObjects$nonForestedLCCGroups
     sim$missingLCCgroup <- fuelClassObjects$missingLCCgroup
+    message("Estimated fuel classes for this study area:")
+    messageDF(sim$fuelClassTable)
+
     #hack to ensure minimal downstream code changes
     #make a temporary sppEquiv that uses this overwritten fuel class
     temp <- fuelClassObjects$modSppEquiv[, .(species, assignedFuelClass)]
@@ -392,7 +394,6 @@ Init <- function(sim) {
   sim$landcoverDT2011 <- correctMissingLCC(sim$landcoverDT2011, sim$pixelGroupMap2011, sim$missingLCCgroup)
 
   ## cannot merge because before subsetting due to column differences over time
-
 
   ## TODO: this object  be used to track annual youngAge of all pixels, forested or not
   ## so "nonForest" is a poor choice of name. It should not have values for non-flammable pixels.
@@ -1317,8 +1318,10 @@ runBorealDP_forCohortData <- function(sim) {
   if (!suppliedElsewhere("nonForestedLCCGroups", sim)) {
     ## TODO: consider moving this to init - and checking if unsupplied
     sim$nonForestedLCCGroups <- list(
-      "nf_highFlam" = c(50, 100), # shrub, herbaceous
-      "nf_lowFlam" = c(40, 80)) # bryoids + non-treed wetland.
+      #"nf_dryland" = c(50, 100, 40), # shrub, herbaceous, bryoid
+      #"nf_wetland" = c(80)), #non-treed wetland.
+      "nf_highFlam" = c(50, 100, 40), # shrub, herbaceous
+      "nf_lowFlam" = c(80)) # bryoids + non-treed wetland.
   }
 
 
