@@ -362,14 +362,15 @@ Init <- function(sim) {
   #   labs(x = "fuel covariate", y = "% burned")
 
   if (P(sim)$estimateFuelClasses) {
-    fuelClassObjects <- Cache(assessFuelClasses,
-                                landscape = landscape,
-                                fuelCol = P(sim)$fuelClassCol,
-                                sppEquiv = sim$sppEquiv,
-                                sppEquivCol = P(sim)$sppEquivCol,
-                                targetFuelClasses = P(sim)$targetFuelClasses,
-                                nonforestLCC = nonforestLCC,
-                                userTags = c("assessFuelClasses", P(sim)$fuelClassCol))
+    fuelClassObjects <- Cache(
+      assessFuelClasses(
+        landscape = landscape,
+        fuelCol = P(sim)$fuelClassCol,
+        sppEquiv = sim$sppEquiv,
+        sppEquivCol = P(sim)$sppEquivCol,
+        targetFuelClasses = P(sim)$targetFuelClasses,
+        nonforestLCC = nonforestLCC),
+      userTags = c("assessFuelClasses", P(sim)$fuelClassCol))
 
     sim$fuelClassTable <- fuelClassObjects$modSppEquiv
     sim$nonForestedLCCGroups <- fuelClassObjects$nonForestedLCCGroups
