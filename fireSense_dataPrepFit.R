@@ -470,9 +470,6 @@ prepare_SpreadFit <- function(sim) {
   vegData[[1]] <- vegData[[1]][sim$landcoverDT2001, on = c("pixelID")]
   vegData[[2]] <- vegData[[2]][sim$landcoverDT2011, on = c("pixelID")]
   vegData <- rbindlist(vegData)
-  vegData <- vegData[sim$landcoverDT, on = c("pixelID")] #one to many (ie, 2)
-
-  lccNames <- setdiff(names(vegData), c("pixelID", "year"))
 
   #### prep the fire data ####
   if (P(sim)$useRasterizedFire) {
