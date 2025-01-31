@@ -38,7 +38,7 @@ defineModule(sim, list(
                     paste("A numeric vector indicating which years should be extracted",
                           "from the fire databases to use for fitting.",
                           "Should *not* include years prior to 2002, to ensure correct intialization from data.")),
-    defineParameter("forestedLCC", "numeric", c(210, 220, 230, 240), NA, NA,
+    defineParameter("forestedLCC", "numeric", c(81, 210, 220, 230, 240), NA, NA,
                     paste("Forested land cover classes - these differ from non-forest because the biomass",
                           "and composition of fuels are taken into account by fireSense, while non-forest",
                           "classes are treated categorically")),
@@ -64,9 +64,6 @@ defineModule(sim, list(
     defineParameter("useCentroids", "logical", TRUE, NA, NA,
                     paste("Should fire ignitions start at the `sim$firePolygons` centroids",
                           "or at the ignition points in `sim$firePoints`?")),
-    defineParameter("usePiecewiseRegression", "logical", FALSE, NA, NA,
-                    paste("Should fire ignitions fitting use the hockey stick 'piecewise regression' ",
-                          "approach or the newer glmmTMB with zero inflated poisson mixed effect.")),
     defineParameter("useRasterizedFireForSpread", "logical", FALSE, NA, NA,
                     paste("Should rasterized fire be used in place of a vectorized fire dataset?",
                           "This method attributes burned pixels to specific fires,",
@@ -121,9 +118,9 @@ defineModule(sim, list(
                        "It can be estimated if `P(sim)$estimateFuelClasses` is TRUE.",
                        "If supplied, it must be one of the names in `sim$nonForestedLCCGroups`")),
     expectsInput("nonForestedLCCGroups", "list",
-                 paste("a named list of non-forested landcover groups",
-                       "e.g. list('wetland' = c(19, 23, 32))",
-                       "These will become covariates in `fireSense_IgnitionFit`")),
+                 paste("a named list of non-forested landcover groups, e.g. list('wetland' = c(19, 23, 32))",
+                       "These will become fuel covariates, and the groups will be estimated if",
+                       "`P(sim)$estimateFuelClasses` is TRUE")),
     expectsInput("pixelGroupMap2001", "SpatRaster", sourceURL = NA,
                  "defines the `pixelGroups` for cohortData table in 2001"),
     expectsInput("pixelGroupMap2011", "SpatRaster",
@@ -938,13 +935,9 @@ prepare_IgnitionFit <- function(sim) {
   firstCols <- firstCols[firstCols %in% names(fireSense_ignitionCovariates)]
   setcolorder(fireSense_ignitionCovariates, neworder = firstCols)
 
-  if (isTRUE(P(sim)$usePiecewiseRegression)) {
-    response <- "ignitions"
-  } else {
-    response <- "ignitionsNoGT1"
-    set(fireSense_ignitionCovariates, NULL, response, pmin(fireSense_ignitionCovariates$ignitions, 1))
-    # fireSense_ignitionCovariates[, ignitionsNoGT1 := ifelse(ignitions > 1, 1, ignitions)]
-  }
+  response <- "ignitionsNoGT1"
+  set(fireSense_ignitionCovariates, NULL, response, pmin(fireSense_ignitionCovariates$ignitions, 1))
+  # fireSense_ignitionCovariates[, ignitionsNoGT1 := ifelse(ignitions > 1, 1, ignitions)]
 
   sim$fireSense_ignitionCovariates <- fireSense_ignitionCovariates
 
@@ -1125,6 +1118,7 @@ runBorealDP_forCohortData <- function(sim) {
     for (nm in neededModule) {
       parms[[nm]] <- P(sim, module = nm)
       parms[[nm]][["dataYear"]] <- ny
+      parms[[nm]][["forestedLCCClasses"]] <- P(sim)$forestedLCC
     }
     parms$Biomass_borealDataPrep$exportModels <- "none"
 
