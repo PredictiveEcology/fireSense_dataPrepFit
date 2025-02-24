@@ -1,67 +1,144 @@
 ---
-title: "fireSense_dataPrepFit"
-author: 
-  - Ian Eddy
-  - Alex Chubaty
-date: "September 2020; updated February 2022"
+title: "fireSense_dataPrepFit Manual"
+subtitle: "v.`r SpaDES.core::moduleMetadata(module = 'fireSense_dataPrepFit', path = '..')$version`"
+date: "Last updated: `r Sys.Date()`"
 output:
-  html_document:
+  bookdown::html_document2:
+    toc: true
+    toc_float: true
+    theme: sandstone
+    number_sections: false
+    df_print: paged
     keep_md: yes
 editor_options:
   chunk_output_type: console
+  bibliography: citations/references_fireSense_dataPrepFit.bib
+link-citations: true
+always_allow_html: true
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, eval = FALSE, results = "hold", message = FALSE)
+```{r setup-fireSense-dataPrepFit, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, results = "hold") ## change to eval = TRUE if all chunks are to be evaluated
+
+dir.create("figures", showWarnings = FALSE)
+
+download.file(url = "https://img.shields.io/badge/Made%20with-Markdown-1f425f.png",
+              destfile = "figures/markdownBadge.png",
+              mode = 'wb')
 ```
 
-# Overview
+# fireSense_dataPrepFit Module
+
+<!-- the following are text references used in captions for LaTeX compatibility -->
+
+(ref:fireSense-dataPrepFit) *fireSense_dataPrepFit*
+
+[![made-with-Markdown](figures/markdownBadge.png)](https://commonmark.org)
+
+<!-- if knitting to pdf remember to add the pandoc_args: ["--extract-media", "."] option to yml in order to get the badge images -->
+
+#### Authors:
+
+`r paste(as.character(SpaDES.core::moduleMetadata(module = "fireSense_dataPrepFit", path = '..')$authors), sep = ', ')` <!-- ideally separate authors with new lines, '\n' not working -->
+
+## Module Overview
 
 Prepare data required by `fireSense_IginitionFit`, `fireSense_EscapeFit`, and `fireSense_SpreadFit`.
 
-# Parameters
+### Module summary
 
-Provide a summary of user-visible parameters.
+This module uses historical fire, vegetation, and climate raster data to generate data used to fit the three processes captured by fireSense: fire ignition, fire escape (the probability that an ignition results in a fire greater than the cell resolution), and fire spread. The landscape data is collected in two snapshots: 2001 and 2011, and the vegetation composition and biomass in these years is assumed to have influenced fires from 2002-2011 and 2012-2021, respectively. Unlike the vegetation data, the climate data is assumed to be seasonal or annual, and is matched to the year each fire occurred. The same climate variable(s) must be used to model fire ignition and escape, but can vary for spread.
 
-```{r moduleParams, echo = FALSE, eval = TRUE}
-df_params <- SpaDES.core::moduleParams("fireSense_dataPrepFit", "..")
-df_params$default[[1]] <- "fireSenseUtils::multiplier"
-knitr::kable(df_params)
+##### Fuel classes:
+
+This module can optionally estimate fuel classes for both forested and non-forested areas. The non-forested mechanism is simpler: it combines landcover classes based on having a similar historical propensity to burn as estimated using a GLM, reducing an arbitrary amount of classes to a target amount (by default, two). For example, bryoids and non-treed wetland might be combined in one class, with shrubland and grassland in another.
+
+The estimation of forested fuel classes is more complex. The module will initially treat each species as a separate fuel class and then attempt to reduce the number of fuel classes to a target amount. It uses a GLM to estimate the relationship between the biomass of each species, where present in pixel, to the likelihood of the likelihood of the pixel burning. For each species, the model fitting data is subset by removing pixels where the species is not present. Additionally, each species will have an *a priori* fuel class. The default fuel classes are an interpretation of the [FBP classes](https://cwfis.cfs.nrcan.gc.ca/background/fueltypes/c1) and can be viewed via `LandR::sppEquivalencies_CA$FuelClass`.
+
+Individual tree species are grouped into fuel classes according to the following logic: first, the abundance of each species is assessed, calculated as the proportion of the landscape where a given species represents more than 10% of the biomass in a pixel. "Rare" species (those with abundance \< 5%) are combined if another species is present with the same fuel class. If there are two or more options, they are grouped in order of abundance, from least to most. It is possible the resulting number of fuel classes will be fewer than the target amount if multiple species were "rare". If the resulting number of unique fuel classes is greater than the target amount, the next least abundant species will be combined. However, for non-rare species to be combined, they must also have the same coefficient sign, or a non-significant sign. If there are more than one species with a similar fuel class and coefficient sign, they are grouped based on abundance, from least to most. By default, the module will aim for five forested fuel classes, two non-forested fuel classes, and `youngAge` (described below), for a total of eight.
+
+```{example of semi-automated fuel classes, echo = FALSE, }
+# 7 species were initially present on the landscape; 2 must be combined to achieve the target 5
+# in this case, Betu_pap and Popu_tre were combined due to their low abundance (above10PctRelB)
+# Pice_gla and Pice_eng were combined due as Abie_las was the most abundant. Pice_mar and Pinu_con
+# were not combined as there were no other species with similar FuelClass values
+
+    species     coef     sign  FuelClass Abundance newFuelClass
+     <char>    <num>   <char>     <char>     <num>       <char>
+1: Pice_mar -0.01320 negative    BlkSprc     0.066     Pice_mar
+2: Pinu_con  0.00154 positive   LdJkPine     0.625     Pinu_con
+3: Betu_pap -0.00170 negative    PopBrch     0.051  Bt_pa.Pp_tr
+4: Pice_eng -0.01910 negative SprcFrLrch     0.095  Pc_en.Pc_gl
+5: Popu_tre -0.02100 negative    PopBrch     0.223  Bt_pa.Pp_tr
+6: Pice_gla -0.00920 negative SprcFrLrch     0.352  Pc_en.Pc_gl
+7: Abie_las -0.00630 negative SprcFrLrch     0.560     Abie_las
 ```
 
-# Events
+##### Special cases: youngAge, missingLCC, and treed wetland
 
-Describe what happens for each event type.
+`fireSense` uses a `youngAge` class to distinguish areas that have recently burned (by default within the past 15 years), and updates the landscape snapshots accordingly. For example, if a conifer pixel burned in 2009, subsequent observations of the same pixel are converted to `youngAge`, with prior observations unchanged. Additionally, the 2011-2011 landscape snapshot is adjusted to ensure areas are correctly classified if they burned prior to 2001 within the period relevant to the `youngAge` class. By default, both forested and non-forested classes will convert to `youngAge` following fire, however a user can disable this behaviour in the latter class via the parameter `nonForestCanBeYoungAge`.
 
-## Plotting
+A related consideration is whether treed wetland (a land cover class in the NTEMS land cover product used by default) should be treated as a variant of forested landcover or non-forest cover. This decision determines whether the biomass of the tree species in treed wetland is included as a covariate in the fireSense models, the same as non-wetland forest species, or whether treed wetland is instead considered as a land cover class, similar to shrubland and grassland, for example. If wetland tree species are distinct from non-wetland species, then the decision may have less consequence. The object `nonForestedLCCGroups` takes precedence when determining fuel classes; if the land cover value for non-treed wetland is included here, then it will be counted as non-forest regardless of whether it appears the parameter `forestedLCCclasses`. This approach allows treed wetland to be simulated in forest simulation models (i.e. with LandR) without it being explicitly treated as forest in `fireSense`. If treed wetland is absent from both `nonForestedLCCGroups` and `forestedLCCclasses`, then it is considered non-flammable land cover, as with any other land cover class.
+
+If `fireSense_dataPrepFit` is to estimate fuel classes, it will also do so for a special class termed `missingLCC`. This class encompasses pixels that have a forested land cover class but are absent in the objects `cohortData2011` and `cohortData2001`. The most frequent reason for the exclusion of forest pixels in LandR is that there was no tree species data for the pixel. Therefore, with no available species biomass, these pixels are treated as non-forest land cover, and must be assigned to one of the groups in `nonForestedLCCGroups`.
+
+### Module inputs and parameters
+
+Describe input data required by the module and how to obtain it (e.g., directly from online sources or supplied by other modules) If `sourceURL` is specified, `downloadData("fireSense_dataPrepFit", "C:/Users/ieddy/AppData/Local/Temp/Rtmp0mKmrT")` may be sufficient. Table \@ref(tab:moduleInputs-fireSense-dataPrepFit) shows the full list of module inputs.
+
+```{r moduleInputs-fireSense-dataPrepFit, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
+df_inputs <- SpaDES.core::moduleInputs("fireSense_dataPrepFit", "C:/Users/ieddy/AppData/Local/Temp/Rtmp0mKmrT")
+knitr::kable(df_inputs,
+             caption = "List of (ref:fireSense-dataPrepFit) input objects and their description.") |>
+  kableExtra::kable_styling(latex_options = "scale_down", full_width = TRUE)
+```
+
+Provide a summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-dataPrepFit))
+
+```{r moduleParams-fireSense-dataPrepFit, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
+df_params <- SpaDES.core::moduleParams("fireSense_dataPrepFit", "modules/fireSense_dataPrepFit")
+knitr::kable(df_params, caption = "List of (ref:fireSense-dataPrepFit) parameters and their description.") |>
+  kableExtra::kable_styling(latex_options = "scale_down", full_width = TRUE)
+```
+
+### Events
+
+##### init
+
+During this event, objects are created and prepared if they are used by all three fire processes, such as the `flammableMap`, `landcoverDT`, and `nonForest_timeSinceDisturbance` for each fire period. This is also when fuel class estimation occurs.
+
+##### prepIgnitionFitData
+
+This
+
+##### prepEscapeFitData
+
+This rather simple event adds an "escapes" column to the data table prepared by `prepIgnitionFitData`, where an escape is an ignition that resulted in a fire greater than the resolution of the `flammableMap` raster (which is *not* the area of the voxel). It also builds the formula object if it hasn't been supplied, and ensures that escapes do not outnumber ignitions in any voxel.
+
+##### prepSpreadFitData
+
+### Plotting
 
 Write what is plotted.
 
-## Saving
+### Saving
 
 Write what is saved.
 
-# Data dependencies
+### Module outputs
 
-## Input data
+Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-dataPrepFit)).
 
-How to obtain input data, and a description of the data required by the module.
-If `sourceURL` is specified, `downloadData("fireSense_dataPrepFit", "..")` may be sufficient.
-
-```{r moduleInputs, echo = FALSE, eval = TRUE}
-df_inputs <- SpaDES.core::moduleInputs("fireSense_dataPrepFit", "..")
-knitr::kable(df_inputs)
+```{r moduleOutputs-fireSense-dataPrepFit, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
+df_outputs <- SpaDES.core::moduleOutputs("fireSense_dataPrepFit", "C:/Users/ieddy/AppData/Local/Temp/Rtmp0mKmrT")
+knitr::kable(df_outputs, caption = "List of (ref:fireSense-dataPrepFit) outputs and their description.") |>
+  kableExtra::kable_styling(latex_options = "scale_down", full_width = TRUE)
 ```
 
-## Output data
+### Links to other modules
 
-Description of the module outputs.
+Describe any anticipated linkages to other modules, such as modules that supply input data or do post-hoc analysis.
 
-```{r moduleOutputs, echo = FALSE, eval = TRUE}
-df_outputs <- SpaDES.core::moduleOutputs("fireSense_dataPrepFit", "..")
-knitr::kable(df_outputs)
-```
+### Getting help
 
-# Links to other modules
-
-Outputs used by `fireSense_IginitionFit`, `fireSense_EscapeFit`, and `fireSense_SpreadFit`.
+-   provide a way for people to obtain help (e.g., module repository issues page)

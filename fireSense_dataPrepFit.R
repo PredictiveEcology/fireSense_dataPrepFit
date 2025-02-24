@@ -343,7 +343,7 @@ Init <- function(sim) {
   lccGG_DF[is.na(newLCC), newLCC := lcc]
   lccGG_DF <- lccGG_DF[, .(percentBurn = sum(burned)/.N * 100), .(newLCC)]
 
-  #TODO: add this to a Plots call?#TlccODO: add this to a Plots call?
+  #TODO: add this to a Plots call?
   #It is a bar plot of the percent burned of each species and lcc
   # lccGG <- ggplot(lccGG_DF, aes(x = newLCC, y = percentBurn)) +
   #   geom_bar(stat = "identity") +
