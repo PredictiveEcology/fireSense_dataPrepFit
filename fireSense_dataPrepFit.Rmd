@@ -25,6 +25,7 @@ dir.create("figures", showWarnings = FALSE)
 download.file(url = "https://img.shields.io/badge/Made%20with-Markdown-1f425f.png",
               destfile = "figures/markdownBadge.png",
               mode = 'wb')
+
 ```
 
 # fireSense_dataPrepFit Module
@@ -57,21 +58,23 @@ The estimation of forested fuel classes is more complex. The module will initial
 
 Individual tree species are grouped into fuel classes according to the following logic: first, the abundance of each species is assessed, calculated as the proportion of the landscape where a given species represents more than 10% of the biomass in a pixel. "Rare" species (those with abundance \< 5%) are combined if another species is present with the same fuel class. If there are two or more options, they are grouped in order of abundance, from least to most. It is possible the resulting number of fuel classes will be fewer than the target amount if multiple species were "rare". If the resulting number of unique fuel classes is greater than the target amount, the next least abundant species will be combined. However, for non-rare species to be combined, they must also have the same coefficient sign, or a non-significant sign. If there are more than one species with a similar fuel class and coefficient sign, they are grouped based on abundance, from least to most. By default, the module will aim for five forested fuel classes, two non-forested fuel classes, and `youngAge` (described below), for a total of eight.
 
-```{example of semi-automated fuel classes, echo = FALSE, }
-# 7 species were initially present on the landscape; 2 must be combined to achieve the target 5
-# in this case, Betu_pap and Popu_tre were combined due to their low abundance (above10PctRelB)
-# Pice_gla and Pice_eng were combined due as Abie_las was the most abundant. Pice_mar and Pinu_con
-# were not combined as there were no other species with similar FuelClass values
+```{example of semi-automated fuel classes, echo = FALSE}
+7 species were initially present on the landscape; 2 must be combined to achieve the target 5
+in this case, Betu_pap and Popu_tre were combined due to their low abundance (above10PctRelB)
+Pice_gla and Pice_eng were combined due as Abie_las was the most abundant. Pice_mar and Pinu_con
+were not combined as there were no other species with similar FuelClass values
 
-    species     coef     sign  FuelClass Abundance newFuelClass
-     <char>    <num>   <char>     <char>     <num>       <char>
-1: Pice_mar -0.01320 negative    BlkSprc     0.066     Pice_mar
-2: Pinu_con  0.00154 positive   LdJkPine     0.625     Pinu_con
-3: Betu_pap -0.00170 negative    PopBrch     0.051  Bt_pa.Pp_tr
-4: Pice_eng -0.01910 negative SprcFrLrch     0.095  Pc_en.Pc_gl
-5: Popu_tre -0.02100 negative    PopBrch     0.223  Bt_pa.Pp_tr
-6: Pice_gla -0.00920 negative SprcFrLrch     0.352  Pc_en.Pc_gl
-7: Abie_las -0.00630 negative SprcFrLrch     0.560     Abie_las
+
+| species  | coef     | sign     | FuelClass  | Abundance | newFuelClass |
+|----------|----------|----------|------------|-----------|--------------|
+| Pice_mar | -0.01320 | negative | BlkSprc    | 0.066     | Pice_mar     |
+| Pinu_con | 0.00154  | positive | LdJkPine   | 0.625     | Pinu_con     |
+| Betu_pap | -0.00170 | negative | PopBrch    | 0.051     | Bt_pa.Pp_tr  |
+| Pice_eng | -0.01910 | negative | SprcFrLrch | 0.095     | Pc_en.Pc_gl  |
+| Popu_tre | -0.02100 | negative | PopBrch    | 0.223     | Bt_pa.Pp_tr  |
+| Pice_gla | -0.00920 | negative | SprcFrLrch | 0.352     | Pc_en.Pc_gl  |
+| Abie_las | -0.00630 | negative | SprcFrLrch | 0.560     | Abie_las     |
+
 ```
 
 ##### Special cases: youngAge, missingLCC, and treed wetland
@@ -87,16 +90,16 @@ If `fireSense_dataPrepFit` is to estimate fuel classes, it will also do so for a
 Describe input data required by the module and how to obtain it (e.g., directly from online sources or supplied by other modules) If `sourceURL` is specified, `downloadData("fireSense_dataPrepFit", "C:/Users/ieddy/AppData/Local/Temp/Rtmp0mKmrT")` may be sufficient. Table \@ref(tab:moduleInputs-fireSense-dataPrepFit) shows the full list of module inputs.
 
 ```{r moduleInputs-fireSense-dataPrepFit, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
-df_inputs <- SpaDES.core::moduleInputs("fireSense_dataPrepFit", "C:/Users/ieddy/AppData/Local/Temp/Rtmp0mKmrT")
+df_inputs <- SpaDES.core::moduleInputs("fireSense_dataPrepFit", "modules")
 knitr::kable(df_inputs,
-             caption = "List of (ref:fireSense-dataPrepFit) input objects and their description.") |>
+             caption = "List of (ref:fireSense_dataPrepFit) input objects and their description.") |>
   kableExtra::kable_styling(latex_options = "scale_down", full_width = TRUE)
 ```
 
 Provide a summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-dataPrepFit))
 
 ```{r moduleParams-fireSense-dataPrepFit, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
-df_params <- SpaDES.core::moduleParams("fireSense_dataPrepFit", "modules/fireSense_dataPrepFit")
+df_params <- SpaDES.core::moduleParams("fireSense_dataPrepFit", "modules")
 knitr::kable(df_params, caption = "List of (ref:fireSense-dataPrepFit) parameters and their description.") |>
   kableExtra::kable_styling(latex_options = "scale_down", full_width = TRUE)
 ```
@@ -130,7 +133,7 @@ Write what is saved.
 Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-dataPrepFit)).
 
 ```{r moduleOutputs-fireSense-dataPrepFit, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
-df_outputs <- SpaDES.core::moduleOutputs("fireSense_dataPrepFit", "C:/Users/ieddy/AppData/Local/Temp/Rtmp0mKmrT")
+df_outputs <- SpaDES.core::moduleOutputs("fireSense_dataPrepFit", "modules")
 knitr::kable(df_outputs, caption = "List of (ref:fireSense-dataPrepFit) outputs and their description.") |>
   kableExtra::kable_styling(latex_options = "scale_down", full_width = TRUE)
 ```
