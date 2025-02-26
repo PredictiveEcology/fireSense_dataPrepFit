@@ -22,9 +22,9 @@ defineModule(sim, list(
                   "PredictiveEcology/SpaDES.tools (>= 2.0.4.9002)",
                   "snow", "terra"),
   parameters = bindrows(
-    defineParameter("areaMultiplier", c("numeric", "function"), fireSenseUtils::multiplier, NA, NA,
-                    paste("Either a scalar that will buffer `areaMultiplier * fireSize` or a function",
-                          "of `fireSize`. See `?fireSenseUtils::bufferToArea`.")),
+    defineParameter("areaMultiplier", c("numeric", "name"), quote(fireSenseUtils::multiplier), NA, NA,
+                    paste("Either a scalar that will buffer `areaMultiplier * fireSize` or ",
+                          "a quoted function of `fireSize`. See `?fireSenseUtils::bufferToArea`.")),
     defineParameter("bufferForFireRaster", "numeric", 1000, 0, NA,
                     paste("The distance that determine whether separate patches of burned pixels originated",
                           "from the same fire. Only relevant when `useRasterizedFireForSpread = TRUE`.",
@@ -637,9 +637,11 @@ prepare_SpreadFitFire_Raster <- function(sim) {
   ## the inner looping function is very similar - one difference is that non-flammable
   ## pixels do not count toward the buffer size, unlike the polygonal version.
   sim$fireBufferedListDT <- Cache(rasterFireBufferDT, years =  P(sim)$fireYears,
-                                  fireRaster = historicalFireRaster, flammableRTM = sim$flammableRTM,
+                                  fireRaster = historicalFireRaster, 
+                                  flammableRTM = sim$flammableRTM,
                                   bufferForFireRaster = P(sim)$bufferForFireRaster, verb = 1,
-                                  areaMultiplier = P(sim)$areaMultiplier, minSize = P(sim)$minBufferSize,
+                                  areaMultiplier = eval(P(sim)$areaMultiplier), 
+                                  minSize = P(sim)$minBufferSize,
                                   cores = nCores, userTags = c(currentModule(sim), "rasterFireBufferDT"))
   ## TODO: test that this is the correct method for missing years
   missingYears <- unlist(lapply(sim$fireBufferedListDT, is.null))
@@ -749,7 +751,8 @@ prepare_SpreadFitFire_Vector <- function(sim) {
     firePolys = sim$spreadFirePolys[names(sim$spreadFirePolys) %in% pre2012], ## protects from missing years
     flammableRTM = sim$flammableRTM2001,
     spreadFirePoints = sim$spreadFirePoints[names(sim$spreadFirePoints) %in% pre2012], ## protects from missing years
-    areaMultiplier = P(sim)$areaMultiplier, minSize = P(sim)$minBufferSize,
+    areaMultiplier = eval(P(sim)$areaMultiplier), 
+    minSize = P(sim)$minBufferSize,
     pointsIDcolumn = "FIRE_ID",
     cores = nCores
   ) |>
@@ -758,7 +761,7 @@ prepare_SpreadFitFire_Vector <- function(sim) {
     firePolys = sim$spreadFirePolys[names(sim$spreadFirePolys) %in% post2012],
     flammableRTM = sim$flammableRTM2011,
     spreadFirePoints = sim$spreadFirePoints[names(sim$spreadFirePoints) %in% post2012],
-    areaMultiplier = P(sim)$areaMultiplier, minSize = P(sim)$minBufferSize,
+    areaMultiplier = eval(P(sim)$areaMultiplier), minSize = P(sim)$minBufferSize,
     pointsIDcolumn = "FIRE_ID",
     cores = nCores
   ) |>
