@@ -420,172 +420,37 @@ sample of burned and unburned pixels to include in each fire.</td>
 (<code>young &lt;- age &lt;= cutoffForYoungAge</code>)</td>
 </tr>
 <tr class="even">
-<td align="left">fireYears</td>
-<td align="left">integer</td>
-<td align="left">2001, 20….</td>
-<td align="left">NA</td>
-<td align="left">NA</td>
-<td align="left">A numeric vector indicating which years should be
-extracted from the fire databases to use for fitting</td>
-</tr>
-<tr class="odd">
-<td align="left">forestedLCC</td>
-<td align="left">numeric</td>
-<td align="left">1, 2, 3,….</td>
-<td align="left">NA</td>
-<td align="left">NA</td>
-<td align="left">Forested land cover classes. These classes will be
-excluded from the PCA.</td>
-</tr>
-<tr class="even">
-<td align="left">igAggFactor</td>
-<td align="left">numeric</td>
-<td align="left">40</td>
-<td align="left">1</td>
-<td align="left">NA</td>
-<td align="left">aggregation factor for rasters during ignition
-prep.</td>
-</tr>
-<tr class="odd">
-<td align="left">ignitionFuelClassCol</td>
-<td align="left">character</td>
-<td align="left">FuelClass</td>
-<td align="left">NA</td>
-<td align="left">NA</td>
-<td align="left">the column in <code>sppEquiv</code> that defines unique
-fuel classes for ignition</td>
-</tr>
-<tr class="even">
-<td align="left">minBufferSize</td>
-<td align="left">numeric</td>
-<td align="left">5000</td>
-<td align="left">NA</td>
-<td align="left">NA</td>
-<td align="left">Minimum number of cells in buffer and nonbuffer. This
-is imposed after the multiplier on the <code>bufferToArea</code> fn</td>
-</tr>
-<tr class="odd">
-<td align="left">missingLCCgroup</td>
-<td align="left">character</td>
-<td align="left">nonFores….</td>
-<td align="left">NA</td>
-<td align="left">NA</td>
-<td align="left">if a pixel is forested but is absent from
-<code>cohortData</code>, it will be grouped in this class. Must be one
-of the names in <code>sim$nonForestedLCCGroups</code></td>
-</tr>
-<tr class="even">
-<td align="left">nonflammableLCC</td>
-<td align="left">numeric</td>
-<td align="left">13, 16, ….</td>
-<td align="left">NA</td>
-<td align="left">NA</td>
-<td align="left">non-flammable LCC in <code>sim$rstLCC</code>.</td>
-</tr>
-<tr class="odd">
-<td align="left">nonForestCanBeYoungAge</td>
+<td align="left">estimateFuelClasses</td>
 <td align="left">logical</td>
 <td align="left">TRUE</td>
 <td align="left">NA</td>
 <td align="left">NA</td>
-<td align="left">if TRUE, burned non-forest will be treated as
-<code>youngAge</code></td>
-</tr>
-<tr class="even">
-<td align="left">sppEquivCol</td>
-<td align="left">character</td>
-<td align="left">LandR</td>
-<td align="left">NA</td>
-<td align="left">NA</td>
-<td align="left">column name in <code>sppEquiv</code> object that
-defines unique species in <code>cohortData</code></td>
-</tr>
-<tr class="odd">
-<td align="left">spreadFuelClassCol</td>
-<td align="left">character</td>
-<td align="left">FuelClass</td>
-<td align="left">NA</td>
-<td align="left">NA</td>
-<td align="left">if using fuel classes for spread, the column in
-<code>sppEquiv</code> that defines unique fuel classes</td>
-</tr>
-<tr class="even">
-<td align="left">useCentroids</td>
-<td align="left">logical</td>
-<td align="left">TRUE</td>
-<td align="left">NA</td>
-<td align="left">NA</td>
-<td align="left">Should fire ignitions start at the
-<code>sim$firePolygons</code> centroids or at the ignition points in
-<code>sim$firePoints</code>?</td>
+<td align="left">estimate fuel classes from combination of data and
+P(sim)<span class="math inline">\(fuelClassCol?                                                                                                                                                                                                                                                                            |
+|fireYears                  |integer      |2002, 20.... |NA  |NA  |A
+numeric vector indicating which years should be extracted from the fire
+databases to use for fitting. Should not include years prior to 2002, to
+ensure correct intialization from
+data.                                                                                                                                                         |
+|forestedLCC                |numeric      |81, 210,....
+|NA  |NA  |Forested land cover classes - these differ from non-forest
+because the biomass and composition of fuels are taken into account by
+fireSense, while non-forest classes are treated
+categorically                                                                                                                                                    |
+|igAggFactor                |numeric      |40           |1   |NA  |aggregation
+factor for rasters during ignition
+prep.                                                                                                                                                                                                                                                                                               |
+|fuelClassCol               |character    |FuelClass    |NA  |NA  |the
+column in `sppEquiv` that defines unique fuel classes. A column named
+`FuelClass` exists in the `LandR::sppEquivalencies_CA` and will be used
+by default. To change the `FuelClass` classifications, add a column to
+that table, or to
+`sim\)</span>sppEquiv<code>and then modify this</code>fuelClassCol<code>parameter                                            | |minBufferSize              |numeric      |5000         |NA  |NA  |Minimum number of cells in buffer and nonbuffer. This is imposed after the multiplier on the</code>bufferToArea<code>fn                                                                                                                                                                                                                                     | |nonflammableLCC            |numeric      |20, 31, .... |NA  |NA  |non-flammable LCC in rstLCC layers - defaulting to water, snow/ice, rock, barren land.                                                                                                                                                                                                                                                             | |nonForestCanBeYoungAge     |logical      |TRUE         |NA  |NA  |if TRUE, burned non-forest will be treated as</code>youngAge<code>. Recommended to be TRUE as burned forest is often classified as non-forest                                                                                                                                                                                                                | |sppEquivCol                |character    |LandR        |NA  |NA  |column name in</code>sppEquiv<code>object that defines unique species in</code>cohortData<code>| |targetFuelClasses          |numeric      |5            |1   |7   |the target number of unique fuel classes when using semi-automated approach                                                                                                                                                                                                                                                                        | |useCentroids               |logical      |TRUE         |NA  |NA  |Should fire ignitions start at the</code>sim<span class="math inline">\(firePolygons` centroids or at the ignition points
+in
+`sim\)</span>firePoints<code>?                                                                                                                                                                                                                                     | |useRasterizedFireForSpread |logical      |FALSE        |NA  |NA  |Should rasterized fire be used in place of a vectorized fire dataset? This method attributes burned pixels to specific fires, only examines the latest fire in a pixel, and may be subject to temporal error. is therefore more appropriate in areas with low rates of fire, or where the NFDB dataset may be incomplete (e.g., northern Ontario). | |whichModulesToPrepare      |character    |fireSens.... |NA  |NA  |Which fireSense fit modules to prep? defaults to all 3                                                                                                                                                                                                                                                                                             | |.plotInitialTime           |numeric      |NA           |NA  |NA  |Describes the simulation time at which the first plot event should occur.                                                                                                                                                                                                                                                                          | |.plotInterval              |numeric      |NA           |NA  |NA  |Describes the simulation time interval between plot events.                                                                                                                                                                                                                                                                                        | |.saveInitialTime           |numeric      |NA           |NA  |NA  |Describes the simulation time at which the first save event should occur.                                                                                                                                                                                                                                                                          | |.saveInterval              |numeric      |NA           |NA  |NA  |This describes the simulation time interval between save events.                                                                                                                                                                                                                                                                                   | |.studyAreaName             |character    |             |NA  |NA  |</code>studyArea`
+name that will be appended to file-backed rasters</td>
 </tr>
 <tr class="odd">
-<td align="left">useRasterizedFireForSpread</td>
-<td align="left">logical</td>
-<td align="left">FALSE</td>
-<td align="left">NA</td>
-<td align="left">NA</td>
-<td align="left">Should rasterized fire be used in place of a vectorized
-fire dataset? This method attributes burned pixels to specific fires,
-only examines the latest fire in a pixel, and may be subject to temporal
-error. is therefore more appropriate in areas with low rates of fire, or
-where the NFDB dataset may be incomplete (e.g., northern Ontario).</td>
-</tr>
-<tr class="even">
-<td align="left">whichModulesToPrepare</td>
-<td align="left">character</td>
-<td align="left">fireSens….</td>
-<td align="left">NA</td>
-<td align="left">NA</td>
-<td align="left">Which fireSense fit modules to prep? defaults to all
-3</td>
-</tr>
-<tr class="odd">
-<td align="left">.plotInitialTime</td>
-<td align="left">numeric</td>
-<td align="left">NA</td>
-<td align="left">NA</td>
-<td align="left">NA</td>
-<td align="left">Describes the simulation time at which the first plot
-event should occur.</td>
-</tr>
-<tr class="even">
-<td align="left">.plotInterval</td>
-<td align="left">numeric</td>
-<td align="left">NA</td>
-<td align="left">NA</td>
-<td align="left">NA</td>
-<td align="left">Describes the simulation time interval between plot
-events.</td>
-</tr>
-<tr class="odd">
-<td align="left">.saveInitialTime</td>
-<td align="left">numeric</td>
-<td align="left">NA</td>
-<td align="left">NA</td>
-<td align="left">NA</td>
-<td align="left">Describes the simulation time at which the first save
-event should occur.</td>
-</tr>
-<tr class="even">
-<td align="left">.saveInterval</td>
-<td align="left">numeric</td>
-<td align="left">NA</td>
-<td align="left">NA</td>
-<td align="left">NA</td>
-<td align="left">This describes the simulation time interval between
-save events.</td>
-</tr>
-<tr class="odd">
-<td align="left">.studyAreaName</td>
-<td align="left">character</td>
-<td align="left"></td>
-<td align="left">NA</td>
-<td align="left">NA</td>
-<td align="left"><code>studyArea</code> name that will be appended to
-file-backed rasters</td>
-</tr>
-<tr class="even">
 <td align="left">.useCache</td>
 <td align="left">logical</td>
 <td align="left">FALSE</td>
@@ -620,10 +485,10 @@ the module. If <code>sourceURL</code> is specified,
 sufficient.</p>
 <table>
 <colgroup>
-<col width="9%" />
 <col width="4%" />
-<col width="55%" />
-<col width="30%" />
+<col width="2%" />
+<col width="48%" />
+<col width="43%" />
 </colgroup>
 <thead>
 <tr class="header">
@@ -635,27 +500,36 @@ sufficient.</p>
 </thead>
 <tbody>
 <tr class="odd">
+<td align="left">climateVariablesForFire</td>
+<td align="left">list</td>
+<td align="left">A list detailing which climate variables in
+<code>sim$historicalClimateRasters</code> to use for which fire
+processes (ignition and spread). If the list is length one, both
+processes will use the same variables. The default is to use ‘MDC’.</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
 <td align="left">cohortData2001</td>
 <td align="left">data.table</td>
 <td align="left">Table that defines the cohorts by pixelGroup in
 2001</td>
 <td align="left">NA</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">cohortData2011</td>
 <td align="left">data.table</td>
 <td align="left">Table that defines the cohorts by pixelGroup in
 2011</td>
 <td align="left">NA</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">spreadFirePoints</td>
 <td align="left">list</td>
 <td align="left">named list of spatial points for each fire year with
 each point denoting an ignition location.</td>
 <td align="left">NA</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">firePolys</td>
 <td align="left">list</td>
 <td align="left">List of sf polygon objects representing annual fire
@@ -663,26 +537,19 @@ polygons.List must be named with followign convention:
 <code>year&lt;numeric year&gt;</code></td>
 <td align="left">NA</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">firePolysForAge</td>
 <td align="left">list</td>
 <td align="left">list of fire polygons used to classify
 <code>timeSinceDisturbance</code> in nonforest LCC</td>
 <td align="left">NA</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">historicalFireRaster</td>
 <td align="left">SpatRaster</td>
 <td align="left">a raster with values representing fire year
 1985-2020</td>
 <td align="left"><a href="https://opendata.nfis.org/downloads/forest_change/CA_Forest_Fire_1985-2020.zip" class="uri">https://opendata.nfis.org/downloads/forest_change/CA_Forest_Fire_1985-2020.zip</a></td>
-</tr>
-<tr class="odd">
-<td align="left">flammableRTM</td>
-<td align="left">SpatRaster</td>
-<td align="left">RTM without ice/rocks/urban/water. Flammable map with 0
-and 1.</td>
-<td align="left">NA</td>
 </tr>
 <tr class="even">
 <td align="left">historicalClimateRasters</td>
@@ -694,44 +561,63 @@ as <code>year&lt;numeric year&gt;</code></td>
 </tr>
 <tr class="odd">
 <td align="left">ignitionFirePoints</td>
-<td align="left">list</td>
+<td align="left">sf</td>
 <td align="left">list of sf polygon objects representing annual ignition
 locations. This includes all fires regardless of size</td>
 <td align="left">NA</td>
 </tr>
 <tr class="even">
-<td align="left">nonForestedLCCGroups</td>
-<td align="left">list</td>
-<td align="left">a named list of non-forested landcover groups
-e.g. list(‘wetland’ = c(19, 23, 32)) These will become covariates in
-<code>fireSense_IgnitionFit</code></td>
+<td align="left">missingLCCgroup</td>
+<td align="left">character</td>
 <td align="left">NA</td>
+<td align="left">if a pixel is forested but is absent from
+<code>cohortData</code>, it will be grouped in this class. It can be
+estimated if <code>P(sim)$estimateFuelClasses</code> is TRUE. If
+supplied, it must be one of the names in
+<code>sim$nonForestedLCCGroups</code></td>
 </tr>
 <tr class="odd">
+<td align="left">nonForestedLCCGroups</td>
+<td align="left">list</td>
+<td align="left">a named list of non-forested landcover groups,
+e.g. list(‘wetland’ = c(19, 23, 32)) These will become fuel covariates,
+and the groups will be estimated if
+<code>P(sim)$estimateFuelClasses</code> is TRUE</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
 <td align="left">pixelGroupMap2001</td>
 <td align="left">SpatRaster</td>
 <td align="left">defines the <code>pixelGroups</code> for cohortData
 table in 2001</td>
 <td align="left">NA</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">pixelGroupMap2011</td>
 <td align="left">SpatRaster</td>
 <td align="left">defines the <code>pixelGroups</code> for cohortData
 table in 2011</td>
 <td align="left">NA</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">rasterToMatch</td>
 <td align="left">SpatRaster</td>
 <td align="left">template raster for study area. Assumes some buffering
 of core area to limit edge effect of fire.</td>
 <td align="left">NA</td>
 </tr>
-<tr class="even">
-<td align="left">rstLCC</td>
+<tr class="odd">
+<td align="left">rstLCC2001</td>
 <td align="left">SpatRaster</td>
-<td align="left">Raster of land cover. Defaults to LCC05.</td>
+<td align="left">Raster of land cover - will use Biomass_borealDataPrep
+to generate if missing.</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">rstLCC2011</td>
+<td align="left">SpatRaster</td>
+<td align="left">Raster of land cover - will use Biomass_borealDataPrep
+to generate if missing.</td>
 <td align="left">NA</td>
 </tr>
 <tr class="odd">
@@ -757,8 +643,17 @@ of core area to limit edge effect of fire.</td>
 <tr class="even">
 <td align="left">studyArea</td>
 <td align="left">sf</td>
-<td align="left">studyArea that determines spatial boundaries of all
-data</td>
+<td align="left">study area that determines spatial boundaries of all
+data. Should be buffered to accomodate edge effects</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">studyAreaReporting</td>
+<td align="left">sf</td>
+<td align="left">(optional) study area used for reporting purposes,
+specifically whether fires inside the studyAreaReporting polygon are
+being removed for also falling partially outside the studyArea polygon,
+indicating the buffered studyArea shoudl be expanded.</td>
 <td align="left">NA</td>
 </tr>
 </tbody>
@@ -788,52 +683,64 @@ data</td>
 and buffer status</td>
 </tr>
 <tr class="even">
-<td align="left">firePolys</td>
+<td align="left">fuelClassTable</td>
+<td align="left">data.table</td>
+<td align="left">table with assigned fuel class of each tree species,
+after running assessFuelClasses</td>
+</tr>
+<tr class="odd">
+<td align="left">spreadFirePolys</td>
 <td align="left">list</td>
 <td align="left">list of sf polygon objects representing annual
 fires</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">fireSense_annualSpreadFitCovariates</td>
 <td align="left">list</td>
 <td align="left">list of tables with climate covariates,
 <code>youngAge</code>, burn status, <code>polyID</code>, and
 <code>pixelID</code></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">fireSense_escapeCovariates</td>
 <td align="left">data.table</td>
 <td align="left">ignition covariates with added column of escapes</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">fireSense_escapeFormula</td>
 <td align="left">character</td>
 <td align="left">formula for escape, using fuel classes and landcover,
 as character</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">fireSense_ignitionCovariates</td>
 <td align="left">data.table</td>
 <td align="left">table of aggregated ignition covariates with annual
 ignitions</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">fireSense_ignitionFormula</td>
 <td align="left">character</td>
 <td align="left">formula for ignition, using climate and vegetation
 covariates, as character</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">fireSense_nonAnnualSpreadFitCovariates</td>
 <td align="left">list</td>
 <td align="left">list of two tables with vegetation covariates, burn
 status, polyID, and <code>pixelID</code></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">fireSense_spreadFormula</td>
 <td align="left">character</td>
 <td align="left">formula for spread, using climate and vegetation
 covariates, as character</td>
+</tr>
+<tr class="odd">
+<td align="left">ignitionFirePoints</td>
+<td align="left">sf</td>
+<td align="left">Same as object that is an input, but possibly changed
+CRS</td>
 </tr>
 <tr class="even">
 <td align="left">ignitionFitRTM</td>
@@ -846,22 +753,50 @@ non-NA cells as attribute
 (<code>attributes(ignitionFitRTM)$nonNAs</code>).</td>
 </tr>
 <tr class="odd">
-<td align="left">landcoverDT</td>
+<td align="left">landcoverDT2001</td>
 <td align="left">data.table</td>
 <td align="left">data.table with <code>pixelID</code> and relevant
-landcover classes that is used by predict functions.</td>
+landcover classes for flammable pixels in 2001</td>
 </tr>
 <tr class="even">
+<td align="left">landcoverDT2011</td>
+<td align="left">data.table</td>
+<td align="left">data.table with <code>pixelID</code> and relevant
+landcover classes for flammable pixels in 2011</td>
+</tr>
+<tr class="odd">
+<td align="left">missingLCCgroup</td>
+<td align="left">character</td>
+<td align="left">if estimating fuel classes, the nonforest class to
+assign forested pixels absent from <code>sim$cohortData</code></td>
+</tr>
+<tr class="even">
+<td align="left">nonForestedLCCgroups</td>
+<td align="left">list</td>
+<td align="left">a named list of non-forested landcover groups forming
+distinct fuel classes e.g. list(‘wetland’ = c(19, 23, 32))</td>
+</tr>
+<tr class="odd">
 <td align="left">nonForest_timeSinceDisturbance2001</td>
 <td align="left">SpatRaster</td>
 <td align="left">time since burn for non-forested pixels in 2001</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">nonForest_timeSinceDisturbance2011</td>
 <td align="left">SpatRaster</td>
 <td align="left">time since burn for non-forested pixels in 2011</td>
 </tr>
+<tr class="odd">
+<td align="left">flammableRTM2001</td>
+<td align="left">SpatRaster</td>
+<td align="left">binary raster of flammable landcover for 2001</td>
+</tr>
 <tr class="even">
+<td align="left">flammableRTM2011</td>
+<td align="left">SpatRaster</td>
+<td align="left">binary raster of flammable landcover for 2011</td>
+</tr>
+<tr class="odd">
 <td align="left">spreadFirePoints</td>
 <td align="left">list</td>
 <td align="left">Named list of <code>sf</code> polygon objects
