@@ -112,7 +112,8 @@ defineModule(sim, list(
                        "list named after the variable and raster layers named as `year<numeric year>`")),
     expectsInput("ignitionFirePoints", "sf", sourceURL = NA,
                  paste("list of sf polygon objects representing annual ignition locations.",
-                       "This includes all fires regardless of size")),
+                       "This includes all fires regardless of size. It should have the same CRS",
+                       "as `sim$rasterToMatch`")),
     expectsInput("missingLCCgroup", "character", NA,
                  paste("if a pixel is forested but is absent from `cohortData`, it will be grouped in this class.",
                        "It can be estimated if `P(sim)$estimateFuelClasses` is TRUE.",
@@ -165,8 +166,6 @@ defineModule(sim, list(
                   "list of two tables with vegetation covariates, burn status, polyID, and `pixelID`"),
     createsOutput("fireSense_spreadFormula", "character",
                   "formula for spread, using climate and vegetation covariates, as character"),
-    createsOutput("ignitionFirePoints", "sf",
-                 paste("Same as object that is an input, but possibly changed CRS")),
     createsOutput("ignitionFitRTM", "SpatRaster",
                   paste("A (template) raster with information with regards to the spatial",
                         "resolution and geographical extent of `fireSense_ignitionCovariates`.",
@@ -916,7 +915,7 @@ prepare_IgnitionFit <- function(sim) {
     Cache(
       .functionName = "stackAndExtract",
       userTags = names(ignitionClimate)
-    ) ## TODO: cache behavior is too permissive
+    )
 
   fireSense_ignitionCovariates <- rbindlist(fireSense_ignitionCovariates)
 
@@ -1282,6 +1281,7 @@ runBorealDP_forCohortData <- function(sim) {
       userTags = c("ignitionFirePoints", P(sim)$.studyAreaName),
       plot = !is.na(P(sim)$.plotInitialTime)
     ) ## default redownload means it will update annually - I think this is fine?
+    ignitionFirePoints <- postProcess(ignitionFirePoints, projectTo = sim$rasterToMatch)
     sim$ignitionFirePoints <- ignitionFirePoints[ignitionFirePoints$CAUSE %in% c("L", "N"),]
     if (nrow(sim$ignitionFirePoints) == 0) {
       stop("no ignitions present - review getFirePoints-NFDB_V2")
