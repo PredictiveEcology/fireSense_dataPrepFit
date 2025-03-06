@@ -48,7 +48,7 @@ Prepare data required by `fireSense_IginitionFit`, `fireSense_EscapeFit`, and `f
 
 ### Module summary
 
-This module uses historical fire, vegetation, and climate raster data to generate data used to fit the three processes captured by fireSense: fire ignition, fire escape (the probability that an ignition results in a fire greater than the cell resolution), and fire spread. The landscape data is collected in two snapshots: 2001 and 2011, and the vegetation composition and biomass in these years is assumed to have influenced fires from 2002-2011 and 2012-2021, respectively. Unlike the vegetation data, the climate data is assumed to be seasonal or annual, and is matched to the year each fire occurred. The same climate variable(s) must be used to model fire ignition and escape, but can vary for spread.
+This module uses historical fire, vegetation, and climate raster data to generate data used to fit the three processes captured by fireSense: fire ignition, fire escape (the probability that an ignition results in a fire greater than the cell resolution), and fire spread. The landscape data is collected in two snapshots: 2001 and 2011, and the vegetation composition and biomass in these years is assumed to have influenced fires during two periods, from 2002-2011 and 2012-2021, respectively. Unlike the vegetation data, the climate data is assumed to be seasonal or annual, and is matched to the year each fire occurred. The same climate variable(s) must be used to model fire ignition and escape, but can vary for spread.
 
 ##### Fuel classes:
 
@@ -85,6 +85,8 @@ A related consideration is whether treed wetland (a land cover class in the NTEM
 
 If `fireSense_dataPrepFit` is to estimate fuel classes, it will also do so for a special class termed `missingLCC`. This class encompasses pixels that have a forested land cover class but are absent in the objects `cohortData2011` and `cohortData2001`. The most frequent reason for the exclusion of forest pixels in LandR is that there was no tree species data for the pixel. Therefore, with no available species biomass, these pixels are treated as non-forest land cover, and must be assigned to one of the groups in `nonForestedLCCGroups`.
 
+Finally, for fuel classes that are modelled with biomass instead of presence/absence, the log of biomass is used, after converting all instances of zero biomass for a fuelclass to one log below the minimum observed level (by default, 100 g/m2).
+
 ### Module inputs and parameters
 
 Describe input data required by the module and how to obtain it (e.g., directly from online sources or supplied by other modules) If `sourceURL` is specified, `downloadData("fireSense_dataPrepFit", "C:/Users/ieddy/AppData/Local/Temp/Rtmp0mKmrT")` may be sufficient. Table \@ref(tab:moduleInputs-fireSense-dataPrepFit) shows the full list of module inputs.
@@ -112,21 +114,22 @@ During this event, objects are created and prepared if they are used by all thre
 
 ##### prepIgnitionFitData
 
-This
+This event prepares ignition data. The pixels of the individual landscape snapshots of 2002-2011 and 2012-2020 are converted to voxels by aggregating the fuel class rasters according to the parameter `P(sim)$igAggFactor` and calculating the mean cover or biomass within. Ignitions are summed within voxels for every year, such that the data will ultimately contain one row for each voxel and year, with the number of ignitions, the mean annual climate within that voxel, and the mean amount of each fuel class (whether biomass or cover) as additional columns. Because the probability estimates of the fitted model can only be interpreted at the resolution of the fitted data, a template form of the aggregated raster is output as `sim$ignitionFitRTM`, and contains the attribute `nonNAs`, the number of pixels in the aggregated raster with non-NA data.  
+
 
 ##### prepEscapeFitData
 
-This rather simple event adds an "escapes" column to the data table prepared by `prepIgnitionFitData`, where an escape is an ignition that resulted in a fire greater than the resolution of the `flammableMap` raster (which is *not* the area of the voxel). It also builds the formula object if it hasn't been supplied, and ensures that escapes do not outnumber ignitions in any voxel.
+This rather simple event adds an "escapes" column to the data table prepared by `prepIgnitionFitData`, where an escape is an ignition that resulted in a fire greater than the resolution of the `flammableMap` raster (which is *not* the area of the voxel). It also builds the formula object if it hasn't been supplied, and performs some minor data quality control (e.g., ensuring that fire escapes do not outnumber ignitions in any voxel).
 
 ##### prepSpreadFitData
 
-### Plotting
+The data used to fit the fire spread model differs from that of ignition and escape in several ways. First, the Fire Spread data includes fires with anthropogenic origins, whereas by default the Ignition dataset only includes those of natural origin. Second, it utilizes a spatial subset of the landscape by buffering the fire polygons and extracting the climate and landscape data within. This massively reduces the spread dataset by removing pixels that are of no interest to the model calibration, i.e. due to lack of observed fires. The size of the buffer is dependent upon the parameter `P(sim)$areaMultiplier`. 
 
-Write what is plotted.
+Second, each fire must contain a corresponding point of ignition that is located inside the fire polygon in a flammable pixel. This object is called `spreadFirePoints` to differentiate it from the similar object used by the Ignition process. The latter is different in that it contains fires of all sizes (i.e. smaller than the resolution of `sim$rasterToMatch`), does not have a corresponding polygon object, and is limited to fires of natural origin. If `spreadFirePoints` is not supplied, the default behaviour is to calculate it from the centroids of the Fire Spread data and select the nearest flammable pixel inside the fire polygon in the event the centroid does not satisfy both of these criteria.
 
-### Saving
+Lastly, the `youngAge` category is calculated for each year individually. For example, by default if in 2001 a pixel was estimated as 12 years removed from the last disturbance in 2001, if the same pixel fell inside a fire buffer from 2006, it would no longer be youngAge, as 12 + (2006-2001) would exceed the parameter P(sim)$youngeAgeThreshold. Similar adjustments are made for pixels that were initially non-youngAge, burned in an earlier year, and then re-appear in the buffer of later fires. By contrast, the Ignition Fire data does not annually resolve the `youngAge class. 
 
-Write what is saved.
+As in `prepareIgnitionFit` and `prepareEscapeFit`, the model formula object will be created if it hasn't been supplied by a user. Lastly, to reduce object size to a bare minimum for the sake of the lengthy optimization procedure employed in spreadFit, the data is organized into the annually-varying and non-annual components. The former include the climate variables and youngAge class, and are organized into a list of `data.tables`, named by year, containing the aforementioned covariates, whether the pixel was burned or in the buffer, the fire ID to which it belongs, and the year of the fire. The non-annual components are sorted into a list of two data.tables, one for each fire period, the names of which include every year (e.g `sim$nonAnnual_SpreadFitCovariates$Year2001_Year2002_Year2003...`).  
 
 ### Module outputs
 
@@ -140,8 +143,8 @@ knitr::kable(df_outputs, caption = "List of (ref:fireSense-dataPrepFit) outputs 
 
 ### Links to other modules
 
-Describe any anticipated linkages to other modules, such as modules that supply input data or do post-hoc analysis.
+This module links to `PredictiveEcology/fireSense_IgnitionFit`, `PredictiveEcology/fireSense_EscapeFit`, and `PredictiveEcology/fireSense_SpreadFit`.
 
 ### Getting help
 
--   provide a way for people to obtain help (e.g., module repository issues page)
+Contact the authors for help. 
