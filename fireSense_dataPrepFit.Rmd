@@ -40,7 +40,7 @@ download.file(url = "https://img.shields.io/badge/Made%20with-Markdown-1f425f.pn
 
 #### Authors:
 
-`r paste(as.character(SpaDES.core::moduleMetadata(module = "fireSense_dataPrepFit", path = '..')$authors), sep = ', ')` <!-- ideally separate authors with new lines, '\n' not working -->
+`r paste(as.character(SpaDES.core::moduleMetadata(module = "fireSense_dataPrepFit", path = 'modules')$authors), sep = ', ')` <!-- ideally separate authors with new lines, '\n' not working -->
 
 ## Module Overview
 
