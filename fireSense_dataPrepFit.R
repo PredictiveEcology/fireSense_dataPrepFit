@@ -38,6 +38,9 @@ defineModule(sim, list(
                     paste("A numeric vector indicating which years should be extracted",
                           "from the fire databases to use for fitting.",
                           "Should *not* include years prior to 2002, to ensure correct intialization from data.")),
+    defineParameter("flammabilityThreshold", "numeric", 0.1, 0, 1,
+                    paste("Minimum proportion of flammable old pixel needed to define a new pixel
+                          as flammable when upscaling the default flammable maps`.")),
     defineParameter("forestedLCC", "numeric", c(81, 210, 220, 230, 240), NA, NA,
                     paste("Forested land cover classes - these differ from non-forest because the biomass",
                           "and composition of fuels are taken into account by fireSense, while non-forest",
@@ -137,7 +140,7 @@ defineModule(sim, list(
                  "map of stand age in 2001 used to create `cohortData2001`"),
     expectsInput("standAgeMap2011", "SpatRaster", sourceURL = NA,
                  "map of stand age in 2011 used to create `cohortData2011`"),
-    expectsInput("studyArea", "sf", sourceURL = NA,
+    expectsInput("studyArea", "SpatVector", sourceURL = NA,
                  "study area that determines spatial boundaries of all data. Should be buffered to accomodate edge effects"),
     expectsInput("studyAreaReporting", "sf", sourceURL = NA,
                  desc = paste("(optional) study area used for reporting purposes, specifically whether fires inside",
@@ -1072,39 +1075,32 @@ runBorealDP_forCohortData <- function(sim) {
   cohDat <- "cohortData"
   pixGM <- "pixelGroupMap"
   saMap <- "standAgeMap"
-  rstLCC <- "rstLCC"
+  # rstLCC * see below
   neededYears <- c(2001, 2011)
-
-  if (!is.null(sim$cohortData)) {
-    alreadyDone <- P(sim, "dataYear", "Biomass_borealDataPrep")
-    cohDatObj <- paste0(cohDat, alreadyDone)
-    pixGrpMap <- paste0(pixGM, alreadyDone)
-    saObj <- paste0(saMap, alreadyDone)
-    rstLCCobj <- paste0(rstLCC, alreadyDone)
-
-    sim[[cohDatObj]] <- sim[[cohDat]]
-    sim[[pixGrpMap]] <- sim[[pixGM]]
-    sim[[saObj]] <- sim[[saMap]]
-    sim[[rstLCCobj]] <- sim[[rstLCC]]
-
-    messageColoured(colour = "yellow", "fireSense_dataPrepFit will use estimates of ",
-                    paste0("cohortData", alreadyDone, collapse = ", "), " from modules already run")
-
-    neededYears <- setdiff(neededYears, alreadyDone)
-  }
-
-  if (is.null(sim$studyAreaLarge)) {
-    sim$studyAreaLarge <- sim$studyArea
-  }
+  browser()
+  LCCfiles <- .suffix("rstLCC.tif", paste0(neededYears, "_", P(sim)$.studyAreaName, ))
+  #write both to disk as they will be 2 x 30m rasters
+  # pixels that would otherwise reproject to non-flammable cover, e.g. bare or water,
+  #may nonetheless retain sufficient fuel to be conducive to fire spread
+  #therefore, determine flammable landcover of all pixels where possible, then
+  #use a threshold to to assign non-flammable cover (e.g. if < 10% flammable cover)
+  LCCs <- Cache(Map,
+                neededYear = as.list(neededYears),
+                writeTo = as.list(LCCfiles),
+                f = makeFireSenseLCC,
+                destinationPath = dPath,
+                studyArea = sim$studyArea,
+                rasterToMatch = sim$rasterToMatch,
+                nonflammableLCC = P(sim)$nonflammableLCC,
+                flammabilityThreshold,
+                userTags = c("makeFireSenseLCC", "fireSense_dataPrepFit"))
+  #don't worry about writing to disk yet as these objects will be modified later
+  names(rstLCCs) <- paste0("rstLCC", neededYears)
 
   ecoFile <- ifelse(is.null(sim$ecoregionRst), "ecoregionLayer", "ecoregionRst")
   objsNeeded <- c(ecoFile,
                   "firePerimeters",
-                  ## TODO: firePerimeters is an optional object but it should be passed
-                  ## because the function call is written incorrectly (isn't unique to 2001 2011 sims)
-                  ## and I believe this is triggering some kind of bug somewhere
-                  "rasterToMatchLarge", "rasterToMatch",
-                  "studyAreaLarge", "studyArea",
+                  "rasterToMatch", "studyArea",
                   "species", "speciesTable", "sppEquiv")
   objsNeeded <- intersect(ls(sim), objsNeeded)
   objsNeeded <- mget(objsNeeded, envir = envir(sim))
@@ -1144,7 +1140,7 @@ runBorealDP_forCohortData <- function(sim) {
 
 .inputObjects <- function(sim) {
   if (!suppliedElsewhere("studyArea", sim)) {
-    stop("Please supply study area - this object is key")
+    sim$studyArea <- LandR::randomStudyArea()
   }
 
 
