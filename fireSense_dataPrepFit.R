@@ -1077,23 +1077,26 @@ runBorealDP_forCohortData <- function(sim) {
   saMap <- "standAgeMap"
   # rstLCC * see below
   neededYears <- c(2001, 2011)
-  browser()
-  LCCfiles <- .suffix("rstLCC.tif", paste0(neededYears, "_", P(sim)$.studyAreaName, ))
+
+  LCCfiles <- .suffix("rstLCC.tif", paste0(neededYears, "_", P(sim)$.studyAreaName))
   #write both to disk as they will be 2 x 30m rasters
   # pixels that would otherwise reproject to non-flammable cover, e.g. bare or water,
   #may nonetheless retain sufficient fuel to be conducive to fire spread
   #therefore, determine flammable landcover of all pixels where possible, then
   #use a threshold to to assign non-flammable cover (e.g. if < 10% flammable cover)
-  LCCs <- Cache(Map,
-                neededYear = as.list(neededYears),
-                writeTo = as.list(LCCfiles),
-                f = makeFireSenseLCC,
-                destinationPath = dPath,
-                studyArea = sim$studyArea,
-                rasterToMatch = sim$rasterToMatch,
-                nonflammableLCC = P(sim)$nonflammableLCC,
-                flammabilityThreshold,
-                userTags = c("makeFireSenseLCC", "fireSense_dataPrepFit"))
+  rstLCCs <- Cache(Map,
+                   neededYear = as.list(neededYears),
+                   writeTo = as.list(LCCfiles),
+                   f = makeFireSenseLCC,
+                   MoreArgs = list(
+                     destinationPath = inputPath(sim),
+                     studyArea = sim$studyArea,
+                     rasterToMatch = sim$rasterToMatch,
+                     nonflammableLCC = P(sim)$nonflammableLCC,
+                     flammabilityThreshold = P(sim)$flammabilityThreshold
+                   ),
+                   userTags = c("makeFireSenseLCC", "fireSense_dataPrepFit"))
+  browser()
   #don't worry about writing to disk yet as these objects will be modified later
   names(rstLCCs) <- paste0("rstLCC", neededYears)
 
@@ -1105,10 +1108,11 @@ runBorealDP_forCohortData <- function(sim) {
   objsNeeded <- intersect(ls(sim), objsNeeded)
   objsNeeded <- mget(objsNeeded, envir = envir(sim))
 
-  cds <- lapply(neededYears, function(ny, objs = objsNeeded) {
+  cds <- lapply(neededYears, function(ny, objs = objsNeeded, rstLCCs = rstLCCs) {
     messageColoured(colour = "yellow", "Running Biomass_borealDataPrep for year ", ny)
     messageColoured(colour = "yellow", "  inside fireSense_dataPrepFit to estimate cohortData", ny)
-
+    browser()
+    objs <- c(objs, "rstLCC" = rstLCCs[[paste0("rstLCC", ny)]])
     parms <- list()
 
     for (nm in neededModule) {
