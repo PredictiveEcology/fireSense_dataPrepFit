@@ -1096,7 +1096,7 @@ runBorealDP_forCohortData <- function(sim) {
                      flammabilityThreshold = P(sim)$flammabilityThreshold
                    ),
                    userTags = c("makeFireSenseLCC", "fireSense_dataPrepFit"))
-  browser()
+
   #don't worry about writing to disk yet as these objects will be modified later
   names(rstLCCs) <- paste0("rstLCC", neededYears)
 
@@ -1108,11 +1108,11 @@ runBorealDP_forCohortData <- function(sim) {
   objsNeeded <- intersect(ls(sim), objsNeeded)
   objsNeeded <- mget(objsNeeded, envir = envir(sim))
 
-  cds <- lapply(neededYears, function(ny, objs = objsNeeded, rstLCCs = rstLCCs) {
+  cds <- lapply(neededYears, function(ny, objs = objsNeeded, rstLCC = rstLCCs) {
     messageColoured(colour = "yellow", "Running Biomass_borealDataPrep for year ", ny)
     messageColoured(colour = "yellow", "  inside fireSense_dataPrepFit to estimate cohortData", ny)
-    browser()
-    objs <- c(objs, "rstLCC" = rstLCCs[[paste0("rstLCC", ny)]])
+    rstLCC <- rstLCC[[paste0("rstLCC", ny)]]
+    objs <- c(objs, "rstLCC" = rstLCC)
     parms <- list()
 
     for (nm in neededModule) {
@@ -1121,7 +1121,6 @@ runBorealDP_forCohortData <- function(sim) {
       parms[[nm]][["forestedLCCClasses"]] <- P(sim)$forestedLCC
     }
     parms$Biomass_borealDataPrep$exportModels <- "none"
-
     outNY <- Cache(do.call(SpaDES.core::simInitAndSpades, list(paths = pathsLocal,
                                                                params = parms,
                                                                times = list(start = ny, end = ny),
