@@ -12,9 +12,9 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = deparse(list("README.md", "fireSense_dataPrepFit.Rmd")),
-  loadOrder = list(after = c("Biomass_borealDataPrep", "Biomass_speciesParameters")),
-  reqdPkgs = list("data.table", "fastDummies", "reproducible", # studyAreaName
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9084)",
+  loadOrder = list(before = c("Biomass_borealDataPrep", "Biomass_speciesParameters", "Biomass_speciesData")),
+  reqdPkgs = list("data.table", "fastDummies", "reproducible",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9088)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@development (>= 1.1.5.9029)",
                   "PredictiveEcology/SpaDES.core@development (>= 2.0.2.9006)",
@@ -130,10 +130,14 @@ defineModule(sim, list(
                  "defines the `pixelGroups` for cohortData table in 2011"),
     expectsInput("rasterToMatch", "SpatRaster", sourceURL = NA,
                  "template raster for study area. Assumes some buffering of core area to limit edge effect of fire."),
+    expectsInput("rasterToMatchLarge", "SpatRaster", sourceURL = NA,
+                 "template raster for studyAreaLarge. Passed to Biomass_borealDataPrep."),
     expectsInput("rstLCC2001", "SpatRaster", sourceURL = NA,
-                 "Raster of land cover - will use Biomass_borealDataPrep to generate if missing."),
+                 paste0("Raster of 2001 land cover - updated so that pixels above `P(sim)$flammabilityThreshold",
+                        "have an assigned flammable landcover")),
     expectsInput("rstLCC2011", "SpatRaster", sourceURL = NA,
-                 "Raster of land cover - will use Biomass_borealDataPrep to generate if missing."),
+                 paste0("Raster of 2011 land cover - updated so that pixels above `P(sim)$flammabilityThreshold",
+                        "have an assigned flammable landcover")),
     expectsInput("sppEquiv", "data.table", sourceURL = NA,
                  "table of LandR species equivalencies"),
     expectsInput("standAgeMap2001", "SpatRaster", sourceURL = NA,
@@ -142,6 +146,8 @@ defineModule(sim, list(
                  "map of stand age in 2011 used to create `cohortData2011`"),
     expectsInput("studyArea", "SpatVector", sourceURL = NA,
                  "study area that determines spatial boundaries of all data. Should be buffered to accomodate edge effects"),
+    expectsInput("studyAreaLarge", "SpatVector", sourceURL = NA,
+                 "study area passed to Biomass_borealDataPrep for vegetation calibration"),
     expectsInput("studyAreaReporting", "sf", sourceURL = NA,
                  desc = paste("(optional) study area used for reporting purposes, specifically whether fires inside",
                               "the studyAreaReporting polygon are being removed for also falling partially outside",
@@ -169,7 +175,7 @@ defineModule(sim, list(
     createsOutput("fireSense_spreadFormula", "character",
                   "formula for spread, using climate and vegetation covariates, as character"),
     createsOutput("ignitionFirePoints", "sf",
-                 paste("Same as object that is an input, but possibly changed CRS")),
+                  paste("Same as object that is an input, but possibly changed CRS")),
     createsOutput("ignitionFitRTM", "SpatRaster",
                   paste("A (template) raster with information with regards to the spatial",
                         "resolution and geographical extent of `fireSense_ignitionCovariates`.",
@@ -391,7 +397,7 @@ Init <- function(sim) {
 
   ## cannot merge because before subsetting due to column differences over time
 
-  ## TODO: this object  be used to track annual youngAge of all pixels, forested or not
+  ## TODO: this object is used to track annual youngAge of all pixels, forested or not
   ## so "nonForest" is a poor choice of name. It should not have values for non-flammable pixels.
   sim$nonForest_timeSinceDisturbance2001 <- makeTSD(
     year = 2001,
@@ -542,7 +548,7 @@ prepare_SpreadFit <- function(sim) {
   #don't need climate data for years outside fire years
   spreadClimate <- lapply(spreadClimate, FUN = function(x){
     x <- terra::subset(x, subset = names(x) %in% paste0("year", P(sim)$fireYears))
-    })
+  })
 
   climateDT <- Cache(climateRasterToDataTable,
                      historicalClimateRasters = spreadClimate,
@@ -578,12 +584,12 @@ prepare_SpreadFit <- function(sim) {
   annualCovariates <- Cache(
     purrr::pmap,
     .l = list(
-        #years = list(c(2001:2010), c(2011:max(P(sim)$fireYears))),
-        years = list(pre2012int, post2012int),
-        annualCovariates = annualCovariates,
-        standAgeMap = list(sim$nonForest_timeSinceDisturbance2001,
-                           sim$nonForest_timeSinceDisturbance2011)
-      ),
+      #years = list(c(2001:2010), c(2011:max(P(sim)$fireYears))),
+      years = list(pre2012int, post2012int),
+      annualCovariates = annualCovariates,
+      standAgeMap = list(sim$nonForest_timeSinceDisturbance2001,
+                         sim$nonForest_timeSinceDisturbance2011)
+    ),
     .f = calcYoungAge,
     fireBufferedListDT = sim$fireBufferedListDT,
     cutoffForYoungAge = P(sim)$cutoffForYoungAge
@@ -1078,43 +1084,25 @@ runBorealDP_forCohortData <- function(sim) {
   # rstLCC * see below
   neededYears <- c(2001, 2011)
 
-  LCCfiles <- .suffix("rstLCC.tif", paste0(neededYears, "_", P(sim)$.studyAreaName))
-  #write both to disk as they will be 2 x 30m rasters
-  # pixels that would otherwise reproject to non-flammable cover, e.g. bare or water,
-  #may nonetheless retain sufficient fuel to be conducive to fire spread
-  #therefore, determine flammable landcover of all pixels where possible, then
-  #use a threshold to to assign non-flammable cover (e.g. if < 10% flammable cover)
-  rstLCCs <- Cache(Map,
-                   neededYear = as.list(neededYears),
-                   writeTo = as.list(LCCfiles),
-                   f = makeFireSenseLCC,
-                   MoreArgs = list(
-                     destinationPath = inputPath(sim),
-                     studyArea = sim$studyArea,
-                     rasterToMatch = sim$rasterToMatch,
-                     nonflammableLCC = P(sim)$nonflammableLCC,
-                     flammabilityThreshold = P(sim)$flammabilityThreshold
-                   ),
-                   userTags = c("makeFireSenseLCC", "fireSense_dataPrepFit"))
-
-  #don't worry about writing to disk yet as these objects will be modified later
-  names(rstLCCs) <- paste0("rstLCC", neededYears)
-
   ecoFile <- ifelse(is.null(sim$ecoregionRst), "ecoregionLayer", "ecoregionRst")
   objsNeeded <- c(ecoFile,
                   "firePerimeters",
                   "rasterToMatch", "studyArea",
+                  "rstLCC2011", "rstLCC2001",
+                  "studyAreaLarge", "rasterToMatchLarge", #needed by BBDP
                   "species", "speciesTable", "sppEquiv")
   objsNeeded <- intersect(ls(sim), objsNeeded)
   objsNeeded <- mget(objsNeeded, envir = envir(sim))
 
-  cds <- lapply(neededYears, function(ny, objs = objsNeeded, rstLCC = rstLCCs) {
+  cds <- lapply(neededYears, function(ny, objs = objsNeeded) {
     messageColoured(colour = "yellow", "Running Biomass_borealDataPrep for year ", ny)
     messageColoured(colour = "yellow", "  inside fireSense_dataPrepFit to estimate cohortData", ny)
-    rstLCC <- rstLCC[[paste0("rstLCC", ny)]]
+    rstLCC <- objs[[paste0("rstLCC", ny)]]
     objs <- c(objs, "rstLCC" = rstLCC)
-    parms <- list()
+    #now duplicated
+    objs[[paste0("rstLCC", ny)]] <- NULL
 
+    parms <- list()
     for (nm in neededModule) {
       parms[[nm]] <- P(sim, module = nm)
       parms[[nm]][["dataYear"]] <- ny
@@ -1130,12 +1118,10 @@ runBorealDP_forCohortData <- function(sim) {
     cohDatObj <- paste0(cohDat, ny)
     pixGrpMap <- paste0(pixGM, ny)
     saObj <- paste0(saMap, ny)
-    rstLCCobj <- paste0(rstLCC, ny)
     outNY[[cohDatObj]] <- outNY[[cohDat]]
     outNY[[pixGrpMap]] <- outNY[[pixGM]]
     outNY[[saObj]] <- outNY[[saMap]]
-    outNY[[rstLCCobj]] <- outNY[[rstLCC]]
-    mget(c(cohDatObj, pixGrpMap, saObj, rstLCCobj), envir = envir(outNY))
+    mget(c(cohDatObj, pixGrpMap, saObj), envir = envir(outNY))
   })
   lapply(cds, function(cd) list2env(cd, envir = envir(sim)))
   sim
@@ -1143,7 +1129,12 @@ runBorealDP_forCohortData <- function(sim) {
 
 .inputObjects <- function(sim) {
   if (!suppliedElsewhere("studyArea", sim)) {
-    sim$studyArea <- LandR::randomStudyArea()
+    sim$studyArea <- LandR::randomStudyArea(size = 10000 * 6.25 * 20000)
+  }
+
+
+  if (!suppliedElsewhere("studyAreaLarge", sim)) {
+    sim$studyAreaLarge <- sim$studyArea
   }
 
 
@@ -1174,12 +1165,58 @@ runBorealDP_forCohortData <- function(sim) {
                                         "ignition" = "MDC")
   }
 
+  if (!suppliedElsewhere("rstLCC2001", sim)) {
+
+    #use a threshold to to assign non-flammable cover (e.g. if < 10% flammable cover)
+    sim$rstLCC2001 <- Cache(makeFireSenseLCC,
+                            neededYear = 2001,
+                            writeTo = .suffix("rstLCC.tif",
+                                              paste0(2001, "_", P(sim)$.studyAreaName)),
+                            destinationPath = inputPath(sim),
+                            studyArea = sim$studyAreaLarge,
+                            rasterToMatch = sim$rasterToMatchLarge,
+                            nonflammableLCC = P(sim)$nonflammableLCC,
+                            flammabilityThreshold = P(sim)$flammabilityThreshold,
+                            userTags = c("makeFireSenseLCC", "fireSense_dataPrepFit", 2001))
+  }
+
+  if (!suppliedElsewhere("rstLCC2011", sim)) {
+
+    #use a threshold to to assign non-flammable cover (e.g. if < 10% flammable cover)
+    sim$rstLCC2011 <- Cache(makeFireSenseLCC,
+                            neededYear = 2011,
+                            writeTo = .suffix("rstLCC.tif",
+                                              paste0(2011, "_", P(sim)$.studyAreaName)),
+                            destinationPath = inputPath(sim),
+                            studyArea = sim$studyAreaLarge,
+                            rasterToMatch = sim$rasterToMatchLarge,
+                            nonflammableLCC = P(sim)$nonflammableLCC,
+                            flammabilityThreshold = P(sim)$flammabilityThreshold,
+                            userTags = c("makeFireSenseLCC", "fireSense_dataPrepFit", 2011))
+  }
+
+  if (!suppliedElsewhere("standAgeMap2001", sim)) {
+    sim$standAgeMap2001 <- Cache(prepInputsStandAgeMap,
+                                 rasterToMatch = sim$rasterToMatchLarge,
+                                 studyArea = sim$studyAreaLarge,
+                                 destinationPath = dPath,
+                                 startTime = 2001,
+                                 userTags = c(cacheTags, "prepInputsStandAgeMap2001"))
+  }
+
+  if (!suppliedElsewhere("standAgeMap2011", sim)) {
+    sim$standAgeMap2011 <- Cache(prepInputsStandAgeMap,
+                                 rasterToMatch = sim$rasterToMatchLarge,
+                                 studyArea = sim$studyAreaLarge,
+                                 destinationPath = dPath,
+                                 startTime = 2011,
+                                 userTags = c(cacheTags, "prepInputsStandAgeMap2011"))
+  }
+
   if (!all(suppliedElsewhere("cohortData2001", sim),
            suppliedElsewhere("cohortData2011", sim),
            suppliedElsewhere("pixelGroupMap2011", sim),
-           suppliedElsewhere("pixelGroupMap2001", sim),
-           suppliedElsewhere("rstLCC2001", sim),
-           suppliedElsewhere("rstLCC2011", sim))) {
+           suppliedElsewhere("pixelGroupMap2001", sim))) {
     ## This runs simInitAndSpades if needed
     sim <- runBorealDP_forCohortData(sim)
   }
@@ -1247,26 +1284,6 @@ runBorealDP_forCohortData <- function(sim) {
       ## TODO: need to implement a better approach that matches each year's IDS
       ## these are mostly edge cases if a user passes only one of spreadFirePoints/firePolys
     }
-  }
-
-  if (!suppliedElsewhere("standAgeMap2001", sim)) {
-    sim$standAgeMap2001 <- Cache(prepInputsStandAgeMap,
-                                 rasterToMatch = sim$rasterToMatch,
-                                 studyArea = sim$studyArea,
-                                 destinationPath = dPath,
-                                 filename2 = "standAgeMap2001.tif",
-                                 startTime = 2001,
-                                 userTags = c(cacheTags, "prepInputsStandAgeMap2001"))
-  }
-
-  if (!suppliedElsewhere("standAgeMap2011", sim)) {
-    sim$standAgeMap2011 <- Cache(prepInputsStandAgeMap,
-                                 rasterToMatch = sim$rasterToMatch,
-                                 studyArea = sim$studyArea,
-                                 destinationPath = dPath,
-                                 filename2 = 'standAgeMap2011.tif',
-                                 startTime = 2011,
-                                 userTags = c(cacheTags, "prepInputsStandAgeMap2011"))
   }
 
   if (!suppliedElsewhere("ignitionFirePoints", sim)) {
