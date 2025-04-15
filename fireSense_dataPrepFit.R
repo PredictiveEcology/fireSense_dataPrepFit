@@ -179,7 +179,7 @@ defineModule(sim, list(
                   "data.table with `pixelID` and relevant landcover classes for flammable pixels in 2011"),
     createsOutput("missingLCCgroup", "character",
                   "if estimating fuel classes, the nonforest class to assign forested pixels absent from `sim$cohortData`"),
-    createsOutput("nonForestedLCCgroups", "list",
+    createsOutput("nonForestedLCCGroups", "list",
                   paste("a named list of non-forested landcover groups forming distinct fuel classes",
                         "e.g. list('wetland' = c(19, 23, 32))")),
     createsOutput("nonForest_timeSinceDisturbance2001", "SpatRaster",
