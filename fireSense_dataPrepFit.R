@@ -638,10 +638,10 @@ prepare_SpreadFitFire_Raster <- function(sim) {
   ## the inner looping function is very similar - one difference is that non-flammable
   ## pixels do not count toward the buffer size, unlike the polygonal version.
   sim$fireBufferedListDT <- Cache(rasterFireBufferDT, years =  P(sim)$fireYears,
-                                  fireRaster = historicalFireRaster, 
+                                  fireRaster = historicalFireRaster,
                                   flammableRTM = sim$flammableRTM,
                                   bufferForFireRaster = P(sim)$bufferForFireRaster, verb = 1,
-                                  areaMultiplier = eval(P(sim)$areaMultiplier), 
+                                  areaMultiplier = eval(P(sim)$areaMultiplier),
                                   minSize = P(sim)$minBufferSize,
                                   cores = nCores, userTags = c(currentModule(sim), "rasterFireBufferDT"))
   ## TODO: test that this is the correct method for missing years
@@ -752,7 +752,7 @@ prepare_SpreadFitFire_Vector <- function(sim) {
     firePolys = sim$spreadFirePolys[names(sim$spreadFirePolys) %in% pre2012], ## protects from missing years
     flammableRTM = sim$flammableRTM2001,
     spreadFirePoints = sim$spreadFirePoints[names(sim$spreadFirePoints) %in% pre2012], ## protects from missing years
-    areaMultiplier = eval(P(sim)$areaMultiplier), 
+    areaMultiplier = eval(P(sim)$areaMultiplier),
     minSize = P(sim)$minBufferSize,
     pointsIDcolumn = "FIRE_ID",
     cores = nCores
