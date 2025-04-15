@@ -2996,7 +2996,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">fireSense_dataPrepFit Manual</h1>
 <h3 class="subtitle">v.1.1.1</h3>
-<h4 class="date">Last updated: 2025-04-08</h4>
+<h4 class="date">Last updated: 2025-04-15</h4>
 
 </div>
 
@@ -3365,13 +3365,13 @@ NA
 </tr>
 <tr>
 <td style="text-align:left;">
-rstLCC2001
+rasterToMatchLarge
 </td>
 <td style="text-align:left;">
 SpatRaster
 </td>
 <td style="text-align:left;">
-Raster of land cover - will use Biomass_borealDataPrep to generate if missing.
+template raster for studyAreaLarge. Passed to Biomass_borealDataPrep.
 </td>
 <td style="text-align:left;">
 NA
@@ -3379,13 +3379,13 @@ NA
 </tr>
 <tr>
 <td style="text-align:left;">
-rstLCC2011
+rstLCC2001
 </td>
 <td style="text-align:left;">
 SpatRaster
 </td>
 <td style="text-align:left;">
-Raster of land cover - will use Biomass_borealDataPrep to generate if missing.
+Raster of 2001 land cover - updated so that pixels above <code>P(sim)$flammabilityThresholdhave an assigned flammable landcover &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; rstLCC2011 &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; SpatRaster &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; Raster of 2011 land cover - updated so that pixels above</code>P(sim)$flammabilityThresholdhave an assigned flammable landcover
 </td>
 <td style="text-align:left;">
 NA
@@ -3438,10 +3438,24 @@ NA
 studyArea
 </td>
 <td style="text-align:left;">
-sf
+SpatVector
 </td>
 <td style="text-align:left;">
 study area that determines spatial boundaries of all data. Should be buffered to accomodate edge effects
+</td>
+<td style="text-align:left;">
+NA
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+studyAreaLarge
+</td>
+<td style="text-align:left;">
+SpatVector
+</td>
+<td style="text-align:left;">
+study area passed to Biomass_borealDataPrep for vegetation calibration
 </td>
 <td style="text-align:left;">
 NA
@@ -3577,6 +3591,14 @@ estimate fuel classes from combination of data and P(sim)<span class="math inlin
    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;
    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;
    &lt;td style=&quot;text-align:left;&quot;&gt; A numeric vector indicating which years should be extracted from the fire databases to use for fitting. Should not include years prior to 2002, to ensure correct intialization from data. &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style=&quot;text-align:left;&quot;&gt; flammabilityThreshold &lt;/td&gt;
+   &lt;td style=&quot;text-align:left;&quot;&gt; numeric &lt;/td&gt;
+   &lt;td style=&quot;text-align:left;&quot;&gt; 0.1 &lt;/td&gt;
+   &lt;td style=&quot;text-align:left;&quot;&gt; 0 &lt;/td&gt;
+   &lt;td style=&quot;text-align:left;&quot;&gt; 1 &lt;/td&gt;
+   &lt;td style=&quot;text-align:left;&quot;&gt; Minimum proportion of flammable old pixel needed to define a new pixel as flammable when upscaling the default flammable maps`. &lt;/td&gt;
   &lt;/tr&gt;
   &lt;tr&gt;
    &lt;td style=&quot;text-align:left;&quot;&gt; forestedLCC &lt;/td&gt;
@@ -3795,6 +3817,17 @@ character
 </td>
 <td style="text-align:left;">
 formula for spread, using climate and vegetation covariates, as character
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ignitionFirePoints
+</td>
+<td style="text-align:left;">
+sf
+</td>
+<td style="text-align:left;">
+Same as object that is an input, but possibly changed CRS
 </td>
 </tr>
 <tr>
