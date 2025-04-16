@@ -15,7 +15,7 @@ defineModule(sim, list(
   loadOrder = list(before = c("Biomass_speciesData", "Biomass_borealDataPrep", "Biomass_speciesParameters"),
                    after = c("canClimateData")),
   reqdPkgs = list("data.table", "fastDummies", "reproducible",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9088)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9089)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@development (>= 1.1.5.9029)",
                   "PredictiveEcology/SpaDES.core@development (>= 2.0.2.9006)",
@@ -130,6 +130,10 @@ defineModule(sim, list(
                  "defines the `pixelGroups` for cohortData table in 2001"),
     expectsInput("pixelGroupMap2011", "SpatRaster",
                  "defines the `pixelGroups` for cohortData table in 2011"),
+    expectsInput("propFlammable2001", "SpatRaster", sourceURL = NA,
+                 "proportion of flammable landcover in a pixel - for post-hoc analysis"),
+    expectsInput("propFlammable2011", "SpatRaster", sourceURL = NA,
+                 "proportion of flammable landcover in a pixel - for post-hoc analysis"),
     expectsInput("rasterToMatch", "SpatRaster", sourceURL = NA,
                  "template raster for study area. Assumes some buffering of core area to limit edge effect of fire."),
     expectsInput("rasterToMatchLarge", "SpatRaster", sourceURL = NA,
@@ -1165,15 +1169,18 @@ runBorealDP_forCohortData <- function(sim) {
                                                     useCache = TRUE))
   }
 
+  if (!suppliedElsewhere("rasterToMatchLarge", sim)) {
+    sim$rasterToMatchLarge <- sim$rasterToMatch
+  }
+
   if (!suppliedElsewhere("climateVariablesForFire", sim)) {
     sim$climateVariablesForFire <- list("spread" = "MDC",
                                         "ignition" = "MDC")
   }
 
   if (!suppliedElsewhere("rstLCC2001", sim)) {
-
     #use a threshold to to assign non-flammable cover (e.g. if < 10% flammable cover)
-    sim$rstLCC2001 <- Cache(makeFireSenseLCC,
+    LCC2001 <- Cache(makeFireSenseLCC,
                             neededYear = 2001,
                             writeTo = .suffix("rstLCC.tif",
                                               paste0(2001, "_", P(sim)$.studyAreaName)),
@@ -1183,21 +1190,25 @@ runBorealDP_forCohortData <- function(sim) {
                             nonflammableLCC = P(sim)$nonflammableLCC,
                             flammabilityThreshold = P(sim)$flammabilityThreshold,
                             userTags = c("makeFireSenseLCC", "fireSense_dataPrepFit", 2001))
+    sim$rstLCC2001 <- LCC2001$lcc
+    sim$propFlammable2001 <- LCC2001$flammableProp
   }
 
   if (!suppliedElsewhere("rstLCC2011", sim)) {
 
     #use a threshold to to assign non-flammable cover (e.g. if < 10% flammable cover)
-    sim$rstLCC2011 <- Cache(makeFireSenseLCC,
-                            neededYear = 2011,
-                            writeTo = .suffix("rstLCC.tif",
-                                              paste0(2011, "_", P(sim)$.studyAreaName)),
-                            destinationPath = inputPath(sim),
-                            studyArea = sim$studyAreaLarge,
-                            rasterToMatch = sim$rasterToMatchLarge,
-                            nonflammableLCC = P(sim)$nonflammableLCC,
-                            flammabilityThreshold = P(sim)$flammabilityThreshold,
-                            userTags = c("makeFireSenseLCC", "fireSense_dataPrepFit", 2011))
+    LCC2011 <- Cache(makeFireSenseLCC,
+                     neededYear = 2011,
+                     writeTo = .suffix("rstLCC.tif",
+                                       paste0(2011, "_", P(sim)$.studyAreaName)),
+                     destinationPath = inputPath(sim),
+                     studyArea = sim$studyAreaLarge,
+                     rasterToMatch = sim$rasterToMatchLarge,
+                     nonflammableLCC = P(sim)$nonflammableLCC,
+                     flammabilityThreshold = P(sim)$flammabilityThreshold,
+                     userTags = c("makeFireSenseLCC", "fireSense_dataPrepFit", 2011))
+    sim$rstLCC2011 <- LCC2011$lcc
+    sim$propFlammable2011 <- LCC2011$flammableProp
   }
 
   if (!suppliedElsewhere("standAgeMap2001", sim)) {
