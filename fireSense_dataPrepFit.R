@@ -202,6 +202,7 @@ defineModule(sim, list(
                   "time since burn for non-forested pixels in 2011"),
     createsOutput("flammableRTM2001", "SpatRaster", "binary raster of flammable landcover for 2001"),
     createsOutput("flammableRTM2011", "SpatRaster", "binary raster of flammable landcover for 2011"),
+    createsOutput("sppEquiv", "data.table", "sppEquiv table potentially modified with new or overwritten fuel class"),
     createsOutput("spreadFirePoints", "list",
                   paste("Named list of `sf` polygon objects representing annual fire centroids.",
                         "This only includes fires that escaped (e.g. `size > res(flammableRTM)`."))
@@ -369,6 +370,7 @@ Init <- function(sim) {
   #   labs(x = "fuel covariate", y = "% burned")
 
   if (P(sim)$estimateFuelClasses) {
+
     fuelClassObjects <- Cache(
       assessFuelClasses(
         landscape = landscape,
@@ -385,14 +387,13 @@ Init <- function(sim) {
     message("Estimated fuel classes for this study area:")
     messageDF(sim$fuelClassTable)
 
-    #hack to ensure minimal downstream code changes
-    #make a temporary sppEquiv that uses this overwritten fuel class
     temp <- fuelClassObjects$modSppEquiv[, .(species, assignedFuelClass)]
     setnames(temp, c(P(sim)$sppEquivCol, P(sim)$fuelClassCol))
-    mod$sppEquiv <- temp
-  } else {
-    mod$sppEquiv <- sim$sppEquiv
+    #overwrite it
+    sim$sppEquiv[, P(sim)$fuelClassCol := NULL]
+    sim$sppEquiv <- sim$sppEquiv[temp, on = P(sim)$sppEquivCol]
   }
+
   ## TODO: make this table multidimensional or a list
   sim$landcoverDT2001 <- makeLandcoverDT(rstLCC = sim$rstLCC2001, flammableRTM = sim$flammableRTM2001,
                                          forestedLCC = P(sim)$forestedLCC, sim$nonForestedLCCGroups)
@@ -453,7 +454,7 @@ prepare_SpreadFit <- function(sim) {
     pixelGroupMap = list(sim$pixelGroupMap2001, sim$pixelGroupMap2011),
     landcoverDT = list(sim$landcoverDT2001, sim$landcoverDT2011),
     flammableRTM = list(sim$flammableRTM2001, sim$flammableRTM2011),
-    MoreArgs = list(sppEquiv = mod$sppEquiv,
+    MoreArgs = list(sppEquiv = sim$sppEquiv,
                     sppEquivCol = P(sim)$sppEquivCol,
                     fuelClassCol = P(sim)$fuelClassCol,
                     cutoffForYoungAge = -1)
@@ -832,7 +833,7 @@ prepare_IgnitionFit <- function(sim) {
     flammableRTM = list(sim$flammableRTM2001, sim$flammableRTM2011),
     landcoverDT = list(sim$landcoverDT2001, sim$landcoverDT2011),
     pixelGroupMap = list(sim$pixelGroupMap2001, sim$pixelGroupMap2011),
-    MoreArgs = list(sppEquiv = mod$sppEquiv,
+    MoreArgs = list(sppEquiv = sim$sppEquiv,
                     sppEquivCol = P(sim)$sppEquivCol,
                     fuelClassCol = P(sim)$fuelClassCol,
                     cutoffForYoungAge = P(sim)$cutoffForYoungAge)
@@ -840,7 +841,7 @@ prepare_IgnitionFit <- function(sim) {
     Cache(.functionName = "cohortsToFuelClasses")
 
   fuelClasses <- lapply(fuelClasses, FUN = function(x){
-    bCols <- unique(mod$sppEquiv[[P(sim)$fuelClassCol]])
+    bCols <- unique(sim$sppEquiv[[P(sim)$fuelClassCol]])
     xYA <- terra::subset(x, !names(x) %in% bCols)
     xBiomass <- terra::subset(x, names(x) %in% bCols)
     #to lessen the leverage of zeroes where there is no biomass
@@ -1043,7 +1044,7 @@ prepare_EscapeFit <- function(sim) {
 cleanUpMod <- function(sim) {
   mod$firePolysForAge <- NULL
   mod$fireSenseVegData <- NULL
-  mod$sppEquiv <- NULL
+
   return(invisible(sim))
 }
 
