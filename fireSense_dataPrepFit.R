@@ -200,6 +200,16 @@ defineModule(sim, list(
                   "time since burn for non-forested pixels in 2001"),
     createsOutput("nonForest_timeSinceDisturbance2011", "SpatRaster",
                   "time since burn for non-forested pixels in 2011"),
+    createsOutput("rstLCC2001", "SpatRaster",
+                 paste0("Raster of 2001 land cover - updated so that pixels above `P(sim)$flammabilityThreshold",
+                        "have an assigned flammable landcover")),
+    createsOutput("rstLCC2011", "SpatRaster",
+                 paste0("Raster of 2011 land cover - updated so that pixels above `P(sim)$flammabilityThreshold",
+                        "have an assigned flammable landcover")),
+    createsOutput("standAgeMap2001", "SpatRaster",
+                 "map of stand age in 2001 used to create `cohortData2001`"),
+    createsOutput("standAgeMap2011", "SpatRaster",
+                 "map of stand age in 2011 used to create `cohortData2011`"),
     createsOutput("flammableRTM2001", "SpatRaster", "binary raster of flammable landcover for 2001"),
     createsOutput("flammableRTM2011", "SpatRaster", "binary raster of flammable landcover for 2011"),
     createsOutput("sppEquiv", "data.table", "sppEquiv table potentially modified with new or overwritten fuel class"),
@@ -273,10 +283,11 @@ Init <- function(sim) {
   ## TODO: standardize sim$climateVariablesForFire if user provided
   ## this approach will be wrong if they pass a list length one...
   if (length(sim$climateVariablesForFire) == 1) {
-    sim$climateVariablesForFire <- list(
-      ignition = sim$climateVariablesForFire,
-      spread = sim$climateVariablesForFire
-    )
+    stop("sim$climateVariablesForFire must be of length 2, named: ignition and spread")
+    # sim$climateVariablesForFire <- list(
+    #   ignition = sim$climateVariablesForFire,
+    #   spread = sim$climateVariablesForFire
+    # )
   }
 
   if (!all(unlist(sim$climateVariablesForFire) %in% names(sim$historicalClimateRasters))) {
@@ -647,7 +658,7 @@ prepare_SpreadFitFire_Raster <- function(sim) {
   historicalFireRaster <- mask(historicalFireRaster, sim$flammableRTM,
                                maskvalues = 0, updatevalue = NA)
 
-  nCores <- ifelse(grepl("Windows", Sys.info()[["sysname"]]), 1L, length(sim$fireYears))
+  nCores <- ifelse(grepl("Windows", Sys.info()[["sysname"]]), 1L, length(Par$fireYears))
 
   ## this is analogous to buffer to area but for raster datasets as opposed to polygon
   ## the inner looping function is very similar - one difference is that non-flammable
@@ -1119,12 +1130,14 @@ runBorealDP_forCohortData <- function(sim) {
       parms[[nm]][["forestedLCCClasses"]] <- P(sim)$forestedLCC
     }
     parms$Biomass_borealDataPrep$exportModels <- "none"
-    outNY <- Cache(do.call(SpaDES.core::simInitAndSpades, list(paths = pathsLocal,
-                                                               params = parms,
-                                                               times = list(start = ny, end = ny),
-                                                               modules = neededModule,
-                                                               objects = objs)),
-                   .functionName = "simInitAndSpades")
+    aaaa <<- 1; on.exit(rm(aaaa, envir = .GlobalEnv))
+
+    outNY <- do.call(SpaDES.core::simInitAndSpades, list(paths = pathsLocal,
+                                                         params = parms,
+                                                         times = list(start = ny, end = ny),
+                                                         modules = neededModule,
+                                                         objects = objs)) |>
+      Cache(.functionName = paste0("simInitAndSpades_insideFireSenseDataPrepFit", ny))
     cohDatObj <- paste0(cohDat, ny)
     pixGrpMap <- paste0(pixGM, ny)
     saObj <- paste0(saMap, ny)
