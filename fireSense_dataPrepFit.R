@@ -269,6 +269,8 @@ doEvent.fireSense_dataPrepFit = function(sim, eventTime, eventType) {
 }
 
 Init <- function(sim) {
+
+  sim$sppEquiv <- copy(sim$sppEquiv) #debugging error where FuelClass disappears
   #TODO: this fill overestimate non-flammable landcover.
   if (!isInt(sim$rstLCC2001)) sim$rstLCC2001 <- LandR::asInt(sim$rstLCC2001)
   sim$flammableRTM2001 <- defineFlammable(sim$rstLCC2001,
@@ -1036,13 +1038,16 @@ prepare_EscapeFit <- function(sim) {
   escapeDT[is.na(escapes), escapes := 0]
 
   sim$fireSense_escapeCovariates <- escapeDT
+  ranEffs <- "yearChar"
 
   escapeVars <- names(escapeDT)[!names(escapeDT) %in% c("year", "pixelID", "escapes", "ignitions")]
   LHS <- paste0("cbind(escapes, ignitions - escapes) ~ ")
   RHS <- paste0(escapeVars, collapse = " + ")
 
   if (is.null(sim$fireSense_escapeFormula)) {
-    sim$fireSense_escapeFormula <- paste0(LHS, RHS, " - 1")
+    sim$fireSense_escapeFormula <- paste0(LHS,
+                                          paste0("(1|", ranEffs, ")"), " + ",
+                                          RHS, " - 1")
   }
 
   if (any(sim$fireSense_escapeCovariates$escapes > sim$fireSense_escapeCovariates$ignitions)) {
