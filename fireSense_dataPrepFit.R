@@ -1135,7 +1135,7 @@ runBorealDP_forCohortData <- function(sim) {
       parms[[nm]][["forestedLCCClasses"]] <- P(sim)$forestedLCC
     }
     parms$Biomass_borealDataPrep$exportModels <- "none"
-    aaaa <<- 1; on.exit(rm(aaaa, envir = .GlobalEnv))
+    # aaaa <<- 1; on.exit(rm(aaaa, envir = .GlobalEnv))
 
     outNY <- do.call(SpaDES.core::simInitAndSpades, list(paths = pathsLocal,
                                                          params = parms,
@@ -1208,7 +1208,7 @@ runBorealDP_forCohortData <- function(sim) {
                             rasterToMatch = sim$rasterToMatchLarge,
                             nonflammableLCC = P(sim)$nonflammableLCC,
                             flammabilityThreshold = P(sim)$flammabilityThreshold,
-                            userTags = c("makeFireSenseLCC", "fireSense_dataPrepFit", 2001))
+                            userTags = c("makeFireSenseLCC", 2001))
     sim$rstLCC2001 <- LCC2001$lcc
     sim$propFlammable2001 <- LCC2001$flammableProp
   }
@@ -1225,7 +1225,7 @@ runBorealDP_forCohortData <- function(sim) {
                      rasterToMatch = sim$rasterToMatchLarge,
                      nonflammableLCC = P(sim)$nonflammableLCC,
                      flammabilityThreshold = P(sim)$flammabilityThreshold,
-                     userTags = c("makeFireSenseLCC", "fireSense_dataPrepFit", 2011))
+                     userTags = c("makeFireSenseLCC", 2011))
     sim$rstLCC2011 <- LCC2011$lcc
     sim$propFlammable2011 <- LCC2011$flammableProp
   }
