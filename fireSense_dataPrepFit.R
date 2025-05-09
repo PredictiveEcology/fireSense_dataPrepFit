@@ -967,10 +967,6 @@ prepare_IgnitionFit <- function(sim) {
   firstCols <- firstCols[firstCols %in% names(fireSense_ignitionCovariates)]
   setcolorder(fireSense_ignitionCovariates, neworder = firstCols)
 
-  response <- "ignitionsNoGT1"
-  set(fireSense_ignitionCovariates, NULL, response, pmin(fireSense_ignitionCovariates$ignitions, 1))
-  # fireSense_ignitionCovariates[, ignitionsNoGT1 := ifelse(ignitions > 1, 1, ignitions)]
-
   sim$fireSense_ignitionCovariates <- fireSense_ignitionCovariates
 
   ## make new ignition object, ignitionFitRTM
@@ -1001,7 +997,7 @@ prepare_IgnitionFit <- function(sim) {
     warning("automated ignition formula construction needs review")
   }
   if (is.null(sim$fireSense_ignitionFormula)) {
-    sim$fireSense_ignitionFormula <- paste0(response, " ~ ",
+    sim$fireSense_ignitionFormula <- paste0("ignitions ~ ",
                                             paste0("(1|", ranEffs, ")"), " + ",
                                             # this longer formula has had more unrealistic results 12/12/2024
                                             # paste0(sim$climateVariablesForFire$ignition, collapse = " + "), " + ",
