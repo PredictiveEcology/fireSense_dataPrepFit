@@ -1033,18 +1033,26 @@ prepare_EscapeFit <- function(sim) {
   escapeDT <- escapeDT[sim$fireSense_ignitionCovariates, on = c("pixelID", "year")]
   escapeDT[is.na(escapes), escapes := 0]
 
+
   sim$fireSense_escapeCovariates <- escapeDT
   ranEffs <- "yearChar"
 
-  escapeVars <- names(escapeDT)[!names(escapeDT) %in% c("year", "pixelID", "escapes", "ignitions")]
-  LHS <- paste0("cbind(escapes, ignitions - escapes) ~ ")
-  RHS <- paste0(escapeVars, collapse = " + ")
+  escapeVars <- names(escapeDT)[!names(escapeDT) %in% c("year", "pixelID", "escapes", "ignitions", ranEffs)]
+  ## this is safer for multiple climate variables
+  interactionsDF <- as.data.table(expand.grid(escapeVars, sim$climateVariablesForFire$ignition))
+  interactionsDF[, interaction := do.call(paste, c(.SD, sep = ":")), .SDcols = names(interactionsDF)]
+  interactions <- interactionsDF$interaction
 
-  if (is.null(sim$fireSense_escapeFormula)) {
-    sim$fireSense_escapeFormula <- paste0(LHS,
-                                          paste0("(1|", ranEffs, ")"), " + ",
-                                          RHS, " - 1")
+  ## sanity check for base::abbreviate
+  if (!length(unique(interactions)) == length(escapeVars) * length(sim$climateVariablesForFire$ignition)) {
+    warning("automated escape formula construction needs review")
   }
+  if (is.null(sim$fireSense_escapeFormula)) {
+    sim$fireSense_escapeFormula <- paste0("escapes ~ ",
+                                            paste0("(1|", ranEffs, ")"), " + ",
+                                            paste0(interactions, collapse = " + "))
+  }
+
 
   if (any(sim$fireSense_escapeCovariates$escapes > sim$fireSense_escapeCovariates$ignitions)) {
     stop("issue with escapes outnumbering ignitions in a pixel - contact module creators")
