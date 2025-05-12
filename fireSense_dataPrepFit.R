@@ -1009,6 +1009,7 @@ prepare_IgnitionFit <- function(sim) {
 }
 
 prepare_EscapeFit <- function(sim) {
+
   if (is.null(sim$fireSense_ignitionCovariates)) {
     ## the datasets are essentially the same, with one column difference
     stop("Please include ignitionFit in parameter 'whichModulesToPrepare' if running EscapeFit")
@@ -1033,12 +1034,11 @@ prepare_EscapeFit <- function(sim) {
   escapeDT <- escapeDT[sim$fireSense_ignitionCovariates, on = c("pixelID", "year")]
   escapeDT[is.na(escapes), escapes := 0]
 
-
-  sim$fireSense_escapeCovariates <- escapeDT
   ranEffs <- "yearChar"
+  escapeVars <- names(escapeDT)[!names(escapeDT) %in% c("year", "pixelID", "escapes",
+                                                        sim$climateVariablesForFire$ignition,
+                                                        "ignitions", ranEffs)]
 
-  escapeVars <- names(escapeDT)[!names(escapeDT) %in% c("year", "pixelID", "escapes", "ignitions", ranEffs)]
-  ## this is safer for multiple climate variables
   interactionsDF <- as.data.table(expand.grid(escapeVars, sim$climateVariablesForFire$ignition))
   interactionsDF[, interaction := do.call(paste, c(.SD, sep = ":")), .SDcols = names(interactionsDF)]
   interactions <- interactionsDF$interaction
@@ -1048,15 +1048,16 @@ prepare_EscapeFit <- function(sim) {
     warning("automated escape formula construction needs review")
   }
   if (is.null(sim$fireSense_escapeFormula)) {
-    sim$fireSense_escapeFormula <- paste0("escapes ~ ",
+    sim$fireSense_escapeFormula <- paste0("cbind(escapes, ignitions - escapes) ~ ",
                                             paste0("(1|", ranEffs, ")"), " + ",
                                             paste0(interactions, collapse = " + "))
   }
 
 
-  if (any(sim$fireSense_escapeCovariates$escapes > sim$fireSense_escapeCovariates$ignitions)) {
+  if (any(escapeDT$escapes > escapeDT$ignitions)) {
     stop("issue with escapes outnumbering ignitions in a pixel - contact module creators")
   }
+  sim$fireSense_escapeCovariates <- escapeDT
 
   return(invisible(sim))
 }
