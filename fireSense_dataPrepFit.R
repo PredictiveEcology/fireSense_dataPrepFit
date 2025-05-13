@@ -46,8 +46,13 @@ defineModule(sim, list(
                     paste("Forested land cover classes - these differ from non-forest because the biomass",
                           "and composition of fuels are taken into account by fireSense, while non-forest",
                           "classes are treated categorically")),
-    defineParameter("igAggFactor", "numeric", 40, 1, NA,
+    defineParameter("igAggFactor", "numeric", 4, 1, NA,
                     "aggregation factor for rasters during ignition prep."),
+    defineParameter("igFocalFactor", "integer", as.integer(3), as.integer(3), NA,
+                    paste("Use focal statistics at the base resolution as an alternative to aggregating ignition covariates",
+                          "This will occur if `P(sim)$igAggFactor is <= 1, and igFocalFactor is > 1.",
+                          "The parameter is the `w` in the `terra::focal` function, i.e. the number of cells. It must be odd,",
+                          "thus 3 is the minimum")),
     defineParameter("fuelClassCol", "character", "FuelClass", NA, NA,
                     "the column in `sppEquiv` that defines unique fuel classes. A column ",
                     "named `FuelClass` exists in the `LandR::sppEquivalencies_CA` and will be used ",
@@ -896,19 +901,32 @@ prepare_IgnitionFit <- function(sim) {
     }
   }
 
+  ignitionClimate <- sim$historicalClimateRasters[sim$climateVariablesForFire$ignition]
+  #instead of aggregating, take the focal
+  if (P(sim)$igAggFactor > 1) {
+
   LCCras <- lapply(LCCras, aggregate, fact = P(sim)$igAggFactor, fun = mean) |>
     Cache(.functionName = "aggregate_LCCras_to_coarse")
-  names(LCCras) <- c("year2001", "year2011")
+
   ## must specify terra::aggregate to avoid conflict with stats::aggregate
   fuelClasses <- lapply(fuelClasses, FUN = terra::aggregate, fact = P(sim)$igAggFactor, fun = mean) |>
     Cache(.functionName = "aggregate_fuelClasses_to_coarse")
-  names(fuelClasses) <- c("year2001", "year2011")
 
-  ignitionClimate <- sim$historicalClimateRasters[sim$climateVariablesForFire$ignition]
   ignitionClimate <- lapply(X = ignitionClimate, FUN = terra::aggregate,
                             fact = P(sim)$igAggFactor, fun = mean) |>
     Cache(.functionName = "aggregate_historicalClimateRasters_to_coarse")
-
+  } else if (P(sim)$igFocalFactor > 2) {
+    #two will trigger, 1 does nothing.
+    igSpatial <- lapply(X = list(ignitionClimate, fuelClasses, LCCras), FUN = function(x, size = P(sim)$igFocalFactor) {
+        #these are all lists due to time
+        x <- lapply(x, FUN = terra::focal, w =  size, fun = mean, na.rm = TRUE)
+      })
+    ignitionClimate <- igSpatial[[1]]
+    fuelClasses <- igSpatial[[2]]
+    LCCras <- igSpatial[[3]]
+  }
+  names(LCCras) <- c("year2001", "year2011")
+  names(fuelClasses) <- c("year2001", "year2011")
   compareGeom(ignitionClimate[[1]], fuelClasses[[1]], fuelClasses[[2]]) ## safety check
 
   ## ignition won't have same years as spread so we do not use names of init objects
