@@ -1135,7 +1135,6 @@ runBorealDP_forCohortData <- function(sim) {
       parms[[nm]][["forestedLCCClasses"]] <- P(sim)$forestedLCC
     }
     parms$Biomass_borealDataPrep$exportModels <- "none"
-    # aaaa <<- 1; on.exit(rm(aaaa, envir = .GlobalEnv))
 
     outNY <- do.call(SpaDES.core::simInitAndSpades, list(paths = pathsLocal,
                                                          params = parms,
