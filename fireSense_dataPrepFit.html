@@ -2996,7 +2996,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">fireSense_dataPrepFit Manual</h1>
 <h3 class="subtitle">v.1.1.1</h3>
-<h4 class="date">Last updated: 2025-05-01</h4>
+<h4 class="date">Last updated: 2025-05-13</h4>
 
 </div>
 
@@ -3639,18 +3639,297 @@ estimate fuel classes from combination of data and P(sim)<span class="math inlin
   &lt;tr&gt;
    &lt;td style=&quot;text-align:left;&quot;&gt; igAggFactor &lt;/td&gt;
    &lt;td style=&quot;text-align:left;&quot;&gt; numeric &lt;/td&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; 40 &lt;/td&gt;
+   &lt;td style=&quot;text-align:left;&quot;&gt; 4 &lt;/td&gt;
    &lt;td style=&quot;text-align:left;&quot;&gt; 1 &lt;/td&gt;
    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;
    &lt;td style=&quot;text-align:left;&quot;&gt; aggregation factor for rasters during ignition prep. &lt;/td&gt;
   &lt;/tr&gt;
   &lt;tr&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; fuelClassCol &lt;/td&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; character &lt;/td&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; FuelClass &lt;/td&gt;
+   &lt;td style=&quot;text-align:left;&quot;&gt; igFocalFactor &lt;/td&gt;
+   &lt;td style=&quot;text-align:left;&quot;&gt; integer &lt;/td&gt;
+   &lt;td style=&quot;text-align:left;&quot;&gt; 3 &lt;/td&gt;
+   &lt;td style=&quot;text-align:left;&quot;&gt; 3 &lt;/td&gt;
    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; the column in `sppEquiv` that defines unique fuel classes. A column named `FuelClass` exists in the `LandR::sppEquivalencies_CA` and will be used by default. To change the `FuelClass` classifications, add a column to that table, or to `sim\)</span>sppEquiv<code>and then modify this</code>fuelClassCol<code>parameter &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; minBufferSize &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; numeric &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; 5000 &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; Minimum number of cells in buffer and nonbuffer. This is imposed after the multiplier on the</code>bufferToArea<code>fn &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; nonflammableLCC &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; numeric &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; 20, 31, .... &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; non-flammable LCC in rstLCC layers - defaulting to water, snow/ice, rock, barren land. &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; nonForestCanBeYoungAge &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; logical &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; TRUE &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; if TRUE, burned non-forest will be treated as</code>youngAge<code>. Recommended to be TRUE as burned forest is often classified as non-forest &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; sppEquivCol &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; character &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; LandR &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; column name in</code>sppEquiv<code>object that defines unique species in</code>cohortData<code>&lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; targetFuelClasses &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; numeric &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; 5 &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; 1 &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; 7 &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; the target number of unique fuel classes when using semi-automated approach &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; useCentroids &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; logical &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; TRUE &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; Should fire ignitions start at the</code>sim<span class="math inline">\(firePolygons` centroids or at the ignition points in `sim\)</span>firePoints<code>? &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; useRasterizedFireForSpread &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; logical &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; FALSE &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; Should rasterized fire be used in place of a vectorized fire dataset? This method attributes burned pixels to specific fires, only examines the latest fire in a pixel, and may be subject to temporal error. is therefore more appropriate in areas with low rates of fire, or where the NFDB dataset may be incomplete (e.g., northern Ontario). &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; whichModulesToPrepare &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; character &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; fireSens.... &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; Which fireSense fit modules to prep? defaults to all 3 &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; .plotInitialTime &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; numeric &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; Describes the simulation time at which the first plot event should occur. &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; .plotInterval &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; numeric &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; Describes the simulation time interval between plot events. &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; .saveInitialTime &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; numeric &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; Describes the simulation time at which the first save event should occur. &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; .saveInterval &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; numeric &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; This describes the simulation time interval between save events. &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; .studyAreaName &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; character &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt;  &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt;</code>studyArea` name that will be appended to file-backed rasters
+   &lt;td style=&quot;text-align:left;&quot;&gt; Use focal statistics at the base resolution as an alternative to aggregating ignition covariates This will occur if `P(sim)\)</span>igAggFactor is &lt;= 1, and igFocalFactor is &gt; 1. The parameter is the <code>w</code> in the <code>terra::focal</code> function, i.e. the number of cells. It must be odd, thus 3 is the minimum
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+fuelClassCol
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+FuelClass
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+the column in <code>sppEquiv</code> that defines unique fuel classes. A column named <code>FuelClass</code> exists in the <code>LandR::sppEquivalencies_CA</code> and will be used by default. To change the <code>FuelClass</code> classifications, add a column to that table, or to <code>sim$sppEquiv</code> and then modify this <code>fuelClassCol</code> parameter
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+minBufferSize
+</td>
+<td style="text-align:left;">
+numeric
+</td>
+<td style="text-align:left;">
+5000
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Minimum number of cells in buffer and nonbuffer. This is imposed after the multiplier on the <code>bufferToArea</code> fn
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+nonflammableLCC
+</td>
+<td style="text-align:left;">
+numeric
+</td>
+<td style="text-align:left;">
+20, 31, ….
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+non-flammable LCC in rstLCC layers - defaulting to water, snow/ice, rock, barren land.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+nonForestCanBeYoungAge
+</td>
+<td style="text-align:left;">
+logical
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+if TRUE, burned non-forest will be treated as <code>youngAge</code>. Recommended to be TRUE as burned forest is often classified as non-forest
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+sppEquivCol
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+LandR
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+column name in <code>sppEquiv</code> object that defines unique species in <code>cohortData</code>
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+targetFuelClasses
+</td>
+<td style="text-align:left;">
+numeric
+</td>
+<td style="text-align:left;">
+5
+</td>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:left;">
+7
+</td>
+<td style="text-align:left;">
+the target number of unique fuel classes when using semi-automated approach
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+useCentroids
+</td>
+<td style="text-align:left;">
+logical
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Should fire ignitions start at the <code>sim$firePolygons</code> centroids or at the ignition points in <code>sim$firePoints</code>?
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+useRasterizedFireForSpread
+</td>
+<td style="text-align:left;">
+logical
+</td>
+<td style="text-align:left;">
+FALSE
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Should rasterized fire be used in place of a vectorized fire dataset? This method attributes burned pixels to specific fires, only examines the latest fire in a pixel, and may be subject to temporal error. is therefore more appropriate in areas with low rates of fire, or where the NFDB dataset may be incomplete (e.g., northern Ontario).
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+whichModulesToPrepare
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+fireSens….
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Which fireSense fit modules to prep? defaults to all 3
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+.plotInitialTime
+</td>
+<td style="text-align:left;">
+numeric
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Describes the simulation time at which the first plot event should occur.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+.plotInterval
+</td>
+<td style="text-align:left;">
+numeric
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Describes the simulation time interval between plot events.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+.saveInitialTime
+</td>
+<td style="text-align:left;">
+numeric
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Describes the simulation time at which the first save event should occur.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+.saveInterval
+</td>
+<td style="text-align:left;">
+numeric
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+This describes the simulation time interval between save events.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+.studyAreaName
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+<code>studyArea</code> name that will be appended to file-backed rasters
 </td>
 </tr>
 <tr>
