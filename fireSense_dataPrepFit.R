@@ -56,7 +56,7 @@ defineModule(sim, list(
     defineParameter("minBufferSize", "numeric", 5000, NA, NA,
                     paste("Minimum number of cells in buffer and nonbuffer. This is imposed after the",
                           "multiplier on the `bufferToArea` fn")),
-    defineParameter("nonflammableLCC", "numeric", c(20, 31, 32, 33), NA, NA,
+    defineParameter("nonflammableLCC", "numeric", c(0, 20, 31, 32, 33), NA, NA,
                     "non-flammable LCC in rstLCC layers - defaulting to water, snow/ice, rock, barren land."),
     defineParameter("nonForestCanBeYoungAge", "logical", TRUE, NA, NA,
                     paste("if TRUE, burned non-forest will be treated as `youngAge`. Recommended to be TRUE",
@@ -382,7 +382,13 @@ Init <- function(sim) {
   #   geom_bar(stat = "identity") +
   #   labs(x = "fuel covariate", y = "% burned")
 
-  if (P(sim)$estimateFuelClasses) {
+  # Determine whether user has supplied their own FuelClass col in sppEquiv; their own nonForestedLCCGroups,
+  #  their own fuelClassTable. If so, then don't estimate them here.
+  fuelObjs <- c("nonForestedLCCGroups", "fuelClassTable")
+  userSupplied <- fuelObjs %in% sim$.userSuppliedObjNames
+  sppFCSupplied <- LandR::sppEquivalencies_CA[sim$sppEquiv, on = "LandR"]
+  userSuppliedFC <- sppFCSupplied[, FuelClass == i.FuelClass]
+  if (P(sim)$estimateFuelClasses && all(userSupplied %in% FALSE) && all(userSuppliedFC %in% TRUE)) {
 
     fuelClassObjects <- Cache(
       assessFuelClasses(
@@ -405,6 +411,20 @@ Init <- function(sim) {
     #overwrite it
     sim$sppEquiv[, P(sim)$fuelClassCol := NULL]
     sim$sppEquiv <- sim$sppEquiv[temp, on = P(sim)$sppEquivCol]
+  } else {
+    us <- if (any(userSupplied %in% TRUE)) {
+      paste(fuelObjs[userSupplied], collapse = ", ")
+    } else {
+      ""
+    }
+    usFC <- if (any(userSuppliedFC %in% TRUE)) {
+      paste0("custom ", Par$fuelClassCol, " column in `sppEquiv`")
+    } else {
+      ""
+    }
+    message("User has supplied ", if (nzchar(us)) us, if (nzchar(usFC)) usFC, "; ",
+            "Not running `assessFuelClasses` to determine nonforest fuel classes. Using:")
+    print(sim$nonForestedLCCGroups)
   }
 
   ## TODO: make this table multidimensional or a list
@@ -1355,12 +1375,15 @@ runBorealDP_forCohortData <- function(sim) {
   }
 
   if (!suppliedElsewhere("nonForestedLCCGroups", sim)) {
+    vals <- freq(sim$rstLCC2011)
+    forestOrNonFlamm <- sort(unique(c(Par$nonflammableLCC, Par$forestedLCC)))
+    sim$nonForestedLCCGroups <- list(nf = setdiff(vals$value, forestOrNonFlamm))
     ## TODO: consider moving this to init - and checking if unsupplied
-    sim$nonForestedLCCGroups <- list(
-      #"nf_dryland" = c(50, 100, 40), # shrub, herbaceous, bryoid
-      #"nf_wetland" = c(80)), #non-treed wetland.
-      "nf_highFlam" = c(50, 100, 40), # shrub, herbaceous
-      "nf_lowFlam" = c(80)) # bryoids + non-treed wetland.
+    # sim$nonForestedLCCGroups <- list(
+    #   #"nf_dryland" = c(50, 100, 40), # shrub, herbaceous, bryoid
+    #   #"nf_wetland" = c(80)), #non-treed wetland.
+    #   "nf_highFlam" = c(50, 100, 40), # shrub, herbaceous
+    #   "nf_lowFlam" = c(80)) # bryoids + non-treed wetland.
   }
 
 
