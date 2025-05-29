@@ -276,7 +276,6 @@ Init <- function(sim) {
   #because BBDP wants objects potentially larger than studyArea,
   #crop rstLCC and standAgeMap to create smaller objects before their derived objects
   # (landcoverDT/flammableMap and nonForest_timeSinceDisturbance, respectively).
-  browser()
   ## sanity checks
   objs <- c(sim$standAgeMap2001, sim$standAgeMap2011, sim$rstLCC2001, sim$rstLCC2011)
   if (!LandR::.compareRas(sim$rasterToMatch, sim$rasterToMatchLarge, stopOnError = FALSE)) {
