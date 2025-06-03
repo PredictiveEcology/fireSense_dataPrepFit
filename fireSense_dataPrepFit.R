@@ -15,7 +15,7 @@ defineModule(sim, list(
   loadOrder = list(before = c("Biomass_speciesData", "Biomass_borealDataPrep", "Biomass_speciesParameters"),
                    after = c("canClimateData")),
   reqdPkgs = list("data.table", "fastDummies", "reproducible",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9089)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9091)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@development (>= 1.1.5.9029)",
                   "PredictiveEcology/SpaDES.core@development (>= 2.0.2.9006)",
