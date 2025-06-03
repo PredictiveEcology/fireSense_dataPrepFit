@@ -68,6 +68,10 @@ defineModule(sim, list(
                           "as burned forest is often classified as non-forest")),
     defineParameter("sppEquivCol", "character", "LandR", NA, NA,
                     "column name in `sppEquiv` object that defines unique species in `cohortData`"),
+    defineParameter("spreadFitGoogleDriveFolder", "character", "https://drive.google.com/drive/u/0/folders/1spxq7CnL4kNcJoUQlRek2CmBJ1InAmbP",
+                    NA, NA, "A Googledrive folder url where a file with fireSense studyArea exists as an 'sf' class object"),
+    defineParameter("spreadFitFilename", "character", "fireSenseParams.rds",
+                    NA, NA, "A Googledrive folder url where a file with fireSense studyArea exists as an 'sf' class object"),
     defineParameter("targetFuelClasses", "numeric", 5, 1, 7,
                     "the target number of unique fuel classes when using semi-automated approach"),
     defineParameter("useCentroids", "logical", TRUE, NA, NA,
@@ -108,6 +112,10 @@ defineModule(sim, list(
     expectsInput("spreadFirePoints", "list", sourceURL = NA,
                  paste("named list of spatial points for each fire year",
                        "with each point denoting an ignition location.")),
+    # expectsInput("fireSense_spreadLogisticTermNames", "character",
+    #              desc = paste0("The term names for the logistic terms in the spread fit")),
+    expectsInput("spreadFitAdditionalColNames", "character",
+                 desc = paste0("The column names used to attach the spreadFit object and several ancilliary objects")),
     expectsInput("firePolys", "list", sourceURL = NA,
                  paste0("List of sf polygon objects representing annual fire polygons.",
                         "List must be named with followign convention: `year<numeric year>`")),
@@ -348,41 +356,6 @@ Init <- function(sim) {
   # Apply the function for each time period
   fires <- do.call(rbind, sim$spreadFirePolys)
   #this must ensure landcover overrides species - it does not currently
-  landscape <- Cache(
-    Map,
-    f = fuelClassPrep,
-    pixelGroupMap = list(sim$pixelGroupMap2001, sim$pixelGroupMap2011),
-    cohortData = list(sim$cohortData2001, sim$cohortData2011),
-    rstLCC = list(rstLCC2001, rstLCC2001),
-    yearRange = list(c(2002, 2011), c(2012, 2020)),
-    MoreArgs = list(nonflammableLCC = P(sim)$nonflammableLCC,
-                    fires = fires,
-                    nonforestLCC = sim$nonForestedLCCGroups),
-    userTags = c("fireSenseDataPrepFit", "fuelClassPrep")
-  )
-
-  # Combine landscapes and finalize data
-  landscape <- rbindlist(landscape)
-  landscape <- landscape[, .(cell, speciesCode, lcc, B, totalBiomass, burned, year)]
-
-  nonforestLCC <- unlist(sim$nonForestedLCCGroups) #unlist for backwards compatibility
-
-  #set up plots
-  speciesGG_DF <- landscape[!is.na(B), .(percentBurn = sum(burned)/.N * 100), .(speciesCode)]
-  lccGG_DF <- landscape[is.na(B)]
-  lccGG_DF[!lcc %in% nonforestLCC, newLCC := paste("not LandR forest", lcc)]
-  lccGG_DF[is.na(newLCC), newLCC := lcc]
-  lccGG_DF <- lccGG_DF[, .(percentBurn = sum(burned)/.N * 100), .(newLCC)]
-
-  #TODO: add this to a Plots call?
-  #It is a bar plot of the percent burned of each species and lcc
-  # lccGG <- ggplot(lccGG_DF, aes(x = newLCC, y = percentBurn)) +
-  #   geom_bar(stat = "identity") +
-  #   labs(y = "% in study area burned", x = "nonForest LCC")
-  #
-  # sppGG <- ggplot(data = speciesGG_DF, aes(x  = speciesCode, y = percentBurn)) +
-  #   geom_bar(stat = "identity") +
-  #   labs(x = "fuel covariate", y = "% burned")
 
   # Determine whether user has supplied their own FuelClass col in sppEquiv; their own nonForestedLCCGroups,
   #  their own fuelClassTable. If so, then don't estimate them here.
@@ -390,44 +363,229 @@ Init <- function(sim) {
   userSupplied <- fuelObjs %in% sim$.userSuppliedObjNames
   sppFCSupplied <- LandR::sppEquivalencies_CA[sim$sppEquiv, on = "LandR"]
   userSuppliedFC <- sppFCSupplied[, FuelClass == i.FuelClass]
-  if (P(sim)$estimateFuelClasses && all(userSupplied %in% FALSE) && all(userSuppliedFC %in% TRUE)) {
 
-    fuelClassObjects <- Cache(
-      assessFuelClasses(
-        landscape = landscape,
-        fuelCol = P(sim)$fuelClassCol,
-        sppEquiv = sim$sppEquiv,
-        sppEquivCol = P(sim)$sppEquivCol,
-        targetFuelClasses = P(sim)$targetFuelClasses,
-        nonforestLCC = nonforestLCC),
-      userTags = c("assessFuelClasses", P(sim)$fuelClassCol))
+  needToEstimateFuelClasses <- P(sim)$estimateFuelClasses && all(userSupplied %in% FALSE) && all(userSuppliedFC %in% TRUE)
 
-    sim$fuelClassTable <- fuelClassObjects$modSppEquiv
-    sim$nonForestedLCCGroups <- fuelClassObjects$nonForestedLCCGroups
-    sim$missingLCCgroup <- fuelClassObjects$missingLCCgroup
-    message("Estimated fuel classes for this study area:")
-    messageDF(sim$fuelClassTable)
+  if (needToEstimateFuelClasses) {
 
-    temp <- fuelClassObjects$modSppEquiv[, .(species, assignedFuelClass)]
-    setnames(temp, c(P(sim)$sppEquivCol, P(sim)$fuelClassCol))
-    #overwrite it
-    sim$sppEquiv[, P(sim)$fuelClassCol := NULL]
-    sim$sppEquiv <- sim$sppEquiv[temp, on = P(sim)$sppEquivCol]
+    spreadFitPreRun <- CacheGeo(cloudFolderID = Par$spreadFitGoogleDriveFolder,
+                                targetFile = Par$spreadFitFilename,
+                                domain = sim$studyArea, action = "nothing",
+                                destinationPath = getPaths()$inputPath, bufferOK = TRUE) # |> Cache()
+    haveSpreadFit <- is(spreadFitPreRun, "sf") || is(spreadFitPreRun, "data.frame")
+
+    if (haveSpreadFit) {
+
+      if (TRUE) {
+        # remove the column called "params" ... this just allows for partial matching, with or without "s"
+        #   in case somebody uses `parameters`, `param`, or `params`
+        colNames <- setdiff(sim$spreadFitAdditionalColNames,
+                            grep(value = TRUE, "param", sim$spreadFitAdditionalColNames))
+        df <- as.data.frame(spreadFitPreRun)
+        df <- df[colNames]
+        dfList <- lapply(df, function(x) x[[1]])
+        list2env(dfList, envir(sim)) # sim$nonForestedLCCGroups, sim$sppEquiv, sim$missingLCCgroup
+
+      } else {
+        # This is to rebuild the objects if they are not contained within the spreadFitPreRun; defunct
+
+        # speciesInCohortData <- lapply(list(sim$cohortData2001$speciesCode,
+        #                                    sim$cohortData2011$speciesCode), levels) |>
+        #   unlist() |> unique()
+        #
+        #
+        # cols <- colnames(spreadFitPreRun$params[[1]])
+        # allTerms <- setdiff(cols, sim$fireSense_spreadLogisticTermNames)
+        # climateTerms <- sim$climateVariablesForFire$spread
+        # fuelTerms <- setdiff(allTerms, climateTerms)
+        # matureTerms <- setdiff(fuelTerms, "youngAge")
+        # forestFuelClasses <- grep("^nf", matureTerms, invert = TRUE, value = TRUE)
+        # dt <- data.table(species = speciesInCohortData)
+        # # dt <- data.table(species = temp[[Par$sppEquivCol]])
+        # dt2 <- abbreviateSpNames(dt)
+        # forestFuelClassesSplit <- strsplit(forestFuelClasses, split = "\\.")
+        # forestFuelClasses2 <- lapply(forestFuelClassesSplit, function(fc) {
+        #   b <- lapply(fc, function(fcInner) {
+        #     colHere <- c("species", "assignedFuelClass")
+        #     a <- lapply(colHere, function(ch) {
+        #       if (!is.null(dt2[[ch]]))
+        #         if (any(grepl(fcInner, dt2[[ch]]))) {
+        #           a <- dt2[data.table(fcInner) |> setNames(ch), on = ch]
+        #           # set(a, NULL, "fuelType", paste(a[[ch]], sep = "."))
+        #         }
+        #     }) |> rbindlist(fill = TRUE)
+        #     return(a)
+        #   })
+        #   d <- rbindlist(b)
+        #   if (NROW(d) > 1) {
+        #     ft <- paste(d[[2]], collapse = ".")
+        #   } else {
+        #     ft <- d[[1]]
+        #   }
+        #   set(d, NULL, "FuelClass", ft)
+        #   d
+        # }) |> rbindlist() |> set(NULL, "assignedFuelClass", NULL)
+        #
+        # sim$sppEquiv[, P(sim)$fuelClassCol := NULL]
+        # setnames(forestFuelClasses2, old = "species", new = Par$sppEquivCol)
+        # sim$sppEquiv <- sim$sppEquiv[forestFuelClasses2, on = Par$sppEquivCol]
+        # # temp[sim$sppEquiv, on = Par$sppEquivCol]
+        #
+        # # now non-forest
+        # nonForestFuelClasses <- grep("^nf", matureTerms, value = TRUE)
+        # nonForestFuelClasses2 <- strsplit(nonForestFuelClasses, split = "_")
+        # nonForestFuelClasses3 <- lapply(nonForestFuelClasses2, function(x) as.integer(x[-1]))
+        # names(nonForestFuelClasses3) <- nonForestFuelClasses
+        # sim$nonForestedLCCGroups <- nonForestFuelClasses3
+      }
+    }
+  }
+
+
+  if (!haveSpreadFit) {
+    landscape <- Cache(
+      Map,
+      f = fuelClassPrep,
+      pixelGroupMap = list(sim$pixelGroupMap2001, sim$pixelGroupMap2011),
+      cohortData = list(sim$cohortData2001, sim$cohortData2011),
+      rstLCC = list(rstLCC2001, rstLCC2001),
+      yearRange = list(c(2002, 2011), c(2012, 2020)),
+      MoreArgs = list(nonflammableLCC = P(sim)$nonflammableLCC,
+                      fires = fires,
+                      nonforestLCC = sim$nonForestedLCCGroups),
+      userTags = c("fireSenseDataPrepFit", "fuelClassPrep")
+    )
+
+    # Combine landscapes and finalize data
+    landscape <- rbindlist(landscape)
+    landscape <- landscape[, .(cell, speciesCode, lcc, B, totalBiomass, burned, year)]
+
+    nonforestLCC <- unlist(sim$nonForestedLCCGroups) #unlist for backwards compatibility
+
+    #set up plots
+    speciesGG_DF <- landscape[!is.na(B), .(percentBurn = sum(burned)/.N * 100), .(speciesCode)]
+    lccGG_DF <- landscape[is.na(B)]
+    lccGG_DF[!lcc %in% nonforestLCC, newLCC := paste("not LandR forest", lcc)]
+    lccGG_DF[is.na(newLCC), newLCC := lcc]
+    lccGG_DF <- lccGG_DF[, .(percentBurn = sum(burned)/.N * 100), .(newLCC)]
+
+    #TODO: add this to a Plots call?
+    #It is a bar plot of the percent burned of each species and lcc
+    # lccGG <- ggplot(lccGG_DF, aes(x = newLCC, y = percentBurn)) +
+    #   geom_bar(stat = "identity") +
+    #   labs(y = "% in study area burned", x = "nonForest LCC")
+    #
+    # sppGG <- ggplot(data = speciesGG_DF, aes(x  = speciesCode, y = percentBurn)) +
+    #   geom_bar(stat = "identity") +
+    #   labs(x = "fuel covariate", y = "% burned")
+
+    # # Determine whether user has supplied their own FuelClass col in sppEquiv; their own nonForestedLCCGroups,
+    # #  their own fuelClassTable. If so, then don't estimate them here.
+    # fuelObjs <- c("nonForestedLCCGroups", "fuelClassTable")
+    # userSupplied <- fuelObjs %in% sim$.userSuppliedObjNames
+    # sppFCSupplied <- LandR::sppEquivalencies_CA[sim$sppEquiv, on = "LandR"]
+    # userSuppliedFC <- sppFCSupplied[, FuelClass == i.FuelClass]
+
+    if (needToEstimateFuelClasses) {
+
+      # spreadFitPreRun <- CacheGeo(cloudFolderID = Par$spreadFitGoogleDriveFolder,
+      #                             targetFile = Par$spreadFitFilename,
+      #                             domain = sim$studyArea, action = "nothing",
+      #                             destinationPath = getPaths()$inputPath, bufferOK = TRUE)
+
+      fuelClassObjects <- Cache(
+        assessFuelClasses(
+          landscape = landscape,
+          fuelCol = P(sim)$fuelClassCol,
+          sppEquiv = sim$sppEquiv,
+          sppEquivCol = P(sim)$sppEquivCol,
+          targetFuelClasses = P(sim)$targetFuelClasses,
+          nonforestLCC = nonforestLCC),
+        userTags = c("assessFuelClasses", P(sim)$fuelClassCol))
+
+      # sppEquiv
+      temp <- fuelClassObjects$modSppEquiv[, .(species, assignedFuelClass)]
+      setnames(temp, c(P(sim)$sppEquivCol, P(sim)$fuelClassCol))
+      sim$sppEquiv[, P(sim)$fuelClassCol := NULL]
+      sim$missingLCCgroup <- fuelClassObjects$missingLCCgroup
+
+      # if (!(is(spreadFitPreRun, "sf") || is(spreadFitPreRun, "data.frame"))) {
+      # set(temp, NULL, "FuelClass", NULL)
+      # temp <- forestFuelClasses2[temp, on = c("species" = Par$sppEquivCol)]
+
+      sim$fuelClassTable <- fuelClassObjects$modSppEquiv
+      sim$nonForestedLCCGroups <- fuelClassObjects$nonForestedLCCGroups
+      message("Estimated fuel classes for this study area:")
+      messageDF(sim$fuelClassTable)
+
+      # } else {
+      # cols <- colnames(spreadFitPreRun$params[[1]])
+      # allTerms <- setdiff(cols, sim$fireSense_spreadLogisticTermNames)
+      # climateTerms <- sim$climateVariablesForFire$spread
+      # fuelTerms <- setdiff(allTerms, climateTerms)
+      # matureTerms <- setdiff(fuelTerms, "youngAge")
+      # forestFuelClasses <- grep("^nf", matureTerms, invert = TRUE, value = TRUE)
+      # dt <- data.table(species = speciesInCohortData)
+      # # dt <- data.table(species = temp[[Par$sppEquivCol]])
+      # dt2 <- abbreviateSpNames(dt)
+      # forestFuelClassesSplit <- strsplit(forestFuelClasses, split = "\\.")
+      # forestFuelClasses2 <- lapply(forestFuelClassesSplit, function(fc) {
+      #   b <- lapply(fc, function(fcInner) {
+      #     colHere <- c("species", "assignedFuelClass")
+      #     a <- lapply(colHere, function(ch) {
+      #       if (!is.null(dt2[[ch]]))
+      #         if (any(grepl(fcInner, dt2[[ch]]))) {
+      #           a <- dt2[data.table(fcInner) |> setNames(ch), on = ch]
+      #           # set(a, NULL, "fuelType", paste(a[[ch]], sep = "."))
+      #         }
+      #     }) |> rbindlist(fill = TRUE)
+      #     return(a)
+      #   })
+      #   d <- rbindlist(b)
+      #   if (NROW(d) > 1) {
+      #     ft <- paste(d[[2]], collapse = ".")
+      #   } else {
+      #     ft <- d[[1]]
+      #   }
+      #   set(d, NULL, "FuelClass", ft)
+      #   d
+      # }) |> rbindlist() |> set(NULL, "assignedFuelClass", NULL)
+      #
+      # forestFuelClasses2[sim$sppEquiv, on = c("species" = Par$sppEquivCol)]
+      # setnames(temp, old = "species", new = Par$sppEquivCol)
+      # # temp[sim$sppEquiv, on = Par$sppEquivCol]
+      #
+      # # now non-forest
+      # nonForestFuelClasses <- grep("^nf", matureTerms, value = TRUE)
+      # nonForestFuelClasses2 <- strsplit(nonForestFuelClasses, split = "_")
+      # nonForestFuelClasses3 <- lapply(nonForestFuelClasses2, function(x) as.integer(x[-1]))
+      # names(nonForestFuelClasses3) <- nonForestFuelClasses
+      # sim$nonForestedLCCGroups <- nonForestFuelClasses3
+      # }
+      #overwrite sim$sppEquiv
+      sim$sppEquiv <- sim$sppEquiv[temp, on = P(sim)$sppEquivCol]
+    } else {
+      us <- if (any(userSupplied %in% TRUE)) {
+        paste(fuelObjs[userSupplied], collapse = ", ")
+      } else {
+        ""
+      }
+      usFC <- if (any(userSuppliedFC %in% TRUE)) {
+        paste0("custom ", Par$fuelClassCol, " column in `sppEquiv`")
+      } else {
+        ""
+      }
+      message("User has supplied ", if (nzchar(us)) us, if (nzchar(usFC)) usFC, "; ",
+              "Not running `assessFuelClasses` to determine nonforest fuel classes. Using:")
+      print(sim$nonForestedLCCGroups)
+    }
   } else {
-    us <- if (any(userSupplied %in% TRUE)) {
-      paste(fuelObjs[userSupplied], collapse = ", ")
-    } else {
-      ""
-    }
-    usFC <- if (any(userSuppliedFC %in% TRUE)) {
-      paste0("custom ", Par$fuelClassCol, " column in `sppEquiv`")
-    } else {
-      ""
-    }
-    message("User has supplied ", if (nzchar(us)) us, if (nzchar(usFC)) usFC, "; ",
+    message("User is using pre-estimated SpreadFit parameters",
             "Not running `assessFuelClasses` to determine nonforest fuel classes. Using:")
     print(sim$nonForestedLCCGroups)
+
   }
+
 
   ## TODO: make this table multidimensional or a list
   sim$landcoverDT2001 <- makeLandcoverDT(rstLCC = rstLCC2001, flammableRTM = sim$flammableRTM2001,
@@ -1407,6 +1565,16 @@ runBorealDP_forCohortData <- function(sim) {
   if (!suppliedElsewhere("missingLCCgroup", sim)) {
     sim$missingLCCgroup <- names(sim$nonForestedLCCGroups)[1]
   }
+
+  if (!suppliedElsewhere("spreadFitAdditionalColNames")) {
+    sim$spreadFitAdditionalColNames <- fireSenseUtils::spreadFitAdditionalColNames
+  }
+
+  # if (!suppliedElsewhere("fireSense_spreadLogisticTermNames")) {
+  #   sim$fireSense_spreadLogisticTermNames <- c("inflectionPoint1", "inflectionPoint2",
+  #                                              "maxAsymptote", "hillSlope1", "hillSlope2")
+  #
+  # }
 
   return(invisible(sim))
 }
