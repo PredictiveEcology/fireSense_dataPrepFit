@@ -149,8 +149,8 @@ defineModule(sim, list(
                  "proportion of flammable landcover in a pixel - for post-hoc analysis"),
     expectsInput("rasterToMatch", "SpatRaster", sourceURL = NA,
                  "template raster for study area. Assumes some buffering of core area to limit edge effect of fire."),
-    expectsInput("rasterToMatchLarge", "SpatRaster", sourceURL = NA,
-                 "template raster for studyAreaLarge. Passed to Biomass_borealDataPrep."),
+    expectsInput("rasterToMatch_biomassParam", "SpatRaster", sourceURL = NA,
+                 "template raster for studyArea_biomassParam. Passed to Biomass_borealDataPrep."),
     expectsInput("rstLCC2001", "SpatRaster", sourceURL = NA,
                  paste0("Raster of 2001 land cover - updated so that pixels above `P(sim)$flammabilityThreshold",
                         "have an assigned flammable landcover")),
@@ -165,7 +165,7 @@ defineModule(sim, list(
                  "map of stand age in 2011 used to create `cohortData2011`"),
     expectsInput("studyArea", "SpatVector", sourceURL = NA,
                  "study area that determines spatial boundaries of all data. Should be buffered to accomodate edge effects"),
-    expectsInput("studyAreaLarge", "SpatVector", sourceURL = NA,
+    expectsInput("studyArea_biomassParam", "SpatVector", sourceURL = NA,
                  "study area passed to Biomass_borealDataPrep for vegetation calibration"),
     expectsInput("studyAreaReporting", "sf", sourceURL = NA,
                  desc = paste("(optional) study area used for reporting purposes, specifically whether fires inside",
@@ -286,7 +286,7 @@ Init <- function(sim) {
   # (landcoverDT/flammableMap and nonForest_timeSinceDisturbance, respectively).
   ## sanity checks
   objs <- c(sim$standAgeMap2001, sim$standAgeMap2011, sim$rstLCC2001, sim$rstLCC2011)
-  if (!LandR::.compareRas(sim$rasterToMatch, sim$rasterToMatchLarge, stopOnError = FALSE)) {
+  if (!LandR::.compareRas(sim$rasterToMatch, sim$rasterToMatch_biomassParam, stopOnError = FALSE)) {
     objs <- lapply(objs, FUN = postProcess, to = sim$rasterToMatch)
   }
   if (!isInt(objs[[1]]) | !isInt(objs[[3]])) {
@@ -1311,7 +1311,7 @@ runBorealDP_forCohortData <- function(sim) {
                   "firePerimeters",
                   "rasterToMatch", "studyArea",
                   "rstLCC2011", "rstLCC2001",
-                  "studyAreaLarge", "rasterToMatchLarge", #needed by BBDP
+                  "studyArea_biomassParam", "rasterToMatch_biomassParam", #needed by BBDP
                   "species", "speciesTable", "sppEquiv")
   objsNeeded <- intersect(ls(sim), objsNeeded)
   objsNeeded <- mget(objsNeeded, envir = envir(sim))
@@ -1356,10 +1356,14 @@ runBorealDP_forCohortData <- function(sim) {
   }
 
 
-  if (!suppliedElsewhere("studyAreaLarge", sim)) {
-    sim$studyAreaLarge <- sim$studyArea
+  if (!suppliedElsewhere("studyArea_biomassParam", sim)) {
+    if (is.null(sim$studyAreaLarge)) {
+      sim$studyArea_biomassParam <- sim$studyArea
+    } else {
+      warning("please replace studyAreaLarge with studyArea_biomassParam")
+      sim$studyArea_biomassParam <- sim$studyAreaLarge
+    }
   }
-
 
   if (!suppliedElsewhere("sppEquiv", sim)) {
     sp <- LandR::speciesInStudyArea(studyArea = sim$studyArea)
@@ -1383,8 +1387,13 @@ runBorealDP_forCohortData <- function(sim) {
                                                     useCache = TRUE))
   }
 
-  if (!suppliedElsewhere("rasterToMatchLarge", sim)) {
-    sim$rasterToMatchLarge <- sim$rasterToMatch
+  if (!suppliedElsewhere("rasterToMatch_biomassParam", sim)) {
+    if (!is.null(sim$rasterToMatchLarge)) {
+      warning("please use rasterToMatch_biomassParam in place of rasterToMatchLarge")
+      sim$rasterToMatch_biomassParam <- sim$rasterToMatchLarge
+    } else {
+      sim$rasterToMatch_biomassParam <- sim$rasterToMatch
+    }
   }
 
   if (!suppliedElsewhere("climateVariablesForFire", sim)) {
@@ -1399,8 +1408,8 @@ runBorealDP_forCohortData <- function(sim) {
                             writeTo = .suffix("rstLCC.tif",
                                               paste0(2001, "_", P(sim)$.studyAreaName)),
                             destinationPath = inputPath(sim),
-                            studyArea = sim$studyAreaLarge,
-                            rasterToMatch = sim$rasterToMatchLarge,
+                            studyArea = sim$studyArea_biomassParam,
+                            rasterToMatch = sim$rasterToMatch_biomassParam,
                             nonflammableLCC = P(sim)$nonflammableLCC,
                             flammabilityThreshold = P(sim)$flammabilityThreshold,
                             userTags = c("makeFireSenseLCC", 2001))
@@ -1415,8 +1424,8 @@ runBorealDP_forCohortData <- function(sim) {
                      writeTo = .suffix("rstLCC.tif",
                                        paste0(2011, "_", P(sim)$.studyAreaName)),
                      destinationPath = inputPath(sim),
-                     studyArea = sim$studyAreaLarge,
-                     rasterToMatch = sim$rasterToMatchLarge,
+                     studyArea = sim$studyArea_biomassParam,
+                     rasterToMatch = sim$rasterToMatch_biomassParam,
                      nonflammableLCC = P(sim)$nonflammableLCC,
                      flammabilityThreshold = P(sim)$flammabilityThreshold,
                      userTags = c("makeFireSenseLCC", 2011))
@@ -1426,8 +1435,8 @@ runBorealDP_forCohortData <- function(sim) {
 
   if (!suppliedElsewhere("standAgeMap2001", sim)) {
     sim$standAgeMap2001 <- Cache(prepInputsStandAgeMap,
-                                 rasterToMatch = sim$rasterToMatchLarge,
-                                 studyArea = sim$studyAreaLarge,
+                                 rasterToMatch = sim$rasterToMatch_biomassParam,
+                                 studyArea = sim$studyArea_biomassParam,
                                  destinationPath = dPath,
                                  startTime = 2001,
                                  userTags = c(cacheTags, "prepInputsStandAgeMap2001"))
@@ -1435,8 +1444,8 @@ runBorealDP_forCohortData <- function(sim) {
 
   if (!suppliedElsewhere("standAgeMap2011", sim)) {
     sim$standAgeMap2011 <- Cache(prepInputsStandAgeMap,
-                                 rasterToMatch = sim$rasterToMatchLarge,
-                                 studyArea = sim$studyAreaLarge,
+                                 rasterToMatch = sim$rasterToMatch_biomassParam,
+                                 studyArea = sim$studyArea_biomassParam,
                                  destinationPath = dPath,
                                  startTime = 2011,
                                  userTags = c(cacheTags, "prepInputsStandAgeMap2011"))
