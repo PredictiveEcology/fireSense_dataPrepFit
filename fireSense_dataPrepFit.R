@@ -664,10 +664,15 @@ prepare_SpreadFit <- function(sim) {
     #to lessen the leverage of zeroes where there is no biomass
     #TODO: discuss implications for spread
     #change the zeroes to one log below the minimum in the data (in this case 100 g/m2)
-    minimumB <- exp(log(100) - 1)
-    x[x < minimumB] <- minimumB
-    # x[x == 0] <- NA # for NAs
-    x <- log(x)
+    if (FALSE) {
+      minimumB <- exp(log(100) - 1)
+      x[x < minimumB] <- minimumB
+      # x[x == 0] <- NA # for NAs
+      x <- log(x)
+
+    } else {
+      x[] <- logMinB(x[]) # same as in dataPrepPredict
+    }
     dt <- as.data.table(values(x))
     dt[, pixelID := 1:ncell(x)]
     return(dt)
