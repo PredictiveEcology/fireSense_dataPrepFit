@@ -46,9 +46,9 @@ defineModule(sim, list(
                     paste("Forested land cover classes - these differ from non-forest because the biomass",
                           "and composition of fuels are taken into account by fireSense, while non-forest",
                           "classes are treated categorically")),
-    defineParameter("igAggFactor", "numeric", 4, 1, NA,
+    defineParameter("igAggFactor", "numeric", 4, 1, NA, # was 4 before xgboost, Jun 19, 2025
                     "aggregation factor for rasters during ignition prep."),
-    defineParameter("igFocalFactor", "integer", as.integer(3), as.integer(3), NA,
+    defineParameter("igFocalFactor", "integer", 1L, NA, NA, # was prior to xgboost Jun 19, 2025 as.integer(3), as.integer(3), NA,
                     paste("Use focal statistics at the base resolution as an alternative to aggregating ignition covariates",
                           "This will occur if `P(sim)$igAggFactor is <= 1, and igFocalFactor is > 1.",
                           "The parameter is the `w` in the `terra::focal` function, i.e. the number of cells. It must be odd,",
@@ -58,6 +58,9 @@ defineModule(sim, list(
                     "named `FuelClass` exists in the `LandR::sppEquivalencies_CA` and will be used ",
                     "by default. To change the `FuelClass` classifications, add a column to that table, ",
                     "or to `sim$sppEquiv` and then modify this `fuelClassCol` parameter"),
+    defineParameter("modelAlgorithm", "character", "xgboost", NA, NA,
+                    "Can be `xgboost`, `glmmtmb`, `glm.nb`, `glmmadaptive`, `glm`; only `xgboost` is supported currently",
+                    "Should be the same as modelAlgorithm used in fireSense_IgnitionFit"),
     defineParameter("minBufferSize", "numeric", 5000, NA, NA,
                     paste("Minimum number of cells in buffer and nonbuffer. This is imposed after the",
                           "multiplier on the `bufferToArea` fn")),
@@ -1152,8 +1155,10 @@ prepare_IgnitionFit <- function(sim) {
   fireSense_ignitionCovariates[, year := as.numeric(year)]
 
   ## for random effect
-  ranEffs <- "yearChar"
-  set(fireSense_ignitionCovariates, NULL, ranEffs, as.character(fireSense_ignitionCovariates$year))
+  if (grepl("xgb", Par$modelAlgorithm) %in% FALSE) {
+    # ranEffs <- "yearChar"
+    set(fireSense_ignitionCovariates, NULL, ranEffsLabel, as.character(fireSense_ignitionCovariates$year))
+  }
   firstCols <- c("pixelID", "ignitions", names(ignitionClimate), "youngAge")
   firstCols <- firstCols[firstCols %in% names(fireSense_ignitionCovariates)]
   setcolorder(fireSense_ignitionCovariates, neworder = firstCols)
@@ -1178,22 +1183,26 @@ prepare_IgnitionFit <- function(sim) {
                                  c(names(ignitionClimate),
                                    "year", "yearChar", "ignitions", "ignitionsNoGT1", "pixelID")]
 
-  ## this is safer for multiple climate variables
-  interactionsDF <- as.data.table(expand.grid(igCovariates, sim$climateVariablesForFire$ignition))
-  interactionsDF[, interaction := do.call(paste, c(.SD, sep = ":")), .SDcols = names(interactionsDF)]
-  interactions <- interactionsDF$interaction
+  if (grepl("xgb", Par$modelAlgorithm) %in% FALSE) {
+    ## this is safer for multiple climate variables
+    interactionsDF <- as.data.table(expand.grid(igCovariates, sim$climateVariablesForFire$ignition))
+    interactionsDF[, interaction := do.call(paste, c(.SD, sep = ":")), .SDcols = names(interactionsDF)]
+    interactions <- interactionsDF$interaction
 
-  ## sanity check for base::abbreviate
-  if (!length(unique(interactions)) == length(igCovariates) * length(sim$climateVariablesForFire$ignition)) {
-    warning("automated ignition formula construction needs review")
-  }
-  if (is.null(sim$fireSense_ignitionFormula)) {
-    sim$fireSense_ignitionFormula <- paste0("ignitions ~ ",
-                                            paste0("(1|", ranEffs, ")"), " + ",
-                                            # this longer formula has had more unrealistic results 12/12/2024
-                                            # paste0(sim$climateVariablesForFire$ignition, collapse = " + "), " + ",
-                                            # paste0(igCovariates, collapse = " + "), " + ",
-                                            paste0(interactions, collapse = " + "))
+    ## sanity check for base::abbreviate
+    if (!length(unique(interactions)) == length(igCovariates) * length(sim$climateVariablesForFire$ignition)) {
+      warning("automated ignition formula construction needs review")
+    }
+    if (is.null(sim$fireSense_ignitionFormula)) {
+      sim$fireSense_ignitionFormula <- paste0("ignitions ~ ",
+                                              paste0("(1|", ranEffsLabel, ")"), " + ",
+                                              # this longer formula has had more unrealistic results 12/12/2024
+                                              # paste0(sim$climateVariablesForFire$ignition, collapse = " + "), " + ",
+                                              # paste0(igCovariates, collapse = " + "), " + ",
+                                              paste0(interactions, collapse = " + "))
+    }
+  } else {
+    # Won't have sim$fireSense_ignitionFormula for xgboost
   }
 
   return(invisible(sim))
@@ -1225,7 +1234,7 @@ prepare_EscapeFit <- function(sim) {
   escapeDT <- escapeDT[sim$fireSense_ignitionCovariates, on = c("pixelID", "year")]
   escapeDT[is.na(escapes), escapes := 0]
 
-  ranEffs <- "yearChar"
+  # ranEffs <- "yearChar"
   escapeVars <- names(escapeDT)[!names(escapeDT) %in% c("year", "pixelID", "escapes",
                                                         sim$climateVariablesForFire$ignition,
                                                         "ignitions", ranEffs)]
@@ -1240,7 +1249,7 @@ prepare_EscapeFit <- function(sim) {
   }
   if (is.null(sim$fireSense_escapeFormula)) {
     sim$fireSense_escapeFormula <- paste0("cbind(escapes, ignitions - escapes) ~ ",
-                                            paste0("(1|", ranEffs, ")"), " + ",
+                                            paste0("(1|", ranEffsLabel, ")"), " + ",
                                             paste0(interactions, collapse = " + "))
   }
 
@@ -1587,3 +1596,5 @@ runBorealDP_forCohortData <- function(sim) {
 
   return(invisible(sim))
 }
+
+ranEffsLabel <- "yearChar"
