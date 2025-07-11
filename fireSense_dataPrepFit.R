@@ -207,6 +207,8 @@ defineModule(sim, list(
                   "data.table with `pixelID` and relevant landcover classes for flammable pixels in 2001 "),
     createsOutput("landcoverDT2011", "data.table",
                   "data.table with `pixelID` and relevant landcover classes for flammable pixels in 2011"),
+    createsOutput("lightningMaps", "SpatRaster",
+                  paste("A 4-layer SpatRaster of lightning: lightningDays, lightningDensity, positiveCG, positiveCGdensity")),
     createsOutput("missingLCCgroup", "character",
                   "if estimating fuel classes, the nonforest class to assign forested pixels absent from `sim$cohortData`"),
     createsOutput("nonForestedLCCGroups", "list",
@@ -1103,6 +1105,26 @@ prepare_IgnitionFit <- function(sim) {
   }
   names(LCCras) <- c("year2001", "year2011")
   names(fuelClasses) <- c("year2001", "year2011")
+
+  lightningUrls <- list(lightningDays = "1jeKJquhVJsesoNk2EPP1QZkttX3Zwp5c",
+                        lightningDensity = "12fnhfKtER-JXkl06M4_yZ3GvpZWtQlIr" ,
+                        positiveCG = "1bn6cQ23tvPicFLHn1tz4Z3AqDzJI4r60",
+                        positiveCGdensity = "1GNixhXj1Ex1jT0tWXfhmxef-dX3ze1a4")
+  digRTM <- sim$rasterToMatch
+  sim$lightningMaps <- Map(url = lightningUrls, nam = names(lightningUrls),
+                       function(url, nam) {
+                         {
+                           prepInputs(url = url,
+                                      fun = readLightningData(targetFile, to = sim$rasterToMatch),
+                                      destinationPath = inputPath(sim))  |>
+                             terra::aggregate(fact = P(sim)$igAggFactor)} |>
+                           Cache(.functionName = paste0("prepInputs_lightning_", nam), omitArgs = "...",
+                                 .cacheExtra = list(url = url, igAggFactor = P(sim)$igAggFactor,
+                                                    rtm = digRTM))
+                       })
+
+
+
   compareGeom(ignitionClimate[[1]], fuelClasses[[1]], fuelClasses[[2]]) ## safety check
 
   ## ignition won't have same years as spread so we do not use names of init objects
@@ -1153,6 +1175,11 @@ prepare_IgnitionFit <- function(sim) {
   ## rename cells to pixelID - though aggregated raster is not saved
   setnames(fireSense_ignitionCovariates, old = "cell", new = "pixelID")
   fireSense_ignitionCovariates[, year := as.numeric(year)]
+
+  # add lightning
+  # https://www.tandfonline.com/doi/full/10.1080/07055900.2020.1845117
+  set(fireSense_ignitionCovariates, NULL, "lightning",
+      sim$lightningMaps[[2]][fireSense_ignitionCovariates[["pixelID"]]])
 
   ## for random effect
   if (grepl("xgb", Par$modelAlgorithm) %in% FALSE) {
@@ -1237,7 +1264,7 @@ prepare_EscapeFit <- function(sim) {
   # ranEffs <- "yearChar"
   escapeVars <- names(escapeDT)[!names(escapeDT) %in% c("year", "pixelID", "escapes",
                                                         sim$climateVariablesForFire$ignition,
-                                                        "ignitions", ranEffs)]
+                                                        "ignitions", ranEffsLabel)]
 
   interactionsDF <- as.data.table(expand.grid(escapeVars, sim$climateVariablesForFire$ignition))
   interactionsDF[, interaction := do.call(paste, c(.SD, sep = ":")), .SDcols = names(interactionsDF)]
