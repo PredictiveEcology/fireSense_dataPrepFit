@@ -2996,7 +2996,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">fireSense_dataPrepFit Manual</h1>
 <h3 class="subtitle">v.1.1.1</h3>
-<h4 class="date">Last updated: 2025-06-09</h4>
+<h4 class="date">Last updated: 2025-07-11</h4>
 
 </div>
 
@@ -3661,8 +3661,8 @@ estimate fuel classes from combination of data and P(sim)<span class="math inlin
   &lt;tr&gt;
    &lt;td style=&quot;text-align:left;&quot;&gt; igFocalFactor &lt;/td&gt;
    &lt;td style=&quot;text-align:left;&quot;&gt; integer &lt;/td&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; 3 &lt;/td&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; 3 &lt;/td&gt;
+   &lt;td style=&quot;text-align:left;&quot;&gt; 1 &lt;/td&gt;
+   &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;
    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;
    &lt;td style=&quot;text-align:left;&quot;&gt; Use focal statistics at the base resolution as an alternative to aggregating ignition covariates This will occur if `P(sim)\)</span>igAggFactor is &lt;= 1, and igFocalFactor is &gt; 1. The parameter is the <code>w</code> in the <code>terra::focal</code> function, i.e. the number of cells. It must be odd, thus 3 is the minimum
 </td>
@@ -3685,6 +3685,26 @@ NA
 </td>
 <td style="text-align:left;">
 the column in <code>sppEquiv</code> that defines unique fuel classes. A column named <code>FuelClass</code> exists in the <code>LandR::sppEquivalencies_CA</code> and will be used by default. To change the <code>FuelClass</code> classifications, add a column to that table, or to <code>sim$sppEquiv</code> and then modify this <code>fuelClassCol</code> parameter
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+modelAlgorithm
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+xgboost
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Can be <code>xgboost</code>, <code>glmmtmb</code>, <code>glm.nb</code>, <code>glmmadaptive</code>, <code>glm</code>; only <code>xgboost</code> is supported currentlyShould be the same as modelAlgorithm used in fireSense_IgnitionFit
 </td>
 </tr>
 <tr>
@@ -4222,6 +4242,17 @@ data.table
 </td>
 <td style="text-align:left;">
 data.table with <code>pixelID</code> and relevant landcover classes for flammable pixels in 2011
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+lightningMaps
+</td>
+<td style="text-align:left;">
+SpatRaster
+</td>
+<td style="text-align:left;">
+A 4-layer SpatRaster of lightning: lightningDays, lightningDensity, positiveCG, positiveCGdensity
 </td>
 </tr>
 <tr>
