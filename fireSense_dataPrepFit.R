@@ -373,6 +373,39 @@ Init <- function(sim) {
 
   if (needToEstimateFuelClasses) {
 
+    # THIS COMMENTED SECTION REBUILT THE OBJECT; NEEDED BECAUSE OF A BUG THAT MAYBE IS NO LONGER
+    # df <- prepInputs(url = "https://drive.google.com/file/d/1KSexouuUvxEFuCdu173i5R7xyRDrKDqI/view?usp=drive_link")
+    #
+    # df1 <- lapply(df, function(x) {
+    #   y <- parse(text = x)
+    #   z <- try(eval(y), silent = TRUE)
+    #   if (is(z, "try-error"))
+    #     x
+    #   else
+    #     z
+    #   })
+    #
+    # # I(list(df1$focal_modal)),
+    #
+    # df <- data.frame(I(list(as.data.table(df1$params))),
+    #                  I(list(as.data.table(df1$sppEquiv))),
+    #                  I(list(df1$nonForestedLCCGroups)),
+    #                  I(list(df1$missingLCCgroup))
+    #                  ) |> setNames(sim$spreadFitAdditionalColNames)
+    #
+    # sim$studyAreaWithSpreadParams <- sf::st_as_sf(sim$studyArea) |>
+    #   dplyr::mutate(df)
+    #
+    # le <- function(x) {x}
+    # spreadFitPreRun <- CacheGeo(cloudFolderID = Par$spreadFitGoogleDriveFolder,
+    #                             targetFile = Par$spreadFitFilename,
+    #                             domain = sim$studyArea,
+    #                             destinationPath = inputPath(sim),
+    #                             FUN = le(studyAreaFireSense),
+    #                             le = le,
+    #                             studyAreaFireSense = sim$studyAreaWithSpreadParams,
+    #                             action = "update")
+
     spreadFitPreRun <- CacheGeo(cloudFolderID = Par$spreadFitGoogleDriveFolder,
                                 targetFile = Par$spreadFitFilename,
                                 domain = sim$studyArea, action = "nothing",
