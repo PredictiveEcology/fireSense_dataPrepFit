@@ -405,10 +405,11 @@ Init <- function(sim) {
     #                             le = le,
     #                             studyAreaFireSense = sim$studyAreaWithSpreadParams,
     #                             action = "update")
-
+    sa <- sim$studyArea
+    if (inherits(sa, "SpatVector")) sa <- st_as_sf(sa)
     spreadFitPreRun <- CacheGeo(cloudFolderID = Par$spreadFitGoogleDriveFolder,
                                 targetFile = Par$spreadFitFilename,
-                                domain = sim$studyArea, action = "nothing",
+                                domain = sa, action = "nothing",
                                 destinationPath = getPaths()$inputPath, bufferOK = TRUE) # |> Cache()
     haveSpreadFit <- is(spreadFitPreRun, "sf") || is(spreadFitPreRun, "data.frame")
 
@@ -1424,7 +1425,6 @@ runBorealDP_forCohortData <- function(sim) {
 }
 
 .inputObjects <- function(sim) {
-
   if (!suppliedElsewhere("studyArea", sim)) {
     sim$studyArea <- LandR::randomStudyArea(size = 10000 * 6.25 * 20000)
   }
