@@ -42,7 +42,7 @@ defineModule(sim, list(
     defineParameter("flammabilityThreshold", "numeric", 0.1, 0, 1,
                     paste("Minimum proportion of flammable old pixel needed to define a new pixel
                           as flammable when upscaling the default flammable maps`.")),
-    defineParameter("forestedLCC", "numeric", c(0, 81, 210, 220, 230, 240), NA, NA,
+    defineParameter("forestedLCC", "numeric", c(81, 210, 220, 230, 240), NA, NA,
                     paste("Forested land cover classes - these differ from non-forest because the biomass",
                           "and composition of fuels are taken into account by fireSense, while non-forest",
                           "classes are treated categorically")),
