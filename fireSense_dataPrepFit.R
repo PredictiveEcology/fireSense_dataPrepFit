@@ -808,6 +808,21 @@ prepare_SpreadFit <- function(sim) {
   fireSense_annualSpreadFitCovariates <- split(fbl, by = "year", keep.by = FALSE)
 
   ## prepare non-annual spread fit covariates by getting the youngAge
+  # have to remove years that have no fires and so no climate data needed
+  missingYears <- setdiff(paste0("year", c(pre2012int, post2012int)), names(fireSense_annualSpreadFitCovariates))
+  for (my in missingYears) # keep the colnames even though NROW is 0
+    fireSense_annualSpreadFitCovariates[[my]] <-  fireSense_annualSpreadFitCovariates[[1]][0]
+  fireSense_annualSpreadFitCovariates <- fireSense_annualSpreadFitCovariates[order(names(fireSense_annualSpreadFitCovariates))]
+
+  pre2012 <- intersect(paste0("year", pre2012int), names(fireSense_annualSpreadFitCovariates))
+  post2012 <- intersect(paste0("year", post2012int), names(fireSense_annualSpreadFitCovariates))
+
+  pre2012int <- as.integer(gsub("year", "", pre2012))
+  post2012int <- as.integer(gsub("year", "", post2012))
+  # pre2012 <- yearsWithFire[yearsWithFire %in% paste0("year", pre2012int)]
+  # post2012 <- yearsWithFire[yearsWithFire %in% paste0("year", post2012int)]
+
+
   pre2012Indices <- sim$fireBufferedListDT[names(sim$fireBufferedListDT) %in% pre2012]
   post2012Indices <- sim$fireBufferedListDT[!names(sim$fireBufferedListDT) %in% pre2012]
   colsToExtract <- c("pixelID", vegCols)
