@@ -423,6 +423,11 @@ Init <- function(sim) {
         df <- df[colNames]
         dfList <- lapply(df, function(x) x[[1]])
         list2env(dfList, envir(sim)) # sim$nonForestedLCCGroups, sim$sppEquiv, sim$missingLCCgroup
+        sim$sppNameVector <- unique(sim$sppEquiv[[Par$sppEquivCol]])
+        sppOuts <- sppHarmonize(sim$sppEquiv, sim$sppNameVector, P(sim)$sppEquivCol, sppColorVect = NULL, vegLeadingProportion = NULL, studyArea = sim$studyArea)
+                                # sim$sppColorVect, P(sim)$vegLeadingProportion, sim$studyArea_biomassParam)
+        list2env(sppOuts, envir = envir(sim))
+
 
       } else {
         # This is to rebuild the objects if they are not contained within the spreadFitPreRun; defunct
