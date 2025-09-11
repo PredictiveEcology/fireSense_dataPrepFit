@@ -783,9 +783,6 @@ prepare_SpreadFit <- function(sim) {
   yearsWithFire <- years[years %in% names(sim$fireBufferedListDT)]
   pre2012int <- as.integer(min(P(sim)$fireYears):2011)
   post2012int <- as.integer(2012:max(P(sim)$fireYears))
-  pre2012 <- yearsWithFire[yearsWithFire %in% paste0("year", pre2012int)]
-  post2012 <- yearsWithFire[yearsWithFire %in% paste0("year", post2012int)]
-
   #### prep climate data ####
 
   ## index removed as argument - as flammable pixels change between 2001 and 2011 (mainly water)
@@ -843,17 +840,18 @@ prepare_SpreadFit <- function(sim) {
                            fireSense_annualSpreadFitCovariates[post2012])
 
   annualCovariates <- Cache(
-    purrr::pmap,
-    .l = list(
-      #years = list(c(2001:2010), c(2011:max(P(sim)$fireYears))),
-      years = list(pre2012int, post2012int),
-      annualCovariates = annualCovariates,
-      standAgeMap = list(sim$nonForest_timeSinceDisturbance2001,
-                         sim$nonForest_timeSinceDisturbance2011)
-    ),
-    .f = calcYoungAge,
-    fireBufferedListDT = sim$fireBufferedListDT,
-    cutoffForYoungAge = P(sim)$cutoffForYoungAge
+    purrr::pmap(
+      .l = list(
+        #years = list(c(2001:2010), c(2011:max(P(sim)$fireYears))),
+        years = list(pre2012int, post2012int),
+        annualCovariates = annualCovariates,
+        standAgeMap = list(sim$nonForest_timeSinceDisturbance2001,
+                           sim$nonForest_timeSinceDisturbance2011)
+      ),
+      .f = calcYoungAge,
+      fireBufferedListDT = sim$fireBufferedListDT,
+      cutoffForYoungAge = P(sim)$cutoffForYoungAge
+    )
   )
 
   ## get rid of nonflammable pixels (here because the calcYoungAge function assigns ages to NA values,
