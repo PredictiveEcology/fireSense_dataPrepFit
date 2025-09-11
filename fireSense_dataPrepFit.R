@@ -407,7 +407,7 @@ Init <- function(sim) {
     #                             action = "update")
 
     spreadFitPreRun <- CacheGeo(cloudFolderID = Par$spreadFitGoogleDriveFolder,
-                                targetFile = Par$spreadFitFilename,
+                                targetFile = Par$spreadFitFilename, purge = 7,
                                 domain = sim$studyArea, action = "nothing",
                                 destinationPath = getPaths()$inputPath, bufferOK = TRUE) # |> Cache()
     haveSpreadFit <- is(spreadFitPreRun, "sf") || is(spreadFitPreRun, "data.frame")
