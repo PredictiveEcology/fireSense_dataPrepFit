@@ -371,6 +371,13 @@ Init <- function(sim) {
 
   needToEstimateFuelClasses <- P(sim)$estimateFuelClasses && all(userSupplied %in% FALSE) && all(userSuppliedFC %in% TRUE)
 
+  sa <- sim$studyArea
+  if (inherits(sa, "SpatVector")) sa <- st_as_sf(sa)
+  spreadFitPreRun <- CacheGeo(cloudFolderID = Par$spreadFitGoogleDriveFolder,
+                              targetFile = Par$spreadFitFilename, purge = 7,
+                              domain = sa, action = "nothing",
+                              destinationPath = getPaths()$inputPath, bufferOK = TRUE) # |> Cache()
+  haveSpreadFit <- is(spreadFitPreRun, "sf") || is(spreadFitPreRun, "data.frame")
   if (needToEstimateFuelClasses) {
 
     # THIS COMMENTED SECTION REBUILT THE OBJECT; NEEDED BECAUSE OF A BUG THAT MAYBE IS NO LONGER
@@ -405,13 +412,6 @@ Init <- function(sim) {
     #                             le = le,
     #                             studyAreaFireSense = sim$studyAreaWithSpreadParams,
     #                             action = "update")
-    sa <- sim$studyArea
-    if (inherits(sa, "SpatVector")) sa <- st_as_sf(sa)
-    spreadFitPreRun <- CacheGeo(cloudFolderID = Par$spreadFitGoogleDriveFolder,
-                                targetFile = Par$spreadFitFilename, purge = 7,
-                                domain = sa, action = "nothing",
-                                destinationPath = getPaths()$inputPath, bufferOK = TRUE) # |> Cache()
-    haveSpreadFit <- is(spreadFitPreRun, "sf") || is(spreadFitPreRun, "data.frame")
 
     if (haveSpreadFit) {
 
