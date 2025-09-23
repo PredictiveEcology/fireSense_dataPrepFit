@@ -177,6 +177,15 @@ defineModule(sim, list(
                               "the studyArea polygon, indicating the buffered studyArea shoudl be expanded."))
   ),
   outputObjects = bindrows(
+    createsOutput("climateVariablesForFire", "list", sourceURL = NA,
+                  paste("A list detailing which climate variables in `sim$historicalClimateRasters`",
+                        "to use for which fire processes (ignition and spread). If the list is length one,",
+                        "both processes will use the same variables. This will be an output ",
+                        "if there is an existing studyAreaWithParams")),
+    createsOutput("studyAreaWithSpreadParams", "sf",
+                  desc = paste("This is the studyArea, but with parameters from a previously ",
+                               "fitted SpreadFit. If no pre-existing object exists from ",
+                               "CacheGeo, this will be NULL")),
     createsOutput("climateVariables", "list",
                   paste("a list, named by climate variable using 'projected_' or 'historical_'",
                         "prefixes, with each list element containing a list of three arguments:",
@@ -317,6 +326,7 @@ Init <- function(sim) {
 
   #if (needToEstimateFuelClasses) {
   if (mod$haveSpreadFit) {
+    sim$studyAreaWithSpreadParams <- spreadFitPreRun
     # remove the column called "params" ... this just allows for partial matching, with or without "s"
     #   in case somebody uses `parameters`, `param`, or `params`
     colNames <- setdiff(sim$spreadFitAdditionalColNames,
