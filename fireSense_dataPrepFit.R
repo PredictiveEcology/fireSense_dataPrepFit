@@ -1457,8 +1457,7 @@ runBorealDP_forCohortData <- function(sim) {
   }
 
   if (!suppliedElsewhere("climateVariablesForFire", sim)) {
-    sim$climateVariablesForFire <- list("spread" = "MDC",
-                                        "ignition" = "MDC")
+    sim$climateVariablesForFire <- defaultClimateVariablesForFire
   }
 
   if (!suppliedElsewhere("rstLCC2001", sim)) {
@@ -1651,3 +1650,6 @@ runBorealDP_forCohortData <- function(sim) {
 }
 
 ranEffsLabel <- "yearChar"
+
+defaultClimateVariablesForFire <- list("spread" = "MDC",
+                                       "ignition" = "MDC")
