@@ -2996,7 +2996,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">fireSense_dataPrepFit Manual</h1>
 <h3 class="subtitle">v.1.1.3</h3>
-<h4 class="date">Last updated: 2025-09-24</h4>
+<h4 class="date">Last updated: 2025-10-21</h4>
 
 </div>
 
@@ -3183,13 +3183,13 @@ NA
 </tr>
 <tr>
 <td style="text-align:left;">
-cohortData2001
+cohortData2010
 </td>
 <td style="text-align:left;">
 data.table
 </td>
 <td style="text-align:left;">
-Table that defines the cohorts by pixelGroup in 2001
+Table that defines the cohorts by pixelGroup in 2010
 </td>
 <td style="text-align:left;">
 NA
@@ -3197,13 +3197,13 @@ NA
 </tr>
 <tr>
 <td style="text-align:left;">
-cohortData2011
+cohortData2020
 </td>
 <td style="text-align:left;">
 data.table
 </td>
 <td style="text-align:left;">
-Table that defines the cohorts by pixelGroup in 2011
+Table that defines the cohorts by pixelGroup in 2020
 </td>
 <td style="text-align:left;">
 NA
@@ -3337,13 +3337,13 @@ NA
 </tr>
 <tr>
 <td style="text-align:left;">
-pixelGroupMap2001
+pixelGroupMap2010
 </td>
 <td style="text-align:left;">
 SpatRaster
 </td>
 <td style="text-align:left;">
-defines the <code>pixelGroups</code> for cohortData table in 2001
+defines the <code>pixelGroups</code> for cohortData table in 2010
 </td>
 <td style="text-align:left;">
 NA
@@ -3351,13 +3351,13 @@ NA
 </tr>
 <tr>
 <td style="text-align:left;">
-pixelGroupMap2011
+pixelGroupMap2020
 </td>
 <td style="text-align:left;">
 SpatRaster
 </td>
 <td style="text-align:left;">
-defines the <code>pixelGroups</code> for cohortData table in 2011
+defines the <code>pixelGroups</code> for cohortData table in 2020
 </td>
 <td style="text-align:left;">
 NA
@@ -3365,7 +3365,7 @@ NA
 </tr>
 <tr>
 <td style="text-align:left;">
-propFlammable2001
+propFlammable2010
 </td>
 <td style="text-align:left;">
 SpatRaster
@@ -3379,7 +3379,7 @@ NA
 </tr>
 <tr>
 <td style="text-align:left;">
-propFlammable2011
+propFlammable2020
 </td>
 <td style="text-align:left;">
 SpatRaster
@@ -3421,13 +3421,13 @@ NA
 </tr>
 <tr>
 <td style="text-align:left;">
-rstLCC2001
+rstLCC2010
 </td>
 <td style="text-align:left;">
 SpatRaster
 </td>
 <td style="text-align:left;">
-Raster of 2001 land cover - updated so that pixels above <code>P(sim)$flammabilityThresholdhave an assigned flammable landcover &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; rstLCC2011 &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; SpatRaster &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; Raster of 2011 land cover - updated so that pixels above</code>P(sim)$flammabilityThresholdhave an assigned flammable landcover
+Raster of 2010 land cover - updated so that pixels above <code>P(sim)$flammabilityThresholdhave an assigned flammable landcover &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; rstLCC2020 &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; SpatRaster &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; Raster of 2020 land cover - updated so that pixels above</code>P(sim)$flammabilityThresholdhave an assigned flammable landcover
 </td>
 <td style="text-align:left;">
 NA
@@ -3449,27 +3449,13 @@ NA
 </tr>
 <tr>
 <td style="text-align:left;">
-standAgeMap2001
+standAgeMaps
 </td>
 <td style="text-align:left;">
-SpatRaster
+list
 </td>
 <td style="text-align:left;">
-map of stand age in 2001 used to create <code>cohortData2001</code>
-</td>
-<td style="text-align:left;">
-NA
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-standAgeMap2011
-</td>
-<td style="text-align:left;">
-SpatRaster
-</td>
-<td style="text-align:left;">
-map of stand age in 2011 used to create <code>cohortData2011</code>
+list of length 2 of maps of stand age in dataYear[[1]] and dataYear[[2]] used to create <code>cohortDatas</code>
 </td>
 <td style="text-align:left;">
 NA
@@ -3605,6 +3591,26 @@ NA
 </td>
 <td style="text-align:left;">
 Age at and below which pixels are considered ‘young’ (<code>young &amp;lt;- age &amp;lt;= cutoffForYoungAge</code>)
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+dataYears
+</td>
+<td style="text-align:left;">
+integer
+</td>
+<td style="text-align:left;">
+2010, 2020
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+A numeric vector of length 2 (only tested with 2) indicating which years should be used for standAgeMaps, rstLCCs etc. Should not include years prior to 2002, to ensure correct intialization from data.
 </td>
 </tr>
 <tr>
@@ -4291,26 +4297,26 @@ A (template) raster with information with regards to the spatial resolution and 
 </tr>
 <tr>
 <td style="text-align:left;">
-landcoverDT2001
+landcoverDT2010
 </td>
 <td style="text-align:left;">
 data.table
 </td>
 <td style="text-align:left;">
-data.table with <code>pixelID</code> and relevant landcover classes for flammable pixels in 2001
+data.table with <code>pixelID</code> and relevant landcover classes for flammable pixels in 2010
 </td>
 <td style="text-align:left;">
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-landcoverDT2011
+landcoverDT2020
 </td>
 <td style="text-align:left;">
 data.table
 </td>
 <td style="text-align:left;">
-data.table with <code>pixelID</code> and relevant landcover classes for flammable pixels in 2011
+data.table with <code>pixelID</code> and relevant landcover classes for flammable pixels in 2020
 </td>
 <td style="text-align:left;">
 </td>
@@ -4356,65 +4362,65 @@ a named list of non-forested landcover groups forming distinct fuel classes e.g.
 </tr>
 <tr>
 <td style="text-align:left;">
-nonForest_timeSinceDisturbance2001
+nonForest_timeSinceDisturbance2010
 </td>
 <td style="text-align:left;">
 SpatRaster
 </td>
 <td style="text-align:left;">
-time since burn for non-forested pixels in 2001
+time since burn for non-forested pixels in 2010
 </td>
 <td style="text-align:left;">
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-nonForest_timeSinceDisturbance2011
+nonForest_timeSinceDisturbance2020
 </td>
 <td style="text-align:left;">
 SpatRaster
 </td>
 <td style="text-align:left;">
-time since burn for non-forested pixels in 2011
+time since burn for non-forested pixels in 2020
 </td>
 <td style="text-align:left;">
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-rstLCC2001
+rstLCC2010
 </td>
 <td style="text-align:left;">
 SpatRaster
 </td>
 <td style="text-align:left;">
-Raster of 2001 land cover - updated so that pixels above <code>P(sim)$flammabilityThresholdhave an assigned flammable landcover &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt;  &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; rstLCC2011 &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; SpatRaster &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; Raster of 2011 land cover - updated so that pixels above</code>P(sim)$flammabilityThresholdhave an assigned flammable landcover
+Raster of 2010 land cover - updated so that pixels above <code>P(sim)$flammabilityThresholdhave an assigned flammable landcover &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt;  &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; rstLCC2020 &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; SpatRaster &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; Raster of 2020 land cover - updated so that pixels above</code>P(sim)$flammabilityThresholdhave an assigned flammable landcover
 </td>
 <td style="text-align:left;">
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-flammableRTM2001
+flammableRTM2010
 </td>
 <td style="text-align:left;">
 SpatRaster
 </td>
 <td style="text-align:left;">
-binary raster of flammable landcover for 2001
+binary raster of flammable landcover for 2010
 </td>
 <td style="text-align:left;">
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-flammableRTM2011
+flammableRTM2020
 </td>
 <td style="text-align:left;">
 SpatRaster
 </td>
 <td style="text-align:left;">
-binary raster of flammable landcover for 2011
+binary raster of flammable landcover for 2020
 </td>
 <td style="text-align:left;">
 </td>
