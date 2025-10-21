@@ -1580,9 +1580,9 @@ runBorealDP_forCohortData <- function(sim) {
       browser()
       ## TODO: check why this isn't resulting in identical crs between firePolys, studyArea
       allFirePolys <- fireSenseUtils::getFirePolygons(
-                            fun = "sf::st_read",
+                            fun = "terra::vect",
                             years = fireYears,
-                            useInnerCache = TRUE,
+                            useInnerCache = FALSE,
                             destinationPath = dPath,
                             cropTo = sim$rasterToMatch,
                             maskTo = saNotLatLong,
