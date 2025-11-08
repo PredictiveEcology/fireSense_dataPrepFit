@@ -2996,7 +2996,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">fireSense_dataPrepFit Manual</h1>
 <h3 class="subtitle">v.1.1.3</h3>
-<h4 class="date">Last updated: 2025-10-21</h4>
+<h4 class="date">Last updated: 2025-11-08</h4>
 
 </div>
 
@@ -3183,27 +3183,13 @@ NA
 </tr>
 <tr>
 <td style="text-align:left;">
-cohortData2010
+cohortDatas
 </td>
 <td style="text-align:left;">
-data.table
+list
 </td>
 <td style="text-align:left;">
-Table that defines the cohorts by pixelGroup in 2010
-</td>
-<td style="text-align:left;">
-NA
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-cohortData2020
-</td>
-<td style="text-align:left;">
-data.table
-</td>
-<td style="text-align:left;">
-Table that defines the cohorts by pixelGroup in 2020
+List of (2) data.tables with cohortData that defines the cohorts by pixelGroup in the years represented by the names of the list
 </td>
 <td style="text-align:left;">
 NA
@@ -3337,27 +3323,13 @@ NA
 </tr>
 <tr>
 <td style="text-align:left;">
-pixelGroupMap2010
+pixelGroupMaps
 </td>
 <td style="text-align:left;">
-SpatRaster
+list
 </td>
 <td style="text-align:left;">
-defines the <code>pixelGroups</code> for cohortData table in 2010
-</td>
-<td style="text-align:left;">
-NA
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-pixelGroupMap2020
-</td>
-<td style="text-align:left;">
-SpatRaster
-</td>
-<td style="text-align:left;">
-defines the <code>pixelGroups</code> for cohortData table in 2020
+List of (2) SpatRaster that goes with cohortDatas and that defines the cohorts by pixelGroup in the years represented by the names of the list
 </td>
 <td style="text-align:left;">
 NA
@@ -3365,27 +3337,13 @@ NA
 </tr>
 <tr>
 <td style="text-align:left;">
-propFlammable2010
+propFlammables
 </td>
 <td style="text-align:left;">
-SpatRaster
+list
 </td>
 <td style="text-align:left;">
-proportion of flammable landcover in a pixel - for post-hoc analysis
-</td>
-<td style="text-align:left;">
-NA
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-propFlammable2020
-</td>
-<td style="text-align:left;">
-SpatRaster
-</td>
-<td style="text-align:left;">
-proportion of flammable landcover in a pixel - for post-hoc analysis
+Lists of (2) SpatRasters with proportion of flammable landcover in a pixel - for post-hoc analysis
 </td>
 <td style="text-align:left;">
 NA
@@ -3421,41 +3379,27 @@ NA
 </tr>
 <tr>
 <td style="text-align:left;">
-rstLCC2010
-</td>
-<td style="text-align:left;">
-SpatRaster
-</td>
-<td style="text-align:left;">
-Raster of 2010 land cover - updated so that pixels above <code>P(sim)$flammabilityThresholdhave an assigned flammable landcover &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; rstLCC2020 &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; SpatRaster &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; Raster of 2020 land cover - updated so that pixels above</code>P(sim)$flammabilityThresholdhave an assigned flammable landcover
-</td>
-<td style="text-align:left;">
-NA
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-sppEquiv
-</td>
-<td style="text-align:left;">
-data.table
-</td>
-<td style="text-align:left;">
-table of LandR species equivalencies
-</td>
-<td style="text-align:left;">
-NA
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-standAgeMaps
+rstLCCs
 </td>
 <td style="text-align:left;">
 list
 </td>
 <td style="text-align:left;">
-list of length 2 of maps of stand age in dataYear[[1]] and dataYear[[2]] used to create <code>cohortDatas</code>
+List of (2) SpatRasters of land cover - updated so that pixels above <code>P(sim)$flammabilityThresholdhave an assigned flammable landcover &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; sppEquiv &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; data.table &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; table of LandR species equivalencies &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; standAgeMaps &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; list &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; list of length 2 of maps of stand age in dataYear[[1]] and dataYear[[2]] used to create</code>cohortDatas`
+</td>
+<td style="text-align:left;">
+NA
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+spreadFirePolys
+</td>
+<td style="text-align:left;">
+list
+</td>
+<td style="text-align:left;">
+list of sf polygon objects representing annual fires; this is an ‘input’ because the object is modified in a subsequent event; this is not required at ‘init’
 </td>
 <td style="text-align:left;">
 NA
@@ -3601,7 +3545,7 @@ dataYears
 integer
 </td>
 <td style="text-align:left;">
-2010, 2020
+2000, 20….
 </td>
 <td style="text-align:left;">
 NA
@@ -3610,7 +3554,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-A numeric vector of length 2 (only tested with 2) indicating which years should be used for standAgeMaps, rstLCCs etc. Should not include years prior to 2002, to ensure correct intialization from data.
+A numeric vector of length 2 or more (only tested with 2 and 3) indicating which years should be used for standAgeMaps, rstLCCs etc.
 </td>
 </tr>
 <tr>
@@ -3915,26 +3859,6 @@ Which fireSense fit modules to prep? defaults to all 3
 </tr>
 <tr>
 <td style="text-align:left;">
-.plotInitialTime
-</td>
-<td style="text-align:left;">
-numeric
-</td>
-<td style="text-align:left;">
-NA
-</td>
-<td style="text-align:left;">
-NA
-</td>
-<td style="text-align:left;">
-NA
-</td>
-<td style="text-align:left;">
-Describes the simulation time at which the first plot event should occur.
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
 .plotInterval
 </td>
 <td style="text-align:left;">
@@ -4093,9 +4017,6 @@ objectClass
 <th style="text-align:left;">
 desc
 </th>
-<th style="text-align:left;">
-sourceURL
-</th>
 </tr>
 </thead>
 <tbody>
@@ -4109,9 +4030,6 @@ list
 <td style="text-align:left;">
 A list detailing which climate variables in <code>sim$historicalClimateRasters</code> to use for which fire processes (ignition and spread). If the list is length one, both processes will use the same variables. This will be an output if there is an existing studyAreaWithParams
 </td>
-<td style="text-align:left;">
-NA
-</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -4122,8 +4040,6 @@ sf
 </td>
 <td style="text-align:left;">
 This is the studyArea, but with parameters from a previously fitted SpreadFit. If no pre-existing object exists from CacheGeo, this will be NULL
-</td>
-<td style="text-align:left;">
 </td>
 </tr>
 <tr>
@@ -4136,8 +4052,6 @@ list
 <td style="text-align:left;">
 a list, named by climate variable using ‘projected_’ or ‘historical_’ prefixes, with each list element containing a list of three arguments: vars - the raw variables used to derive the target variable, fun - the quoted function used to derive the target variable, where ‘quote(calcAsIs)’ denotes target variables that ARE the raw variable, and dots - additional arguments passed to ‘fun’. See the .inputObjects for examples of how to build this object and ?climateData::prepClimateLayers for how it is used . The GCM, SSP, and selected years, whether projected or historical, are set by module parameters and must be identical for all variables
 </td>
-<td style="text-align:left;">
-</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -4148,8 +4062,6 @@ list
 </td>
 <td style="text-align:left;">
 list of data.tables with fire id, <code>pixelID</code>, and buffer status
-</td>
-<td style="text-align:left;">
 </td>
 </tr>
 <tr>
@@ -4162,8 +4074,6 @@ data.table
 <td style="text-align:left;">
 table with assigned fuel class of each tree species, after running assessFuelClasses
 </td>
-<td style="text-align:left;">
-</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -4174,8 +4084,6 @@ list
 </td>
 <td style="text-align:left;">
 list of sf polygon objects representing annual fires
-</td>
-<td style="text-align:left;">
 </td>
 </tr>
 <tr>
@@ -4188,8 +4096,6 @@ list
 <td style="text-align:left;">
 list of tables with climate covariates, <code>youngAge</code>, burn status, <code>polyID</code>, and <code>pixelID</code>
 </td>
-<td style="text-align:left;">
-</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -4200,8 +4106,6 @@ data.table
 </td>
 <td style="text-align:left;">
 ignition covariates with added column of escapes
-</td>
-<td style="text-align:left;">
 </td>
 </tr>
 <tr>
@@ -4214,8 +4118,6 @@ character
 <td style="text-align:left;">
 formula for escape, using fuel classes and landcover, as character
 </td>
-<td style="text-align:left;">
-</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -4226,8 +4128,6 @@ data.table
 </td>
 <td style="text-align:left;">
 table of aggregated ignition covariates with annual ignitions
-</td>
-<td style="text-align:left;">
 </td>
 </tr>
 <tr>
@@ -4240,8 +4140,6 @@ character
 <td style="text-align:left;">
 formula for ignition, using climate and vegetation covariates, as character
 </td>
-<td style="text-align:left;">
-</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -4252,8 +4150,6 @@ list
 </td>
 <td style="text-align:left;">
 list of two tables with vegetation covariates, burn status, polyID, and <code>pixelID</code>
-</td>
-<td style="text-align:left;">
 </td>
 </tr>
 <tr>
@@ -4266,8 +4162,6 @@ character
 <td style="text-align:left;">
 formula for spread, using climate and vegetation covariates, as character
 </td>
-<td style="text-align:left;">
-</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -4278,8 +4172,6 @@ sf
 </td>
 <td style="text-align:left;">
 Same as object that is an input, but possibly changed CRS
-</td>
-<td style="text-align:left;">
 </td>
 </tr>
 <tr>
@@ -4292,33 +4184,16 @@ SpatRaster
 <td style="text-align:left;">
 A (template) raster with information with regards to the spatial resolution and geographical extent of <code>fireSense_ignitionCovariates</code>. Used to pass this information onto <code>fireSense_ignitionFitted</code> Needs to have number of non-NA cells as attribute (<code>attributes(ignitionFitRTM)$nonNAs</code>).
 </td>
-<td style="text-align:left;">
-</td>
 </tr>
 <tr>
 <td style="text-align:left;">
-landcoverDT2010
+landcoverDTs
 </td>
 <td style="text-align:left;">
-data.table
+list
 </td>
 <td style="text-align:left;">
-data.table with <code>pixelID</code> and relevant landcover classes for flammable pixels in 2010
-</td>
-<td style="text-align:left;">
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-landcoverDT2020
-</td>
-<td style="text-align:left;">
-data.table
-</td>
-<td style="text-align:left;">
-data.table with <code>pixelID</code> and relevant landcover classes for flammable pixels in 2020
-</td>
-<td style="text-align:left;">
+List of (2) <code>data.table</code>s with <code>pixelID</code> and relevant landcover classes for flammable pixels in each layer
 </td>
 </tr>
 <tr>
@@ -4331,8 +4206,6 @@ SpatRaster
 <td style="text-align:left;">
 A 4-layer SpatRaster of lightning: lightningDays, lightningDensity, positiveCG, positiveCGdensity
 </td>
-<td style="text-align:left;">
-</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -4343,8 +4216,6 @@ character
 </td>
 <td style="text-align:left;">
 if estimating fuel classes, the nonforest class to assign forested pixels absent from <code>sim$cohortData</code>
-</td>
-<td style="text-align:left;">
 </td>
 </tr>
 <tr>
@@ -4357,98 +4228,27 @@ list
 <td style="text-align:left;">
 a named list of non-forested landcover groups forming distinct fuel classes e.g. list(‘wetland’ = c(19, 23, 32))
 </td>
-<td style="text-align:left;">
-</td>
 </tr>
 <tr>
 <td style="text-align:left;">
-nonForest_timeSinceDisturbance2010
-</td>
-<td style="text-align:left;">
-SpatRaster
-</td>
-<td style="text-align:left;">
-time since burn for non-forested pixels in 2010
-</td>
-<td style="text-align:left;">
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-nonForest_timeSinceDisturbance2020
-</td>
-<td style="text-align:left;">
-SpatRaster
-</td>
-<td style="text-align:left;">
-time since burn for non-forested pixels in 2020
-</td>
-<td style="text-align:left;">
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-rstLCC2010
-</td>
-<td style="text-align:left;">
-SpatRaster
-</td>
-<td style="text-align:left;">
-Raster of 2010 land cover - updated so that pixels above <code>P(sim)$flammabilityThresholdhave an assigned flammable landcover &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt;  &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; rstLCC2020 &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; SpatRaster &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; Raster of 2020 land cover - updated so that pixels above</code>P(sim)$flammabilityThresholdhave an assigned flammable landcover
-</td>
-<td style="text-align:left;">
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-flammableRTM2010
-</td>
-<td style="text-align:left;">
-SpatRaster
-</td>
-<td style="text-align:left;">
-binary raster of flammable landcover for 2010
-</td>
-<td style="text-align:left;">
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-flammableRTM2020
-</td>
-<td style="text-align:left;">
-SpatRaster
-</td>
-<td style="text-align:left;">
-binary raster of flammable landcover for 2020
-</td>
-<td style="text-align:left;">
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-sppEquiv
-</td>
-<td style="text-align:left;">
-data.table
-</td>
-<td style="text-align:left;">
-sppEquiv table potentially modified with new or overwritten fuel class
-</td>
-<td style="text-align:left;">
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-spreadFirePoints
+nonForest_timeSinceDisturbances
 </td>
 <td style="text-align:left;">
 list
 </td>
 <td style="text-align:left;">
-Named list of <code>sf</code> polygon objects representing annual fire centroids. This only includes fires that escaped (e.g. <code>size &amp;gt; res(flammableRTM)</code>.
+List of (2) SpatRaster with time since burn for non-forested pixels in each layer
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+rstLCCs
 </td>
 <td style="text-align:left;">
+list
+</td>
+<td style="text-align:left;">
+List of (2) SpatRasters of land cover - updated so that pixels above <code>P(sim)$flammabilityThresholdhave an assigned flammable landcover &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; flammableRTMs &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; list &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; List of (2) binary SpatRaster of flammable landcover for years given by the list names &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; sppEquiv &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; data.table &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; sppEquiv table potentially modified with new or overwritten fuel class &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; spreadFirePoints &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; list &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; Named list of</code>sf<code>polygon objects representing annual fire centroids. This only includes fires that escaped (e.g.</code>size &gt; res(flammableRTM)`.
 </td>
 </tr>
 </tbody>
