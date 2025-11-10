@@ -379,9 +379,9 @@ Init <- function(sim) {
 
 
     FuelNames <- c(sim$sppEquiv$FuelClass, names(sim$nonForestedLCCGroups))
-    hasYoungAge <- mod$youngAgeName %in% colnames(pars)
+    hasYoungAge <- youngAgeName %in% colnames(pars)
     if (isTRUE(hasYoungAge))
-      FuelNames <- c(mod$youngAgeName, FuelNames)
+      FuelNames <- c(youngAgeName, FuelNames)
 
     ClimateNames <- setdiff(setdiff(colnames(pars), lpn[[whLogistic]]), FuelNames)
 
@@ -841,7 +841,7 @@ prepare_SpreadFit <- function(sim) {
     }
   }
 
-  RHS <- paste(paste0(sim$climateVariablesForFire$spread, collapse = " + "), mod$youngAgeName,
+  RHS <- paste(paste0(sim$climateVariablesForFire$spread, collapse = " + "), youngAgeName,
                paste0(vegCols, collapse = " + "), sep =  " + ")
 
   ## this is a funny way to get years but avoids years with 0 fires
@@ -951,11 +951,11 @@ prepare_SpreadFit <- function(sim) {
 
   if (!P(sim)$nonForestCanBeYoungAge) {
     ## TODO: test this inversion of makeMutuallyExclusive's regular use
-    args <- as.list(rep(mod$youngAgeName, length = length(sim$nonForestedLCCGroups)))
+    args <- as.list(rep(youngAgeName, length = length(sim$nonForestedLCCGroups)))
     names(args) <- names(sim$nonForestedLCCGroups)
   } else {
     ## this is done later in spreadFit - but done here for accuracy of outputs
-    args <- list(names(sim$nonForestedLCCGroups)) |> setNames(mod$youngAgeName)
+    args <- list(names(sim$nonForestedLCCGroups)) |> setNames(youngAgeName)
   }
 
   annualCovariates <- lapply(annualCovariates, makeMutuallyExclusive, mutuallyExclusiveCols = args)
@@ -1248,16 +1248,16 @@ prepare_IgnitionFit <- function(sim) {
       Cache(.cacheExtra = dig1, omitArgs = c("landcoverDT", "flammableMap"),)
 
     for (i in names(fuelClasses)) {
-      if (mod$youngAgeName %in% names(fuelClasses[[i]])) {
+      if (youngAgeName %in% names(fuelClasses[[i]])) {
 
-        YA1 <- fuelClasses[[i]][[mod$youngAgeName]]
-        YA2 <- LCCras[[i]][[mod$youngAgeName]]
+        YA1 <- fuelClasses[[i]][[youngAgeName]]
+        YA2 <- LCCras[[i]][[youngAgeName]]
         bothYA <- YA1 + YA2
-        fuelClasses[[i]][[mod$youngAgeName]] <- bothYA
+        fuelClasses[[i]][[youngAgeName]] <- bothYA
       }  else {
-        fuelClasses[[i]][[mod$youngAgeName]] <- LCCras[[i]][[mod$youngAgeName]]
+        fuelClasses[[i]][[youngAgeName]] <- LCCras[[i]][[youngAgeName]]
       }
-      toKeep <- setdiff(names(LCCras[[i]]), mod$youngAgeName)
+      toKeep <- setdiff(names(LCCras[[i]]), youngAgeName)
       LCCras[[i]] <- terra::subset(LCCras[[i]], toKeep) ## to avoid double-counting
     }
   }
@@ -1378,7 +1378,7 @@ prepare_IgnitionFit <- function(sim) {
     # ranEffs <- "fireSenseUtils::yearChar"
     set(fireSense_ignitionCovariates, NULL, ranEffsLabel, as.character(fireSense_ignitionCovariates$year))
   }
-  firstCols <- c("pixelID", "ignitions", names(ignitionClimate), mod$youngAgeName)
+  firstCols <- c("pixelID", "ignitions", names(ignitionClimate), youngAgeName)
   firstCols <- firstCols[firstCols %in% names(fireSense_ignitionCovariates)]
   setcolorder(fireSense_ignitionCovariates, neworder = firstCols)
 
@@ -1892,11 +1892,10 @@ runBorealDP_forCohortData <- function(sim) {
   #
   # }
 
-  mod$youngAgeName <- "youngAge"
-
   return(invisible(sim))
 }
 
+youngAgeName <- fireSenseUtils::youngAgeName
 ranEffsLabel <- fireSenseUtils::yearChar
 
 defaultClimateVariablesForFire <- list("spread" = "MDC",
