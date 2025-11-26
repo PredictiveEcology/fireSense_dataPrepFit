@@ -7,7 +7,7 @@ defineModule(sim, list(
     person(c("Alex", "M"), "Chubaty", role = c("ctb"), email = "achubaty@for-cast.ca")
   ),
   childModules = character(0),
-  version = list(fireSense_dataPrepFit = "1.1.3"),
+  version = list(fireSense_dataPrepFit = "1.1.4"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -181,6 +181,9 @@ defineModule(sim, list(
     expectsInput("standAgeMaps", "list", sourceURL = NA,
                  "list of length 2 of maps of stand age in dataYear[[1]] and dataYear[[2]]",
                  " used to create `cohortDatas`"),
+    expectsInput("standAgeMap", "SpatRaster", sourceURL = NA,
+                 "Single layer, which will be taken from the last of standAgeMaps, if not supplied. ",
+                 "This is used by other modules in the LandR ecosystem, plus this module"),
     expectsInput("spreadFirePolys", "list", sourceURL = NA,
                   "list of sf polygon objects representing annual fires; this is an 'input' because ",
                   " the object is modified in a subsequent event; this is not required at 'init'"),
@@ -275,6 +278,7 @@ defineModule(sim, list(
     createsOutput("flammableRTMs", "list", "List of (2) binary SpatRaster of flammable landcover for years given by the list names"),
     # createsOutput("flammableRTM2010", "SpatRaster", "binary raster of flammable landcover for 2010"),
     # createsOutput("flammableRTM2020", "SpatRaster", "binary raster of flammable landcover for 2020"),
+    createsOutput("standAgeMap", "SpatRaster", "Single layer, which will be taken from the last of standAgeMaps"),
     createsOutput("sppEquiv", "data.table", "sppEquiv table potentially modified with new or overwritten fuel class"),
     createsOutput("spreadFirePoints", "list",
                   paste("Named list of `sf` polygon objects representing annual fire centroids.",
@@ -403,6 +407,8 @@ Init <- function(sim) {
       sort(unique(c(sim$climateVariablesForFire[["ignition"]], theseClimVarsNoUnderscore)))
 
   }
+  sim$standAgeMap <- tail(sim$standAgeMaps, 1)[[1]]
+
   #}
   return(sim)
 }
@@ -846,7 +852,8 @@ prepare_SpreadFit <- function(sim) {
 
   ## this is a funny way to get years but avoids years with 0 fires
   # years <- paste0(fireSenseUtils::yearChar, P(sim)$fireYears)
-  yearsWithFire <- unlist(mod$allYears)[unlist(mod$allYears) %in% names(sim$fireBufferedListDT)]
+  allYears <- unname(unlist(mod$allYears))
+  yearsWithFire <- allYears[allYears %in% names(sim$fireBufferedListDT)]
 
 
   # pre2012int <- as.integer(min(P(sim)$fireYears):2011)
@@ -918,6 +925,7 @@ prepare_SpreadFit <- function(sim) {
   # annualCovariates <- list(fireSense_annualSpreadFitCovariates[pre2012],
   #                          fireSense_annualSpreadFitCovariates[post2012])
 
+  # This should put climate and youngAge in every list element
   annualCovariates <-
     purrr::pmap(.l = list(#years = list(c(2010:2010), c(2011:max(P(sim)$fireYears))),
       years = mod$allYears, # list(pre2012int, post2012int),
