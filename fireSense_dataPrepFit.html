@@ -2995,8 +2995,8 @@ border-radius: 0px;
 
 
 <h1 class="title toc-ignore">fireSense_dataPrepFit Manual</h1>
-<h3 class="subtitle">v.1.1.3</h3>
-<h4 class="date">Last updated: 2025-11-08</h4>
+<h3 class="subtitle">v.1.1.4</h3>
+<h4 class="date">Last updated: 2025-11-26</h4>
 
 </div>
 
@@ -3386,6 +3386,20 @@ list
 </td>
 <td style="text-align:left;">
 List of (2) SpatRasters of land cover - updated so that pixels above <code>P(sim)$flammabilityThresholdhave an assigned flammable landcover &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; sppEquiv &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; data.table &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; table of LandR species equivalencies &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; standAgeMaps &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; list &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; list of length 2 of maps of stand age in dataYear[[1]] and dataYear[[2]] used to create</code>cohortDatas`
+</td>
+<td style="text-align:left;">
+NA
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+standAgeMap
+</td>
+<td style="text-align:left;">
+SpatRaster
+</td>
+<td style="text-align:left;">
+Single layer, which will be taken from the last of standAgeMaps, if not supplied. This is used by other modules in the LandR ecosystem, plus this module
 </td>
 <td style="text-align:left;">
 NA
@@ -4248,7 +4262,7 @@ rstLCCs
 list
 </td>
 <td style="text-align:left;">
-List of (2) SpatRasters of land cover - updated so that pixels above <code>P(sim)$flammabilityThresholdhave an assigned flammable landcover &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; flammableRTMs &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; list &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; List of (2) binary SpatRaster of flammable landcover for years given by the list names &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; sppEquiv &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; data.table &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; sppEquiv table potentially modified with new or overwritten fuel class &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; spreadFirePoints &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; list &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; Named list of</code>sf<code>polygon objects representing annual fire centroids. This only includes fires that escaped (e.g.</code>size &gt; res(flammableRTM)`.
+List of (2) SpatRasters of land cover - updated so that pixels above <code>P(sim)$flammabilityThresholdhave an assigned flammable landcover &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; flammableRTMs &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; list &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; List of (2) binary SpatRaster of flammable landcover for years given by the list names &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; standAgeMap &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; SpatRaster &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; Single layer, which will be taken from the last of standAgeMaps &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; sppEquiv &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; data.table &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; sppEquiv table potentially modified with new or overwritten fuel class &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; spreadFirePoints &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; list &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; Named list of</code>sf<code>polygon objects representing annual fire centroids. This only includes fires that escaped (e.g.</code>size &gt; res(flammableRTM)`.
 </td>
 </tr>
 </tbody>
