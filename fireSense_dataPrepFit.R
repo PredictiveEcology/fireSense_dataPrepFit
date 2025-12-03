@@ -16,7 +16,7 @@ defineModule(sim, list(
   #                 after = c("canClimateData")),
   # after = c("canClimateData")),
   reqdPkgs = list("data.table", "fastDummies", "reproducible",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.0.5.9091)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.0.6.9008)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@development (>= 1.1.5.9070)",
                   "PredictiveEcology/SpaDES.core@development (>= 2.0.2.9006)",
