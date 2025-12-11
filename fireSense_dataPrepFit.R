@@ -898,9 +898,9 @@ prepare_SpreadFit <- function(sim) {
   # post2012Indices <- sim$fireBufferedListDT[!names(sim$fireBufferedListDT) %in% pre2012]
   colsToExtract <- c("pixelID", vegCols)
 
-  nonAnnuals <- Map(yrsChar = mod$allYears, function(yrsChar) {
+  nonAnnuals <- Map(yrsChar = mod$allYears, yrGroup = names(mod$allYears), function(yrsChar, yrGroup) {
     yrsNum <- gsub("[^0-9]", "", yrsChar) |> as.integer()
-    fireSenseVegData[year <= max(yrsNum), .SD, .SDcols = colsToExtract] %>%
+    fireSenseVegData[year < max(yrsNum) & year >= as.integer(yrGroup), .SD, .SDcols = colsToExtract] %>%
       na.omit(.) %>%
       as.data.table(.) %>%
       .[!duplicated(pixelID), ]
