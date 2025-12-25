@@ -353,7 +353,7 @@ Init <- function(sim) {
   if (inherits(sa, "SpatVector")) sa <- st_as_sf(sa)
   spreadFitPreRun <- CacheGeo(cloudFolderID = Par$spreadFitGoogleDriveFolder,
                               targetFile = Par$spreadFitFilename, purge = 7,
-                              domain = sa, action = "nothing",
+                              domain = sa, action = "nothing", useCache = FALSE,
                               destinationPath = getPaths()$inputPath, bufferOK = TRUE) # |> Cache()
   mod$haveSpreadFit <- is(spreadFitPreRun, "sf") || is(spreadFitPreRun, "data.frame")
 
