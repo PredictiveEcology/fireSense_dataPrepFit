@@ -1670,6 +1670,8 @@ runBorealDP_forCohortData <- function(sim) {
     if (doRstLCCs) {
 
       #use a threshold to to assign non-flammable cover (e.g. if < 10% flammable cover)
+      opts11 <- options(reproducible.prepInputsUrlTiles = FALSE)
+      on.exit(options(opts11))
       LCC <- makeFireSenseLCC(
         neededYear = dy,
         writeTo = .suffix("rstLCC.tif",
