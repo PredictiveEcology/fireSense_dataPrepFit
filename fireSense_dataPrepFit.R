@@ -1120,6 +1120,12 @@ prepare_SpreadFitFire_Vector <- function(sim) {
 
   pointsIDcolumn <- grep("ID$", names(sim$spreadFirePolys[[1]]), value = TRUE)[1]
 
+  # There may be entire decades with no fires
+  yearsWeHave <- names(sim$spreadFirePolys)
+  ays <- mod$allYears
+  aysAll <- Map(ay = ays, function(ay) isTRUE(any(yearsWeHave %in% ay)))
+  mod$allYears <- mod$allYears[unlist(aysAll)]
+  
   harmonizeds <- Map(yr = mod$allYears, nam = names(mod$allYears),
                      function(yr, nam) {
     yrNam <- grep(nam, names(sim$flammableRTMs), value= TRUE)
@@ -1799,6 +1805,10 @@ runBorealDP_forCohortData <- function(sim) {
 
     if (!suppliedElsewhere("firePolys", sim)) {
       sim$firePolys <- allFirePolys[names(allFirePolys) %in% paste0(fireSenseUtils::yearChar, P(sim)$fireYears)]
+      if (sum(lengths(sim$firePolys)) == 0) {
+        stop("There are no fires in this study area during these years:\n",
+                paste(paste0(fireSenseUtils::yearChar, P(sim)$fireYears), collapse = ", "))
+      }
     }
 
     if (!suppliedElsewhere("firePolysForAge", sim)) {
