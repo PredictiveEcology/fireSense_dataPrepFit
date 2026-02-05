@@ -21,7 +21,7 @@ defineModule(sim, list(
                   "PredictiveEcology/LandR@development (>= 1.1.5.9070)",
                   "PredictiveEcology/SpaDES.core@development (>= 2.0.2.9006)",
                   "PredictiveEcology/SpaDES.project@development",
-                  "PredictiveEcology/SpaDES.tools (>= 2.0.4.9002)",
+                  "PredictiveEcology/SpaDES.tools@development (>= 2.1.1.9000)",
                   "snow", "terra"),
   parameters = bindrows(
     defineParameter("areaMultiplier", c("numeric", "name"), quote(fireSenseUtils::multiplier), NA, NA,
@@ -166,7 +166,9 @@ defineModule(sim, list(
     expectsInput("rasterToMatch", "SpatRaster", sourceURL = NA,
                  "template raster for study area. Assumes some buffering of core area to limit edge effect of fire."),
     expectsInput("rasterToMatch_biomassParam", "SpatRaster", sourceURL = NA,
-                 "template raster for studyArea_biomassParam. Passed to Biomass_borealDataPrep."),
+                 "template raster for studyArea_biomassParam. Passed to Biomass_borealDataPrep. This is expected to be ",
+                 "*large* as in previously it was rasterToMatchLarge. Several downstream steps assume that it is ",
+                 "larger than studyArea or rasterToMatch"),
     expectsInput("rstLCCs", "list", sourceURL = NA,
                  paste0("List of (2) SpatRasters of land cover - updated so that pixels above `P(sim)$flammabilityThreshold",
                         "have an assigned flammable landcover")),
@@ -278,11 +280,20 @@ defineModule(sim, list(
     createsOutput("flammableRTMs", "list", "List of (2) binary SpatRaster of flammable landcover for years given by the list names"),
     # createsOutput("flammableRTM2010", "SpatRaster", "binary raster of flammable landcover for 2010"),
     # createsOutput("flammableRTM2020", "SpatRaster", "binary raster of flammable landcover for 2020"),
-    createsOutput("standAgeMap", "SpatRaster", "Single layer, which will be taken from the last of standAgeMaps"),
     createsOutput("sppEquiv", "data.table", "sppEquiv table potentially modified with new or overwritten fuel class"),
     createsOutput("spreadFirePoints", "list",
                   paste("Named list of `sf` polygon objects representing annual fire centroids.",
-                        "This only includes fires that escaped (e.g. `size > res(flammableRTM)`."))
+                        "This only includes fires that escaped (e.g. `size > res(flammableRTM)`.")),
+    
+    # For fireSense_**Predict modules
+    createsOutput("standAgeMap", "SpatRaster", "Single layer, which will be taken from the last of standAgeMaps"),
+    createsOutput("rstLCC", "SpatRaster", # sourceURL = NA,
+                  paste0("Final SpatRaster of land cover, i.e, conditions at start(sim). Taken from last layer of rstLCCs")),
+    createsOutput("flammableRTM", "SpatRaster", "Flammable landcover i.e, conditions at start(sim). Taken from last layer of rstLCCs"),
+    createsOutput("landcoverDT", "data.table",
+                  "`pixelID` and relevant landcover classes for flammable pixels in each layer, ",
+                  "i.e, conditions at start(sim). Taken from last layer of landcoverDTs"),
+    
   )
 ))
 
@@ -300,7 +311,7 @@ doEvent.fireSense_dataPrepFit = function(sim, eventTime, eventType) {
       }
 
       ## schedule future event(s)
-      sim <- scheduleEvent(sim, start(sim), "fireSense_dataPrepFit", "dataPrepInit", eventPriority = 1)
+      # sim <- scheduleEvent(sim, start(sim), "fireSense_dataPrepFit", "dataPrepInit", eventPriority = 1)
       if ("fireSense_IgnitionFit" %in% P(sim)$whichModulesToPrepare)
         sim <- scheduleEvent(sim, start(sim), "fireSense_dataPrepFit", "prepIgnitionFitData", eventPriority = 1)
       if ("fireSense_EscapeFit" %in% P(sim)$whichModulesToPrepare)
@@ -315,9 +326,9 @@ doEvent.fireSense_dataPrepFit = function(sim, eventTime, eventType) {
       sim <- scheduleEvent(sim, end(sim), "fireSense_dataPrepFit", "plotAndMessage", eventPriority = 9)
       sim <- scheduleEvent(sim, start(sim), "fireSense_dataPrepFit", "cleanUp", eventPriority = 10)
     },
-    dataPrepInit = {
-      sim <- dataPrepInit(sim)
-    },
+    # dataPrepInit = {
+    #   sim <- dataPrepInit(sim)
+    # },
     prepIgnitionFitData = {
       sim <- prepare_IgnitionFit(sim)
     },
@@ -356,7 +367,7 @@ Init <- function(sim) {
                               domain = sa, action = "nothing", useCache = FALSE,
                               destinationPath = getPaths()$inputPath, bufferOK = TRUE) # |> Cache()
   mod$haveSpreadFit <- is(spreadFitPreRun, "sf") || is(spreadFitPreRun, "data.frame")
-
+  # mod$haveSpreadFit <- FALSE
   #if (needToEstimateFuelClasses) {
   if (mod$haveSpreadFit) {
     sim$studyAreaWithSpreadParams <- spreadFitPreRun
@@ -396,6 +407,9 @@ Init <- function(sim) {
     theseClimVarsNoUnderscore <- allVarsNoUnderscore[whClimateVar]
 
     # Append the ones needed in FireSense_spreadFit to whatever was supplied by user
+    if (is.null(sim$climateVariables)) {
+      stop("You need to provide sim$climateVariables; perhaps try adding the PredictiveEcology/canClimateData module")
+    }
     sim$climateVariables <- modifyList(sim$climateVariables,
                                        climateLayers(.climVars = theseClimVars))
 
@@ -407,42 +421,70 @@ Init <- function(sim) {
       sort(unique(c(sim$climateVariablesForFire[["ignition"]], theseClimVarsNoUnderscore)))
 
   }
-  sim$standAgeMap <- tail(sim$standAgeMaps, 1)[[1]]
-
-  #}
-  return(sim)
-}
-
-dataPrepInit <- function(sim) {
-
+  
   sim$sppEquiv <- copy(sim$sppEquiv) #debugging error where FuelClass disappears
-
-  dys <- P(sim)$dataYears
-  dyChars <- sapply(dys, function(dy) grep(dy, names(sim$standAgeMaps), value = TRUE))
-
+  
+  # mod$dys <- P(sim)$dataYears
+  # mod$dyChars <- sapply(mod$dys, function(dy) grep(dy, names(sim$standAgeMaps), value = TRUE))
+  
   #because BBDP wants objects potentially larger than studyArea,
   #crop rstLCC and standAgeMap to create smaller objects before their derived objects
   # (landcoverDT/flammableMap and nonForest_timeSinceDisturbance, respectively).
   ## sanity checks
-  objs <- list(standAgeMaps = sim$standAgeMaps, rstLCCs = sim$rstLCCs)
+  # rsts <- postProcess(rast(sim$rstLCCs), to = sim$rasterToMatch, method = "near")
+  # objs <- list(standAgeMaps = sim$standAgeMaps, rstLCCs = sim$rstLCCs)
   # objs <- c(sim$standAge[[dataYears[[1]]]], sim$standAgeMap2020, sim$rstLCC2010, sim$rstLCC2020)
   if (!LandR::.compareRas(sim$rasterToMatch, sim$rasterToMatch_biomassParam, stopOnError = FALSE)) {
-    objs <- lapply(objs, FUN = postProcess, to = sim$rasterToMatch)
+    objs2 <- lapply(sim$rstLCCs, function(x) {
+      postProcess(x, to = sim$rasterToMatch, method = "near")})
+    objs <- objs2
+    # objs2 <- lapply(objs, function(x) {
+    #   if (is.list(x)) x <- rast(x)
+    #   postProcess(x, to = sim$rasterToMatch, method = "near")})
+    # objs <- objs2
+    if (!isInt(objs$year2000)) {
+      objs <- Map(obj = objs, function(obj) LandR::asInt(obj))
+    }
   }
-  if (!isInt(objs$standAgeMaps[[1]]) | !isInt(objs$rstLCCs[[1]])) {
-    objs <- Map(obj = objs, function(obj) Map(ob = obj, function(ob) LandR::asInt(ob)))
-  }
-  standAges <- objs[["standAgeMaps"]]
-  rstLCCs <- objs[["rstLCCs"]]
+  # if (!isInt(objs$standAgeMaps[[1]]) | !isInt(objs$rstLCCs[[1]])) {
+  #   objs <- Map(obj = objs, function(obj) Map(ob = obj, function(ob) LandR::asInt(ob)))
+  # }
+  # standAges <- objs[["standAgeMaps"]]
+  rstLCCs <- objs
   # standAgeMap2020 <- objs[[2]]
   # rstLCC2010 <- objs[[3]]
   # rstLCC2020 <- objs[[4]]
-
-  sim$flammableRTMs <- Map(dy = dyChars, function(dy) {
+  
+  ## TODO: make this table multidimensional or a list
+  sim$flammableRTMs <- Map(dy = mod$dyChars, function(dy) {
     defineFlammable(rstLCCs[[dy]],
                     nonFlammClasses = P(sim)$nonflammableLCC,
                     to = sim$rasterToMatch)
   })
+  
+  digFlammableRTMs <- .robustDigest(sim$flammableRTMs)
+  
+  # sim$landcoverDTs <- Map(dy = mod$dyChars, function(dy) {
+  #   ll <- makeLandcoverDT(rstLCC = rstLCCs[[dy]],
+  #                         flammableRTM = sim$flammableRTMs[[dy]],
+  #                         forestedLCC = P(sim)$forestedLCC, sim$nonForestedLCCGroups)
+  #   correctMissingLCC(ll, sim[["pixelGroupMaps"]][[dy]], sim$missingLCCgroup)
+  # })
+  
+  
+  # # Create the "objects for prediction cases 
+  # sim$standAgeMap <- tail(sim$standAgeMaps, 1)[[1]]
+  # sim$rstLCC <- tail(sim$rstLCCs, 1)[[1]]
+  # sim$flammableRTM <- tail(sim$flammableRTMs, 1)[[1]]
+  # sim$landcoverDT <- tail(sim$landcoverDTs, 1)[[1]]
+  
+  #}
+#   return(sim)
+# }
+
+# dataPrepInit <- function(sim) {
+
+  
   # sim$flammableRTM2010 <- defineFlammable(rstLCC2010,
   #                                         nonFlammClasses = P(sim)$nonflammableLCC,
   #                                         to = sim$rasterToMatch)
@@ -450,17 +492,17 @@ dataPrepInit <- function(sim) {
   # sim$flammableRTM2020 <- defineFlammable(rstLCC2020,
   #                                         nonFlammClasses = P(sim)$nonflammableLCC,
   #                                         to = sim$rasterToMatch)
-  #TODO: test that this is mistake-proof
-  if (length(sim$climateVariablesForFire) == 1) {
-    sim$climateVariablesForFire <- list(
-      ignition = sim$climateVariablesForFire[[1]],
-      spread = sim$climateVariablesForFire[[1]]
-    )
-  }
-
-  if (!all(unlist(sim$climateVariablesForFire) %in% names(sim$historicalClimateRasters))) {
-    stop("mismatch between sim$climateVariablesForFire and sim$historicalClimateRasters")
-  }
+  # #TODO: test that this is mistake-proof
+  # if (length(sim$climateVariablesForFire) == 1) {
+  #   sim$climateVariablesForFire <- list(
+  #     ignition = sim$climateVariablesForFire[[1]],
+  #     spread = sim$climateVariablesForFire[[1]]
+  #   )
+  # }
+  # 
+  # if (!all(unlist(sim$climateVariablesForFire) %in% names(sim$historicalClimateRasters))) {
+  #   stop("mismatch between sim$climateVariablesForFire and sim$historicalClimateRasters")
+  # }
 
   ## ensure studyArea consists of a single polygon
   mod$studyAreaUnion <- if (is(sim$studyArea, "sf")) {
@@ -514,19 +556,22 @@ dataPrepInit <- function(sim) {
   #  their own fuelClassTable. If so, then don't estimate them here.
   needToEstimateFuelClasses <- P(sim)$estimateFuelClasses && all(userSupplied %in% FALSE) && all(userSuppliedFC %in% TRUE)
 
-  ageGroups <- yearGroups(dys, Par$fireYears)
+  ageGroups <- yearGroups(mod$dys, Par$fireYears)
 
+  digRstLCC <- .robustDigest(sim$rstLCCs)
+  digRTMs <- .robustDigest(sim$pixelGroupMaps)
   if (!mod$haveSpreadFit) {
     landscape <- Map(f = fuelClassPrep,
                      pixelGroupMap = sim$pixelGroupMaps, # list(sim$pixelGroupMap2010, sim$pixelGroupMap2020),
                      cohortData = sim$cohortDatas, # list(sim$cohortData2010, sim$cohortData2020),
-                     rstLCC = rstLCCs, # list(rstLCC2010, rstLCC2010),
+                     rstLCC = sim$rstLCCs, # list(rstLCC2010, rstLCC2010),
                      yearRange = ageGroups,
                      # yearRange = list(c(2002, 2011), c(2012, 2020)), # TODO this was 2002 to 2011, 2012 to 2020
                      MoreArgs = list(nonflammableLCC = P(sim)$nonflammableLCC,
                                      fires = fires,
                                      nonforestLCC = sim$nonForestedLCCGroups)) |>
-      Cache(.functionName = "fuelClassPrep", userTags = c("fireSenseDataPrepFit", "fuelClassPrep"))
+      Cache(.functionName = "fuelClassPrep", userTags = c("fireSenseDataPrepFit", "fuelClassPrep"),
+            .omitArgs = c("pixelGroupMap", "rstLCC"), .cacheExtra = list(digRTMs, digRstLCC))
 
     # Combine landscapes and finalize data
     landscape <- rbindlist(landscape)
@@ -582,52 +627,6 @@ dataPrepInit <- function(sim) {
       sim$nonForestedLCCGroups <- fuelClassObjects$nonForestedLCCGroups
       message("Estimated fuel classes for this study area:")
       messageDF(sim$fuelClassTable)
-
-      # } else {
-      # cols <- colnames(spreadFitPreRun$params[[1]])
-      # allTerms <- setdiff(cols, sim$fireSense_spreadLogisticTermNames)
-      # climateTerms <- sim$climateVariablesForFire$spread
-      # fuelTerms <- setdiff(allTerms, climateTerms)
-      # matureTerms <- setdiff(fuelTerms, "youngAge")
-      # forestFuelClasses <- grep("^nf", matureTerms, invert = TRUE, value = TRUE)
-      # dt <- data.table(species = speciesInCohortData)
-      # # dt <- data.table(species = temp[[Par$sppEquivCol]])
-      # dt2 <- abbreviateSpNames(dt)
-      # forestFuelClassesSplit <- strsplit(forestFuelClasses, split = "\\.")
-      # forestFuelClasses2 <- lapply(forestFuelClassesSplit, function(fc) {
-      #   b <- lapply(fc, function(fcInner) {
-      #     colHere <- c("species", "assignedFuelClass")
-      #     a <- lapply(colHere, function(ch) {
-      #       if (!is.null(dt2[[ch]]))
-      #         if (any(grepl(fcInner, dt2[[ch]]))) {
-      #           a <- dt2[data.table(fcInner) |> setNames(ch), on = ch]
-      #           # set(a, NULL, "fuelType", paste(a[[ch]], sep = "."))
-      #         }
-      #     }) |> rbindlist(fill = TRUE)
-      #     return(a)
-      #   })
-      #   d <- rbindlist(b)
-      #   if (NROW(d) > 1) {
-      #     ft <- paste(d[[2]], collapse = ".")
-      #   } else {
-      #     ft <- d[[1]]
-      #   }
-      #   set(d, NULL, "FuelClass", ft)
-      #   d
-      # }) |> rbindlist() |> set(NULL, "assignedFuelClass", NULL)
-      #
-      # forestFuelClasses2[sim$sppEquiv, on = c("species" = Par$sppEquivCol)]
-      # setnames(temp, old = "species", new = Par$sppEquivCol)
-      # # temp[sim$sppEquiv, on = Par$sppEquivCol]
-      #
-      # # now non-forest
-      # nonForestFuelClasses <- grep("^nf", matureTerms, value = TRUE)
-      # nonForestFuelClasses2 <- strsplit(nonForestFuelClasses, split = "_")
-      # nonForestFuelClasses3 <- lapply(nonForestFuelClasses2, function(x) as.integer(x[-1]))
-      # names(nonForestFuelClasses3) <- nonForestFuelClasses
-      # sim$nonForestedLCCGroups <- nonForestFuelClasses3
-      # }
-      #overwrite sim$sppEquiv
       sim$sppEquiv <- sim$sppEquiv[temp, on = P(sim)$sppEquivCol]
     } else {
       us <- if (any(userSupplied %in% TRUE)) {
@@ -650,22 +649,16 @@ dataPrepInit <- function(sim) {
     print(sim$nonForestedLCCGroups)
 
   }
-
-
-  ## TODO: make this table multidimensional or a list
-  sim$flammableRTMs <- Map(dy = dyChars, function(dy) {
-    defineFlammable(rstLCCs[[dy]],
-                    nonFlammClasses = P(sim)$nonflammableLCC,
-                    to = sim$rasterToMatch)
-  })
-
-  sim$landcoverDTs <- Map(dy = dyChars, function(dy) {
-    ll <- makeLandcoverDT(rstLCC = rstLCCs[[dy]],
+  sim$landcoverDTs <- Map(dy = mod$dyChars, function(dy) {
+    ll <- makeLandcoverDT(rstLCC = sim$rstLCCs[[dy]],
                           flammableRTM = sim$flammableRTMs[[dy]],
                           forestedLCC = P(sim)$forestedLCC, sim$nonForestedLCCGroups)
     correctMissingLCC(ll, sim[["pixelGroupMaps"]][[dy]], sim$missingLCCgroup)
-  })
-
+  }) |> Cache(.functionName = "makeLandcoverDT", 
+              .cacheExtra = list(rstLCC = digRstLCC, flammableRTM = digFlammableRTMs, 
+                                 rasterToMatchs = digRTMs,
+                                 sim$missingLCCgroup, P(sim)$forestedLCC, sim$nonForestedLCCGroups))
+  
   # sim$landcoverDT2010 <- makeLandcoverDT(rstLCC = rstLCC2010, flammableRTM = sim$flammableRTM2010,
   #                                        forestedLCC = P(sim)$forestedLCC, sim$nonForestedLCCGroups)
   # sim$landcoverDT2020 <- makeLandcoverDT(rstLCC = rstLCC2010, flammableRTM = sim$flammableRTM2020,
@@ -677,7 +670,7 @@ dataPrepInit <- function(sim) {
 
   ## TODO: this object is used to track annual youngAge of all pixels, forested or not
   ## so "nonForest" is a poor choice of name. It should not have values for non-flammable pixels.
-  sim$nonForest_timeSinceDisturbances <- Map(dy = dyChars, dyNum = dys, function(dy, dyNum) {
+  sim$nonForest_timeSinceDisturbances <- Map(dy = mod$dyChars, dyNum = mod$dys, function(dy, dyNum) {
     tsd <- makeTSD(
       year = dyNum,
       fireRaster = sim$historicalFireRaster, ## can be NULL
@@ -714,7 +707,38 @@ dataPrepInit <- function(sim) {
   ## e.g. if a pixel ignited in 2008, its youngAge status in ignition is still determined by whether it was 15 in 2010,
   ## but its youngAge status for spread is deterimined by whether standAge < 15 in 2008
 
+  # Create the "objects for prediction cases 
+  sim$standAgeMap <- tail(sim$standAgeMaps, 1)[[1]]
+  sim$rstLCC <- tail(sim$rstLCCs, 1)[[1]]
+  sim$flammableRTM <- tail(sim$flammableRTMs, 1)[[1]]
+  sim$landcoverDT <- tail(sim$landcoverDTs, 1)[[1]]
   return(invisible(sim))
+}
+
+
+##TODO NAME OF THIS FUNCTION MUST CHANGE
+dataPrepInit <- function(sim) {
+  
+  
+  # sim$flammableRTM2010 <- defineFlammable(rstLCC2010,
+  #                                         nonFlammClasses = P(sim)$nonflammableLCC,
+  #                                         to = sim$rasterToMatch)
+  #
+  # sim$flammableRTM2020 <- defineFlammable(rstLCC2020,
+  #                                         nonFlammClasses = P(sim)$nonflammableLCC,
+  #                                         to = sim$rasterToMatch)
+  #TODO: test that this is mistake-proof
+  if (length(sim$climateVariablesForFire) == 1) {
+    sim$climateVariablesForFire <- list(
+      ignition = sim$climateVariablesForFire[[1]],
+      spread = sim$climateVariablesForFire[[1]]
+    )
+  }
+  
+  if (!all(unlist(sim$climateVariablesForFire) %in% names(sim$historicalClimateRasters))) {
+    stop("mismatch between sim$climateVariablesForFire and sim$historicalClimateRasters")
+  }
+  return(invisible(sim)) 
 }
 
 prepare_SpreadFit <- function(sim) {
@@ -729,53 +753,92 @@ prepare_SpreadFit <- function(sim) {
 
   ## when landcoverDT is included, as is the case here, non-forest pixels in cohortData are masked out
   ## this is necessary when LandR and fireSense have differing concepts of non-forest
-  vegData <- Map(f = cohortsToFuelClasses,
-                 cohortData = sim$cohortDatas, # list(sim$cohortData2010, sim$cohortData2020),
-                 pixelGroupMap = sim$pixelGroupMaps, # list(sim$pixelGroupMap2010, sim$pixelGroupMap2020),
-                 landcoverDT = sim$landcoverDTs, # list(sim$landcoverDT2010, sim$landcoverDT2020),
-                 flammableRTM = sim$flammableRTMs, # list(sim$flammableRTM2010, sim$flammableRTM2020),
-                 MoreArgs = list(sppEquiv = sim$sppEquiv,
-                                 sppEquivCol = P(sim)$sppEquivCol,
-                                 fuelClassCol = P(sim)$fuelClassCol,
-                                 cutoffForYoungAge = -1)
+  
+  if (FALSE) {
+    vegData <- Map(f = cohortsToFuelClasses,
+                   cohortData = sim$cohortDatas, # list(sim$cohortData2010, sim$cohortData2020),
+                   pixelGroupMap = sim$pixelGroupMaps, # list(sim$pixelGroupMap2010, sim$pixelGroupMap2020),
+                   landcoverDT = sim$landcoverDTs, # list(sim$landcoverDT2010, sim$landcoverDT2020),
+                   flammableRTM = sim$flammableRTMs, # list(sim$flammableRTM2010, sim$flammableRTM2020),
+                   MoreArgs = list(sppEquiv = sim$sppEquiv,
+                                   sppEquivCol = P(sim)$sppEquivCol,
+                                   fuelClassCol = P(sim)$fuelClassCol,
+                                   cutoffForYoungAge = -1)
+    ) |>
+      Cache(.functionName = "cohortsToFuelClasses") #youngAge will be resolved annually downstream
+    
+    ## log transform the biomass values, setting zeroes to zero
+    ## ideally we move this into cohortsToFuelClasses...
+    ## there is no young age here unlike ignition
+    vegData <- lapply(vegData, FUN = function(x) {
+      #to lessen the leverage of zeroes where there is no biomass
+      #TODO: discuss implications for spread
+      #change the zeroes to one log below the minimum in the data (in this case 100 g/m2)
+      if (FALSE) {
+        minimumB <- exp(log(100) - 1)
+        x[x < minimumB] <- minimumB
+        # x[x == 0] <- NA # for NAs
+        x <- log(x)
+        
+      } else {
+        x[] <- logMinB(x[]) # same as in dataPrepPredict
+      }
+      dt <- as.data.table(values(x))
+      dt[, pixelID := 1:ncell(x)]
+      return(dt)
+    })
+    gc()
+    ho <- 1
+    # is pass by reference
+    vegData <- Map(v = vegData, n = names(vegData), function(v, n) {
+      v[, year := gsub("[[:alpha:]+]", "", n)]
+      v[sim$landcoverDTs[[n]], on = c("pixelID")]
+      v
+    })
+    #vegData[[1]][, year := 2002]
+    #vegData[[2]][, year := 2012]
+    
+    #vegData[[1]] <- vegData[[1]][sim$landcoverDT2010, on = c("pixelID")]
+    #vegData[[2]] <- vegData[[2]][sim$landcoverDT2020, on = c("pixelID")]
+    vegData <- rbindlist(vegData)
+  }
+  
+  
+  dig1 <- .robustDigest(list(sim$landcoverDTs, sim$flammableRTMs))
+  dig1a <- .robustDigest(list(sim$cohortDatas, sim$pixelGroupMaps, sim$nonForest_timeSinceDisturbances))
+  dig2 <- append(dig1, dig1a)
+  
+  # This should be an exact replicate of ignitionCovariatesCreate
+  # This adds youngAge
+  vegData <- Map(f = fireSenseUtils:::fireSenseCovariatesCreate,
+                        cohortData = sim$cohortDatas,
+                        pixelGroupMap = sim$pixelGroupMaps,
+                        flammableRTM = sim$flammableRTMs,
+                        landcoverDT = sim$landcoverDTs,
+                        nonForest_timeSinceDisturbance = sim$nonForest_timeSinceDisturbances,
+                        MoreArgs = list(sppEquiv = sim$sppEquiv,
+                                        sppEquivCol = P(sim)$sppEquivCol,
+                                        fuelClassCol = P(sim)$fuelClassCol,
+                                        cutoffForYoungAge = P(sim)$cutoffForYoungAge,
+                                        missingLCCgroup = sim$missingLCCgroup,
+                                        nonForestedLCCGroups = sim$nonForestedLCCGroups,
+                                        nonForestCanBeYoungAge = P(sim)$nonForestCanBeYoungAge,
+                                        studyAreaName = P(sim)$.studyAreaName
+                        ) 
   ) |>
-    Cache(.functionName = "cohortsToFuelClasses") #youngAge will be resolved annually downstream
-
-  ## log transform the biomass values, setting zeroes to zero
-  ## ideally we move this into cohortsToFuelClasses...
-  ## there is no young age here unlike ignition
-  vegData <- lapply(vegData, FUN = function(x) {
-    #to lessen the leverage of zeroes where there is no biomass
-    #TODO: discuss implications for spread
-    #change the zeroes to one log below the minimum in the data (in this case 100 g/m2)
-    if (FALSE) {
-      minimumB <- exp(log(100) - 1)
-      x[x < minimumB] <- minimumB
-      # x[x == 0] <- NA # for NAs
-      x <- log(x)
-
-    } else {
-      x[] <- logMinB(x[]) # same as in dataPrepPredict
-    }
-    dt <- as.data.table(values(x))
-    dt[, pixelID := 1:ncell(x)]
-    return(dt)
-  })
-  gc()
-  # is pass by reference
+    Cache(.cacheExtra = dig2, 
+          omitArgs = c("landcoverDT", "flammableRTM", "cohortData", "pixelGroupMap", "nonForest_timeSinceDisturbance"),
+          .functionName = "spreadCovariatesCreate")
+  # Add "year" column
   vegData <- Map(v = vegData, n = names(vegData), function(v, n) {
     v[, year := gsub("[[:alpha:]+]", "", n)]
-    v[sim$landcoverDTs[[n]], on = c("pixelID")]
+    # v[sim$landcoverDTs[[n]], on = c("pixelID")]
     v
   })
-  #vegData[[1]][, year := 2002]
-  #vegData[[2]][, year := 2012]
-
-  #vegData[[1]] <- vegData[[1]][sim$landcoverDT2010, on = c("pixelID")]
-  #vegData[[2]] <- vegData[[2]][sim$landcoverDT2020, on = c("pixelID")]
   vegData <- rbindlist(vegData)
-
+  
   # prep the fire data ####
+  # sim$fireBufferedListDT is made in these functions
   if (P(sim)$useRasterizedFire) {
     #TODO: fix this approach to work with two flammableRTMs
     sim <- prepare_SpreadFitFire_Raster(sim)
@@ -898,15 +961,7 @@ prepare_SpreadFit <- function(sim) {
   # post2012Indices <- sim$fireBufferedListDT[!names(sim$fireBufferedListDT) %in% pre2012]
   colsToExtract <- c("pixelID", vegCols)
 
-  nonAnnuals <- Map(yrsChar = mod$allYears, yrGroup = names(mod$allYears), function(yrsChar, yrGroup) {
-    yrsNum <- gsub("[^0-9]", "", yrsChar) |> as.integer()
-    fireSenseVegData[year < max(yrsNum) & year >= as.integer(yrGroup), .SD, .SDcols = colsToExtract] %>%
-      na.omit(.) %>%
-      as.data.table(.) %>%
-      .[!duplicated(pixelID), ]
-  })
-
-
+  
   # nonAnnualpre2012 <- fireSenseVegData[year < 2012, .SD, .SDcols = colsToExtract] %>%
   #   na.omit(.) %>%
   #   as.data.table(.) %>%
@@ -926,18 +981,20 @@ prepare_SpreadFit <- function(sim) {
   #                          fireSense_annualSpreadFitCovariates[post2012])
 
   # This should put climate and youngAge in every list element
-  annualCovariates <-
-    purrr::pmap(.l = list(#years = list(c(2010:2010), c(2011:max(P(sim)$fireYears))),
-      years = mod$allYears, # list(pre2012int, post2012int),
-      annualCovariates = annualCovariates,
-      standAgeMap = sim$nonForest_timeSinceDisturbances
-      #list(sim$nonForest_timeSinceDisturbance2010,
-      #     sim$nonForest_timeSinceDisturbance2020)
-    ),
-    .f = calcYoungAge,
-    fireBufferedListDT = sim$fireBufferedListDT,
-    cutoffForYoungAge = P(sim)$cutoffForYoungAge
-    ) |> Cache()
+  # This adds youngAge to annualCovariates: this is wrong; it should not as youngAge is non-annual
+  #  KEEP THIS OUT (Eliot Jan 2026)
+  # annualCovariates <-
+  #   purrr::pmap(.l = list(#years = list(c(2010:2010), c(2011:max(P(sim)$fireYears))),
+  #     years = mod$allYears, # list(pre2012int, post2012int),
+  #     annualCovariates = annualCovariates,
+  #     standAgeMap = sim$nonForest_timeSinceDisturbances
+  #     #list(sim$nonForest_timeSinceDisturbance2010,
+  #     #     sim$nonForest_timeSinceDisturbance2020)
+  #   ),
+  #   .f = calcYoungAge,
+  #   fireBufferedListDT = sim$fireBufferedListDT,
+  #   cutoffForYoungAge = P(sim)$cutoffForYoungAge
+  #   ) |> Cache()
 
   ## get rid of nonflammable pixels (here because the calcYoungAge function assigns ages to NA values,
   ## due to inconsistent treatment of non-forest age pixels  in kNN years and other products (0 vs NA)
@@ -950,6 +1007,18 @@ prepare_SpreadFit <- function(sim) {
     })
   })
 
+  # Confirm that YoungAge is the right amount. If there are "normal" amount of fires,
+  #  then it should be < 0.2
+  propYoungAge <- unlist(unlist(unname(
+    lapply(annualCovariates, function(ac) 
+      lapply(ac, function(x) if (!is.null(x$youngAge)) mean(x$youngAge)))), recursive = FALSE))
+  lotsOfYA <- propYoungAge > 0.2
+  if (any(lotsOfYA, na.rm = TRUE))
+    warning("There are individual years with >20% of the pixels in YoungAge; confirm this is ",
+            "expected... ", paste(names(propYoungAge)[lotsOfYA %in% TRUE], collapse = ", ")
+            )
+  
+  
   # annualCovariates[[1]] <- lapply(annualCovariates[[1]], function(x) {
   #   x[pixelID %in% sim$landcoverDT2010$pixelID, ]
   # })
@@ -971,6 +1040,15 @@ prepare_SpreadFit <- function(sim) {
   sim$fireSense_annualSpreadFitCovariates <- do.call(c, unname(annualCovariates))
 
   # sim$fireSense_nonAnnualSpreadFitCovariates <- list(nonAnnualpre2012, nonAnnualpost2012)
+  
+  # nonAnnuals are all the fuels; fire occurrence; youngAge and climate are annual (as of Jan 23, 2026)
+  nonAnnuals <- Map(yrsChar = mod$allYears, yrGroup = names(mod$allYears), function(yrsChar, yrGroup) {
+    yrsNum <- gsub("[^0-9]", "", yrsChar) |> as.integer()
+    fireSenseVegData[year < max(yrsNum) & year >= as.integer(yrGroup), .SD, .SDcols = colsToExtract] %>%
+      na.omit(.) %>%
+      as.data.table(.) %>%
+      .[!duplicated(pixelID), ]
+  })
   sim$fireSense_nonAnnualSpreadFitCovariates <- nonAnnuals
   # names(sim$fireSense_nonAnnualSpreadFitCovariates) <- c(paste(names(pre2012Indices), collapse = "_"),
   #                                                        paste(names(post2012Indices), collapse = "_"))
@@ -991,6 +1069,7 @@ prepare_SpreadFitFire_Raster <- function(sim) {
   ## historical fire Raster is currently not in outputs - if assigned to sim here, it should be added
   ## as we modify it by removing non-flammable fires.
 
+  browser() # The next line needs to use sim$flammableRTMs instead of sim$flammableRTM
   historicalFireRaster <- mask(historicalFireRaster, sim$flammableRTM,
                                maskvalues = 0, updatevalue = NA)
 
@@ -1207,87 +1286,125 @@ prepare_IgnitionFit <- function(sim) {
   ## first put landcover into raster stack
   ## non-flammable pixels require zero values for non-forest landcover, not NA
   dig1 <- .robustDigest(list(sim$landcoverDTs, sim$flammableRTMs))
-
-  LCCras <- Map(
-    f = putBackIntoRaster,
-    landcoverDT = sim$landcoverDTs, # list(sim$landcoverDT2010, sim$landcoverDT2020),
-    flammableMap = sim$flammableRTMs, # list(sim$flammableRTM2010, sim$flammableRTM2020),
-    MoreArgs = list(lcc = names(sim$nonForestedLCCGroups))
-  ) |>
-    Cache(.functionName = "putBackIntoRaster",
-          .cacheExtra = dig1, omitArgs = c("landcoverDT", "flammableMap"),
-          userTags = c("putBackIntoRaster", P(sim)$.studyAreaName))
+  dig1a <- .robustDigest(list(sim$cohortDatas, sim$pixelGroupMaps, sim$nonForest_timeSinceDisturbances))
+  dig2 <- append(dig1, dig1a)
 
   #  Makes youngAge, amongst other things
-  fuelClasses <- Map(
-    f = cohortsToFuelClasses,
-    cohortData = sim$cohortDatas, # list(sim$cohortData2010, sim$cohortData2020),
-    flammableRTM = sim$flammableRTMs, # list(sim$flammableRTM2010, sim$flammableRTM2020),
-    landcoverDT = sim$landcoverDTs, # list(sim$landcoverDT2010, sim$landcoverDT2020),
-    pixelGroupMap = sim$pixelGroupMaps,# list(sim$pixelGroupMap2010, sim$pixelGroupMap2020),
-    MoreArgs = list(sppEquiv = sim$sppEquiv,
-                    sppEquivCol = P(sim)$sppEquivCol,
-                    fuelClassCol = P(sim)$fuelClassCol,
-                    cutoffForYoungAge = P(sim)$cutoffForYoungAge)
+  fuelClassesNew <- Map(f = fireSenseUtils:::fireSenseCovariatesCreate,
+                        cohortData = sim$cohortDatas,
+                        pixelGroupMap = sim$pixelGroupMaps,
+                        flammableRTM = sim$flammableRTMs,
+                        landcoverDT = sim$landcoverDTs,
+                        nonForest_timeSinceDisturbance = sim$nonForest_timeSinceDisturbances,
+                        MoreArgs = list(sppEquiv = sim$sppEquiv,
+                                        sppEquivCol = P(sim)$sppEquivCol,
+                                        fuelClassCol = P(sim)$fuelClassCol,
+                                        cutoffForYoungAge = P(sim)$cutoffForYoungAge,
+                                        missingLCCgroup = sim$missingLCCgroup,
+                                        nonForestedLCCGroups = sim$nonForestedLCCGroups,
+                                        nonForestCanBeYoungAge = P(sim)$nonForestCanBeYoungAge,
+                                        studyAreaName = P(sim)$.studyAreaName
+                        ) 
   ) |>
-    Cache(.cacheExtra = dig1, omitArgs = c("landcoverDT", "flammableMap"),
-          .functionName = "cohortsToFuelClasses")
-
-  fuelClasses <- lapply(fuelClasses, FUN = function(x){
-    bCols <- unique(sim$sppEquiv[[P(sim)$fuelClassCol]])
-    xYA <- terra::subset(x, !names(x) %in% bCols)
-    xBiomass <- terra::subset(x, names(x) %in% bCols)
-    #to lessen the leverage of zeroes where there is no biomass
-    #change the zeroes to one log below the minimum in the data (in this case 100 g/m2)
-    # (this assumes every class has one pixel with minimum B - probably a safe assumption)
-    minimumB <- exp(log(100) - 1)
-    xBiomass[xBiomass < minimumB] <- minimumB
-    xBiomass <- log(xBiomass)
-    x <- c(xBiomass, xYA)
-    return(x)
-  })
-
-  if (P(sim)$nonForestCanBeYoungAge) {
-    ## this modifies the NF landcover by converting some NF to a new YA layer
-    ## it must be done before aggregating
-
-    LCCras <- Map(
-      f = calcNonForestYoungAge,
+    Cache(.cacheExtra = dig2, 
+          omitArgs = c("landcoverDT", "flammableRTM", "cohortData", "pixelGroupMap", "nonForest_timeSinceDisturbance"),
+          .functionName = "ignitionCovariatesCreate")
+  
+  if (FALSE) { # This is previous, idiosyncratic; As of Jan 23, 2026; removal by Eliot
+    ## TODO LCCras needs updating possibly
+    # LCCras
+    fuelClasses <- Map(
+      f = cohortsToFuelClasses,
+      cohortData = sim$cohortDatas, # list(sim$cohortData2010, sim$cohortData2020),
+      flammableRTM = sim$flammableRTMs, # list(sim$flammableRTM2010, sim$flammableRTM2020),
       landcoverDT = sim$landcoverDTs, # list(sim$landcoverDT2010, sim$landcoverDT2020),
-      NFTSD = sim$nonForest_timeSinceDisturbances, # list(sim$nonForest_timeSinceDisturbance2010,
-      # sim$nonForest_timeSinceDisturbance2020),
-      LCCras = LCCras, #  list(LCCras[[1]], LCCras[[2]]),
-      MoreArgs = list(cutoffForYoungAge = P(sim)$cutoffForYoungAge)
+      pixelGroupMap = sim$pixelGroupMaps,# list(sim$pixelGroupMap2010, sim$pixelGroupMap2020),
+      MoreArgs = list(sppEquiv = sim$sppEquiv,
+                      sppEquivCol = P(sim)$sppEquivCol,
+                      fuelClassCol = P(sim)$fuelClassCol,
+                      cutoffForYoungAge = P(sim)$cutoffForYoungAge)
     ) |>
-      Cache(.cacheExtra = dig1, omitArgs = c("landcoverDT", "flammableMap"),)
-
-    for (i in names(fuelClasses)) {
-      if (youngAgeName %in% names(fuelClasses[[i]])) {
-
-        YA1 <- fuelClasses[[i]][[youngAgeName]]
-        YA2 <- LCCras[[i]][[youngAgeName]]
-        bothYA <- YA1 + YA2
-        fuelClasses[[i]][[youngAgeName]] <- bothYA
-      }  else {
-        fuelClasses[[i]][[youngAgeName]] <- LCCras[[i]][[youngAgeName]]
+      Cache(.cacheExtra = dig2, omitArgs = c("landcoverDT", "flammableRTM"),
+            .functionName = "cohortsToFuelClasses")
+    
+    fuelClasses <- lapply(fuelClasses, FUN = function(x){
+      bCols <- unique(sim$sppEquiv[[P(sim)$fuelClassCol]])
+      xYA <- terra::subset(x, !names(x) %in% bCols)
+      xBiomass <- terra::subset(x, names(x) %in% bCols)
+      #to lessen the leverage of zeroes where there is no biomass
+      #change the zeroes to one log below the minimum in the data (in this case 100 g/m2)
+      # (this assumes every class has one pixel with minimum B - probably a safe assumption)
+      minimumB <- exp(log(100) - 1)
+      xBiomass[xBiomass < minimumB] <- minimumB
+      xBiomass <- log(xBiomass)
+      x <- c(xBiomass, xYA)
+      return(x)
+    })
+    
+    if (P(sim)$nonForestCanBeYoungAge) {
+      ## this modifies the NF landcover by converting some NF to a new YA layer
+      ## it must be done before aggregating
+      LCCras <- Map(
+        f = fireSenseUtils::putBackIntoRaster,
+        landcoverDT = sim$landcoverDTs, # list(sim$landcoverDT2010, sim$landcoverDT2020),
+        flammableMap = sim$flammableRTMs, # list(sim$flammableRTM2010, sim$flammableRTM2020),
+        MoreArgs = list(lcc = names(sim$nonForestedLCCGroups))
+      ) |>
+        Cache(.functionName = "putBackIntoRaster",
+              .cacheExtra = dig1, omitArgs = c("landcoverDT", "flammableMap"),
+              userTags = c("putBackIntoRaster", P(sim)$.studyAreaName))
+      dig1b <- .robustDigest(list(LCCras))
+      
+      LCCras <- Map(
+        f = calcNonForestYoungAge,
+        landcoverDT = sim$landcoverDTs, # list(sim$landcoverDT2010, sim$landcoverDT2020),
+        NFTSD = sim$nonForest_timeSinceDisturbances, # list(sim$nonForest_timeSinceDisturbance2010,
+        # sim$nonForest_timeSinceDisturbance2020),
+        LCCras = LCCras, #  list(LCCras[[1]], LCCras[[2]]),
+        MoreArgs = list(cutoffForYoungAge = P(sim)$cutoffForYoungAge)
+      ) |>
+        Cache(.cacheExtra = append(dig1, dig1b), omitArgs = c("landcoverDT", "LCCras"))
+      
+      for (i in names(fuelClasses)) {
+        if (youngAgeName %in% names(fuelClasses[[i]])) {
+          
+          YA1 <- fuelClasses[[i]][[youngAgeName]]
+          YA2 <- LCCras[[i]][[youngAgeName]]
+          bothYA <- YA1 + YA2
+          fuelClasses[[i]][[youngAgeName]] <- bothYA
+        }  else {
+          fuelClasses[[i]][[youngAgeName]] <- LCCras[[i]][[youngAgeName]]
+        }
+        toKeep <- setdiff(names(LCCras[[i]]), youngAgeName)
+        LCCras[[i]] <- terra::subset(LCCras[[i]], toKeep) ## to avoid double-counting
       }
-      toKeep <- setdiff(names(LCCras[[i]]), youngAgeName)
-      LCCras[[i]] <- terra::subset(LCCras[[i]], toKeep) ## to avoid double-counting
     }
   }
 
+  fuelCovs <- Map(fcn = fuelClassesNew, function(fcn) rastFromDF(fcn, rasTemplate = sim$flammableRTM)) |>
+    Cache(omitArgs = "fcn", .cacheExtra = dig2, .functionName = "convertFuelDF_toRast")
   ignitionClimate <- sim$historicalClimateRasters[sim$climateVariablesForFire$ignition]
+  digClimate <- .robustDigest(ignitionClimate)
+  dig3 <- append(dig2, digClimate)
+  
+  
   #instead of aggregating, take the focal
   if (P(sim)$igAggFactor > 1) {
+    
+    fuelCovsCoarse <- Map(fc = fuelCovs, function(fc) 
+      terra::aggregate(fc, fact = P(sim)$igAggFactor, fun = mean)
+    ) |>
+      Cache(.functionName = "aggregate_fuelClasses_to_coarse", omitArgs = "fc", .cacheExtra = dig2)
+    if (FALSE) {
+      LCCrasCoarse <- lapply(LCCras, aggregate, fact = P(sim)$igAggFactor, fun = mean) |>
+        Cache(.functionName = "aggregate_LCCras_to_coarse")
+      
+      ## must specify terra::aggregate to avoid conflict with stats::aggregate
+      fuelClassesCoarse <- lapply(fuelClasses, FUN = terra::aggregate, fact = P(sim)$igAggFactor, fun = mean) |>
+        Cache(.functionName = "aggregate_fuelClasses_to_coarse")
+    }
 
-    LCCras <- lapply(LCCras, aggregate, fact = P(sim)$igAggFactor, fun = mean) |>
-      Cache(.functionName = "aggregate_LCCras_to_coarse")
-
-    ## must specify terra::aggregate to avoid conflict with stats::aggregate
-    fuelClasses <- lapply(fuelClasses, FUN = terra::aggregate, fact = P(sim)$igAggFactor, fun = mean) |>
-      Cache(.functionName = "aggregate_fuelClasses_to_coarse")
-
-    ignitionClimate <- lapply(X = ignitionClimate, FUN = terra::aggregate,
+    ignitionClimateCoarse <- lapply(X = ignitionClimate, FUN = terra::aggregate,
                               fact = P(sim)$igAggFactor, fun = mean) |>
       Cache(.functionName = "aggregate_historicalClimateRasters_to_coarse")
   } else if (P(sim)$igFocalFactor > 2) {
@@ -1324,7 +1441,8 @@ prepare_IgnitionFit <- function(sim) {
 
 
 
-  compareGeom(ignitionClimate[[1]], fuelClasses[[1]], fuelClasses[[2]]) ## safety check
+  compareGeom(ignitionClimateCoarse[[1]], fuelCovsCoarse[[1]], fuelCovsCoarse[[2]]) ## safety check
+  # compareGeom(ignitionClimate[[1]], fuelClasses[[1]], fuelClasses[[2]]) ## safety check
 
   ## ignition won't have same years as spread so we do not use names of init objects
   ## The reason is some years may have ignitions but no fires, e.g. 2010 in RIA
@@ -1356,19 +1474,34 @@ prepare_IgnitionFit <- function(sim) {
   }
 
   ## join fuel class, LCC, and climate, subsetting to flamIndex, calculating n of ignitions
+  # fireSense_ignitionCovariates <- Map(
+  #   f = fireSenseUtils::stackAndExtract,
+  #   years = years, # list(pre2012, post2012),
+  #   fuel = fuelClassesCoarse, # list(fuelClasses$year2010, fuelClasses$year2020),
+  #   LCC = LCCrasCoarse, # list(LCCras$year2010, LCCras$year2020),
+  #   MoreArgs = list(climate = ignitionClimateCoarse,
+  #                   fires = sim$ignitionFirePoints)
+  # ) |>
+  #   Cache(
+  #     .functionName = "stackAndExtract",
+  #     userTags = names(ignitionClimate)
+  #   )
+
   fireSense_ignitionCovariates <- Map(
     f = fireSenseUtils::stackAndExtract,
     years = years, # list(pre2012, post2012),
-    fuel = fuelClasses, # list(fuelClasses$year2010, fuelClasses$year2020),
-    LCC = LCCras, # list(LCCras$year2010, LCCras$year2020),
-    MoreArgs = list(climate = ignitionClimate,
+    fuel = Map(lrc = fuelCovsCoarse, function(lrc) lrc[[setdiff(names(lrc), names(sim$nonForestedLCCGroups))]]),
+    LCC = Map(lrc = fuelCovsCoarse, function(lrc) lrc[[names(sim$nonForestedLCCGroups)]]), # list(LCCras$year2010, LCCras$year2020),
+    MoreArgs = list(climate = ignitionClimateCoarse,
                     fires = sim$ignitionFirePoints)
   ) |>
-    Cache(
-      .functionName = "stackAndExtract",
-      userTags = names(ignitionClimate)
+    Cache(omitArgs = c("fuel", "LCC", "climate"), 
+          .cacheExtra = append(dig3, list(P(sim)$igAggFactor)),
+          .functionName = "stackAndExtract",
+          userTags = names(ignitionClimate)
     )
 
+    
   fireSense_ignitionCovariates <- rbindlist(fireSense_ignitionCovariates)
 
   ## remove any pixels that are 0 for all classes
@@ -1384,8 +1517,12 @@ prepare_IgnitionFit <- function(sim) {
 
   # add lightning
   # https://www.tandfonline.com/doi/full/10.1080/07055900.2020.1845117
-  set(fireSense_ignitionCovariates, NULL, "lightning",
-      sim$lightningMaps[[2]][fireSense_ignitionCovariates[["pixelID"]]])
+  
+  # Eliot tested using all 4 and there was one clear winner basedon on variable importance
+  #   lightningDays -- in ELF 4.3
+  lightning <- sim$lightningMaps["lightningDays"]
+  set(fireSense_ignitionCovariates, NULL, names(lightning),
+      as.data.frame(terra::values(terra::rast(lightning))[fireSense_ignitionCovariates[["pixelID"]],]))
 
   ## for random effect
   if (grepl("xgb", Par$modelAlgorithm) %in% FALSE) {
@@ -1399,7 +1536,7 @@ prepare_IgnitionFit <- function(sim) {
   sim$fireSense_ignitionCovariates <- fireSense_ignitionCovariates
 
   ## make new ignition object, ignitionFitRTM
-  sim$ignitionFitRTM <- rast(fuelClasses[[1]][[1]])
+  sim$ignitionFitRTM <- rast(fuelCovsCoarse[[1]][[1]])
   sim$ignitionFitRTM <- setValues(sim$ignitionFitRTM, 1) ## avoids a warning
   attributes(sim$ignitionFitRTM)$nonNAs <- nrow(sim$fireSense_ignitionCovariates)
 
@@ -1407,16 +1544,16 @@ prepare_IgnitionFit <- function(sim) {
   tempCD <- LandR::addPixels2CohortData(tail(sim$cohortDatas, 1)[[1]], tail(sim$pixelGroupMaps, 1)[[1]])
   bPerPixel <- tempCD[age > 0, .(bPerPixel = sum(B)), .(pixelIndex)]
   meanForestB <- mean(bPerPixel$bPerPixel)
-  attributes(sim$ignitionFitRTM)$meanForestB <- meanForestB
+  attr(sim$ignitionFitRTM, "meanForestB") <- meanForestB
   rm(tempCD, bPerPixel)
 
-  ## build formula
-  igCovariates <- names(sim$fireSense_ignitionCovariates)
-  igCovariates <- igCovariates[!igCovariates %in%
-                                 c(names(ignitionClimate),
-                                   fireSenseUtils::yearChar, "ignitions", "ignitionsNoGT1", "pixelID")]
-
+  
   if (grepl("xgb", Par$modelAlgorithm) %in% FALSE) {
+    ## build formula
+    igCovariates <- names(sim$fireSense_ignitionCovariates)
+    igCovariates <- igCovariates[!igCovariates %in%
+                                   c(names(ignitionClimate),
+                                     fireSenseUtils::yearChar, "ignitions", "ignitionsNoGT1", "pixelID")]
     ## this is safer for multiple climate variables
     interactionsDF <- as.data.table(expand.grid(igCovariates, sim$climateVariablesForFire$ignition))
     interactionsDF[, interaction := do.call(paste, c(.SD, sep = ":")), .SDcols = names(interactionsDF)]
@@ -1541,12 +1678,9 @@ runBorealDP_forCohortData <- function(sim) {
               modulePath = modulePathLocal, overwrite = FALSE)
     pathsLocal$modulePath <- modulePathLocal
   }
-  cohDat <- "cohortData"
-  pixGM <- "pixelGroupMap"
-  saMap <- "standAgeMap"
   # rstLCC * see below
   neededYears <- Par$dataYears # c(2010, 2020)
-
+  
   ecoFile <- ifelse(is.null(sim$ecoregionRst), "ecoregionLayer", "ecoregionRst")
   objsNeeded <- c(ecoFile,
                   "firePerimeters",
@@ -1558,7 +1692,7 @@ runBorealDP_forCohortData <- function(sim) {
                   "species", "speciesTable", "sppEquiv")
   objsNeeded <- intersect(ls(sim), objsNeeded)
   objsNeeded <- mget(objsNeeded, envir = envir(sim))
-  cds <- lapply(neededYears, function(ny, objs = objsNeeded) {
+  cds <- Map(ny = neededYears, function(ny, objs = objsNeeded) {
     messageColoured(colour = "yellow", "Running Biomass_borealDataPrep for year ", ny)
     messageColoured(colour = "yellow", "  inside fireSense_dataPrepFit to estimate cohortData", ny)
     yrChar <- names(sim$rstLCCs)
@@ -1566,7 +1700,9 @@ runBorealDP_forCohortData <- function(sim) {
     rstLCC <- objs[["rstLCCs"]][[yrChar]]
     standAgeMap <- objs[["standAgeMaps"]][[yrChar]]
     objs[["standAgeMaps"]] <- NULL
-    objs <- c(objs, "rstLCC" = rstLCC, "standAgeMap" = standAgeMap)
+    objs <- c(objs, 
+              "rstLCC" = rstLCC, 
+              "standAgeMap" = standAgeMap)
     #now duplicated
     objs[[yrChar]] <- NULL
     # otherYr <- ifelse(ny == 2010, 2020, 2010)
@@ -1604,7 +1740,7 @@ runBorealDP_forCohortData <- function(sim) {
     outNY[[saObj]] <- outNY[[saMap]]
     mget(c(cohDatObj, pixGrpMap, saObj), envir = envir(outNY))
   })
-  lapply(cds, function(cd) list2env(cd, envir = envir(sim)))
+  lapply(cds, function(cd) list2env(cd, envir = envir(sim))) # puts into sim$cohortDatas
   sim
 }
 
@@ -1613,14 +1749,21 @@ runBorealDP_forCohortData <- function(sim) {
     sim$studyArea <- LandR::randomStudyArea(size = 10000 * 6.25 * 20000)
   }
 
-  dys <- P(sim)$dataYears
-
-  # dataYears <- P(sim)$dataYears
+  mod$dys <- P(sim)$dataYears
+  mod$dataYears <- P(sim)$dataYears
 
 
   if (!suppliedElsewhere("studyArea_biomassParam", sim)) {
     if (is.null(sim$studyAreaLarge)) {
-      sim$studyArea_biomassParam <- sim$studyArea
+      if (!is.null(sim$rasterToMatchLarge)) {
+        message("Creating studyArea_biomassParam from sim$rasterToMatchLarge")
+        sim$studyArea_biomassParam <- terra::as.polygons(sim$rasterToMatchLarge) |> aggregate()
+      } else {
+        warning("studyArea_biomassParam is not supplied; using studyArea, which is likely wrong as ",
+                "several modules in the Biomass_** family expect studyArea_biomassParam to be from ",
+                "the ***Large family of rasterToMatchLarge/studyAreaLarge")
+        sim$studyArea_biomassParam <- sim$studyArea
+      }
     } else {
       warning("please replace studyAreaLarge with studyArea_biomassParam")
       sim$studyArea_biomassParam <- sim$studyAreaLarge
@@ -1671,68 +1814,40 @@ runBorealDP_forCohortData <- function(sim) {
   doRstLCCs <- !suppliedElsewhere("rstLCCs", sim)
   doStandAgeMaps <- !suppliedElsewhere("standAgeMaps", sim)
 
-  for (dy in dys) {
-    dyChar <- paste0(fireSenseUtils::yearChar, dy)
+  dyChars <- paste0(fireSenseUtils::yearChar, mod$dys)
+  outs <- Map(dyChar = dyChars, dy = mod$dys, function(dyChar, dy) {
     if (doRstLCCs) {
-
       #use a threshold to to assign non-flammable cover (e.g. if < 10% flammable cover)
       opts11 <- options(reproducible.prepInputsUrlTiles = FALSE)
       on.exit(options(opts11))
-      LCC <- makeFireSenseLCC(
-        neededYear = dy,
-        writeTo = .suffix("rstLCC.tif",
-                          paste0(dy, "_", P(sim)$.studyAreaName)),
-        destinationPath = inputPath(sim),
-        maskTo = sim$studyArea_biomassParam,
-        to = sim$rasterToMatch_biomassParam,
-        nonflammableLCC = P(sim)$nonflammableLCC,
-        flammabilityThreshold = P(sim)$flammabilityThreshold) |>
-        Cache(userTags = c("makeFireSenseLCC", dy))
-      sim$rstLCCs[[dyChar]] <- LCC$lcc
-      sim$propFlammables[[dyChar]] <- LCC$flammableProp
+      LCC <- makeFireSenseLCC(neededYear = dy,
+                              writeTo = .suffix("rstLCC.tif",
+                                                paste0(dy, "_", P(sim)$.studyAreaName)),
+                              destinationPath = inputPath(sim),
+                              maskTo = sim$studyArea_biomassParam,
+                              to = sim$rasterToMatch_biomassParam,
+                              nonflammableLCC = P(sim)$nonflammableLCC,
+                              flammabilityThreshold = P(sim)$flammabilityThreshold) |>
+        Cache(userTags = c("makeFireSenseLCC", dy),
+              .functionName = paste0("makeForeSenseLCC", dy))
     }
-
-    dyChars <- sapply(dys, function(dy) grep(dy, names(sim$rstLCCs), value = TRUE))
-
-    # if (!suppliedElsewhere("rstLCC2020", sim)) {
-    #   #use a threshold to to assign non-flammable cover (e.g. if < 10% flammable cover)
-    #   LCC2020 <- Cache(makeFireSenseLCC,
-    #                    neededYear = 2020,
-    #                    writeTo = .suffix("rstLCC.tif",
-    #                                      paste0(2020, "_", P(sim)$.studyAreaName)),
-    #                    destinationPath = inputPath(sim),
-    #                    studyArea = sim$studyArea_biomassParam,
-    #                    rasterToMatch = sim$rasterToMatch_biomassParam,
-    #                    nonflammableLCC = P(sim)$nonflammableLCC,
-    #                    flammabilityThreshold = P(sim)$flammabilityThreshold,
-    #                    userTags = c("makeFireSenseLCC", 2020))
-    #   sim$rstLCC2020 <- LCC2020$lcc
-    #   sim$propFlammable2020 <- LCC2020$flammableProp
-    # }
-
+    
     if (doStandAgeMaps) {
-      #if (!suppliedElsewhere("standAgeMaps", sim)) {
-      # if (!suppliedElsewhere("standAgeMap2010", sim)) {
-      sim$standAgeMaps[[dyChar]] <- prepInputsStandAgeMap(
-        rasterToMatch = sim$rasterToMatch_biomassParam,
-        studyArea = sim$studyArea_biomassParam,
-        destinationPath = dPath,
-        dataYear = dy) |>
+      standAgeMap <- prepInputsStandAgeMap(rasterToMatch = sim$rasterToMatch_biomassParam,
+                                           studyArea = sim$studyArea_biomassParam,
+                                           destinationPath = dPath,
+                                           dataYear = dy) |>
         Cache(.functionName = paste0("prepInputsStandAgeMap", dy),
               userTags = c(cacheTags, "prepInputsStandAgeMap"))
     }
-
-    # if (!suppliedElsewhere("standAgeMap2020", sim)) {
-    #   sim$standAgeMap2020 <- Cache(prepInputsStandAgeMap,
-    #                                rasterToMatch = sim$rasterToMatch_biomassParam,
-    #                                studyArea = sim$studyArea_biomassParam,
-    #                                destinationPath = dPath,
-    #                                startTime = 2020,
-    #                                userTags = c(cacheTags, "prepInputsStandAgeMap2020"))
-    # }
-
-  }
-
+    
+    return(list(standAgeMaps = standAgeMap, rstLCCs = LCC$lcc, propFlammables = LCC$flammableProp))
+  })
+  outsRev <- Require::invertList(outs)
+  list2env(outsRev, envir = envir(sim)) # sim$standAgeMaps, sim$propFlammables, sim$rstLCCs
+  
+  mod$dyChars <- sapply(mod$dys, function(dy) grep(dy, names(sim$rstLCCs), value = TRUE))
+  
   if (!all(suppliedElsewhere("cohortDatas", sim),
            #suppliedElsewhere("cohortData2020", sim),
            suppliedElsewhere("pixelGroupMaps", sim)#,
@@ -1740,13 +1855,13 @@ runBorealDP_forCohortData <- function(sim) {
   )) {
     ## This runs simInitAndSpades if needed
     sim <- runBorealDP_forCohortData(sim)
-    objsHere <- c("cohortData", "pixelGroupMap")
+    objsHere <- c(cohDat, pixGM)
     for (nam in objsHere) {
       namPlural <- paste0(nam, "s")
       # This next line puts them in the ascending order
-      cdnames <- sapply(dys, function(dy) grep(paste0(nam, dy), names(sim), value = TRUE))
+      cdnames <- sapply(mod$dys, function(dy) grep(paste0(nam, dy), names(sim), value = TRUE))
       sim[[namPlural]] <- mget(cdnames, envir(sim))
-      names(sim[[namPlural]]) <- dyChars
+      names(sim[[namPlural]]) <- mod$dyChars
       rm(list = cdnames, envir = envir(sim))
     }
   }
@@ -1917,6 +2032,9 @@ runBorealDP_forCohortData <- function(sim) {
 
 youngAgeName <- fireSenseUtils::youngAgeName
 ranEffsLabel <- fireSenseUtils::yearChar
+cohDat <- "cohortData"
+pixGM <- "pixelGroupMap"
+saMap <- "standAgeMap"
 
 defaultClimateVariablesForFire <- list("spread" = "MDC",
                                        "ignition" = "MDC")
@@ -1933,3 +2051,4 @@ yearGroups <- function(dataYears, fireYears, minmaxOnly = TRUE) {
     ageGroups <- Map(ag = ageGroups, function(ag) c(min(ag), max(ag)))
   ageGroups
 }
+
