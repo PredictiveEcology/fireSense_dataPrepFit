@@ -2996,7 +2996,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">fireSense_dataPrepFit Manual</h1>
 <h3 class="subtitle">v.1.1.4</h3>
-<h4 class="date">Last updated: 2026-02-05</h4>
+<h4 class="date">Last updated: 2026-02-13</h4>
 
 </div>
 
@@ -3385,7 +3385,7 @@ rstLCCs
 list
 </td>
 <td style="text-align:left;">
-List of (2) SpatRasters of land cover - updated so that pixels above <code>P(sim)$flammabilityThresholdhave an assigned flammable landcover &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; sppEquiv &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; data.table &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; table of LandR species equivalencies &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; standAgeMaps &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; list &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; list of length 2 of maps of stand age in dataYear[[1]] and dataYear[[2]] used to create</code>cohortDatas`
+List of (2) SpatRasters of land cover - updated so that pixels above <code>P(sim)$flammabilityThresholdhave an assigned flammable landcover &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; sppEquiv &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; data.table &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; table of LandR species equivalencies &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; sppColorVect &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; character &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; named character vector of hex colour codes corresponding to each species &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; standAgeMaps &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; list &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; list of length 2 of maps of stand age in dataYear[[1]] and dataYear[[2]] used to create</code>cohortDatas`
 </td>
 <td style="text-align:left;">
 NA
@@ -4054,6 +4054,17 @@ sf
 </td>
 <td style="text-align:left;">
 This is the studyArea, but with parameters from a previously fitted SpreadFit. If no pre-existing object exists from CacheGeo, this will be NULL
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+sppColorVect
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+named character vector of hex colour codes corresponding to each species. This may be updated if CacheGeo has different values than the inputted version of this object
 </td>
 </tr>
 <tr>
