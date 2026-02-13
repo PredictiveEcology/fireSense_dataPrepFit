@@ -370,7 +370,7 @@ Init <- function(sim) {
   spreadFitPreRun <- CacheGeo(cloudFolderID = Par$spreadFitGoogleDriveFolder,
                               targetFile = Par$spreadFitFilename, purge = 7,
                               domain = sa, action = "nothing", useCache = FALSE,
-                              destinationPath = getPaths()$inputPath, bufferOK = TRUE) # |> Cache()
+                              destinationPath = inputPath(sim), bufferOK = TRUE) # |> Cache()
   mod$haveSpreadFit <- is(spreadFitPreRun, "sf") || is(spreadFitPreRun, "data.frame")
   # mod$haveSpreadFit <- FALSE
   #if (needToEstimateFuelClasses) {
@@ -1429,24 +1429,29 @@ prepare_IgnitionFit <- function(sim) {
                         lightningDensity = "12fnhfKtER-JXkl06M4_yZ3GvpZWtQlIr" ,
                         positiveCG = "1bn6cQ23tvPicFLHn1tz4Z3AqDzJI4r60",
                         positiveCGdensity = "1GNixhXj1Ex1jT0tWXfhmxef-dX3ze1a4")
-  digRTM <- sim$rasterToMatch
-  sim$lightningMaps <- Map(url = lightningUrls, nam = names(lightningUrls),
-                           function(url, nam) {
+  digCE <- .robustDigest(list(rtm = sim$rasterToMatch, 
+                              igAggFactor = P(sim)$igAggFactor,
+                              rld = readLightningData))
+  digURLs <- Map(url = lightningUrls, function(url) 
+    reproducible:::getRemoteMetadata(url = reproducible:::googledriveIDtoHumanURL(url), 
+    isGDurl = TRUE)$remoteHash)
+  sim$lightningMaps <- Map(url = lightningUrls, nam = names(lightningUrls), digURL = digURLs,
+                           function(url, nam, digURL) {
                              {
                                prepInputs(url = url,
                                           fun = readLightningData(targetFile,
                                                                   to = sim$rasterToMatch),
-                                          destinationPath = inputPath(sim))  |>
+                                          destinationPath = inputPath(sim), useCache = FALSE)  |>
                                  terra::aggregate(fact = P(sim)$igAggFactor)} |>
                                Cache(.functionName = paste0("prepInputs_lightning_", nam),
                                      omitArgs = c("...", "x"), # x comes from terra::aggregate and is undefined at call; so returns different each time
-                                     .cacheExtra = list(url = url, igAggFactor = P(sim)$igAggFactor,
-                                                        rtm = digRTM))
-                           }) |> Cache(.functionName = "prepInputs_lightning")
+                                     .cacheExtra = append(list(url = digURL), digCE))
+                           }) |> Cache(.functionName = "prepInputs_lightning",
+                                       .cacheExtra = append(digURLs, digCE))
 
 
 
-  compareGeom(ignitionClimateCoarse[[1]], fuelCovsCoarse[[1]], fuelCovsCoarse[[2]]) ## safety check
+  compareGeom(sim$lightningMaps[[1]], ignitionClimateCoarse[[1]], fuelCovsCoarse[[1]], fuelCovsCoarse[[2]]) ## safety check
   # compareGeom(ignitionClimate[[1]], fuelClasses[[1]], fuelClasses[[2]]) ## safety check
 
   ## ignition won't have same years as spread so we do not use names of init objects
@@ -1526,6 +1531,7 @@ prepare_IgnitionFit <- function(sim) {
   # Eliot tested using all 4 and there was one clear winner basedon on variable importance
   #   lightningDays -- in ELF 4.3
   lightning <- sim$lightningMaps["lightningDays"]
+  
   set(fireSense_ignitionCovariates, NULL, names(lightning),
       as.data.frame(terra::values(terra::rast(lightning))[fireSense_ignitionCovariates[["pixelID"]],]))
 
