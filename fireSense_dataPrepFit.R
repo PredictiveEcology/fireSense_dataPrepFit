@@ -210,6 +210,14 @@ defineModule(sim, list(
                         "to use for which fire processes (ignition and spread). If the list is length one,",
                         "both processes will use the same variables. This will be an output ",
                         "if there is an existing studyAreaWithParams")),
+    createsOutput("spreadFitPreRun", "data.frame",
+                  desc = paste("This is a data.frame that has a geometry list column, so it can be ",
+                               "converted to a sf or SpatVector (e.g., `terra::vect(sf::st_as_sf(sim$spreadFitPreRun))` ",
+                               " , plus other mostly list columns:",
+                               "numIterations, objFunVal (not list), params, sppEquiv, ", 
+                               "nonForestedLCCGroups, missingLCCgroup, and polygonID. These are from ",
+                               "previously fitted SpreadFit. If no pre-existing object exists from ",
+                               "CacheGeo, this will be NULL")),
     createsOutput("studyAreaWithSpreadParams", "sf",
                   desc = paste("This is the studyArea, but with parameters from a previously ",
                                "fitted SpreadFit. If no pre-existing object exists from ",
@@ -280,7 +288,7 @@ defineModule(sim, list(
     #               paste0("Raster of 2020 land cover - updated so that pixels above `P(sim)$flammabilityThreshold",
     #                      "have an assigned flammable landcover")),
     createsOutput("rstLCCs", "list", # sourceURL = NA,
-                  paste0("List of (2) SpatRasters of land cover - updated so that pixels above `P(sim)$flammabilityThreshold",
+                  paste0("At rasterToMatch geoms. List of (2) SpatRasters of land cover - updated so that pixels above `P(sim)$flammabilityThreshold",
                          "have an assigned flammable landcover")),
     createsOutput("flammableRTMs", "list", "List of (2) binary SpatRaster of flammable landcover for years given by the list names"),
     # createsOutput("flammableRTM2010", "SpatRaster", "binary raster of flammable landcover for 2010"),
@@ -292,8 +300,10 @@ defineModule(sim, list(
     
     # For fireSense_**Predict modules
     createsOutput("standAgeMap", "SpatRaster", "Single layer, which will be taken from the last of standAgeMaps"),
+    createsOutput("rstLCC_RTM", "SpatRaster", # sourceURL = NA,
+                  paste0("Same as rstLCC, but at rasterToMatch geoms")),
     createsOutput("rstLCC", "SpatRaster", # sourceURL = NA,
-                  paste0("Final SpatRaster of land cover, i.e, conditions at start(sim). Taken from last layer of rstLCCs")),
+                  paste0("At rasterToMatch_biomassParams geoms. Final SpatRaster of land cover, i.e, conditions at start(sim). Taken from last layer of rstLCCs")),
     createsOutput("flammableRTM", "SpatRaster", "Flammable landcover i.e, conditions at start(sim). Taken from last layer of rstLCCs"),
     createsOutput("landcoverDT", "data.table",
                   "`pixelID` and relevant landcover classes for flammable pixels in each layer, ",
@@ -367,20 +377,20 @@ Init <- function(sim) {
 
   sa <- sim$studyArea
   if (inherits(sa, "SpatVector")) sa <- st_as_sf(sa)
-  spreadFitPreRun <- CacheGeo(cloudFolderID = Par$spreadFitGoogleDriveFolder,
+  sim$spreadFitPreRun <- CacheGeo(cloudFolderID = Par$spreadFitGoogleDriveFolder,
                               targetFile = Par$spreadFitFilename, purge = 7,
                               domain = sa, action = "nothing", useCache = FALSE,
                               destinationPath = inputPath(sim), bufferOK = TRUE) # |> Cache()
-  mod$haveSpreadFit <- is(spreadFitPreRun, "sf") || is(spreadFitPreRun, "data.frame")
+  mod$haveSpreadFit <- is(sim$spreadFitPreRun, "sf") || is(sim$spreadFitPreRun, "data.frame")
   # mod$haveSpreadFit <- FALSE
   #if (needToEstimateFuelClasses) {
   if (mod$haveSpreadFit) {
-    sim$studyAreaWithSpreadParams <- spreadFitPreRun
+    sim$studyAreaWithSpreadParams <- sim$spreadFitPreRun
     # remove the column called "params" ... this just allows for partial matching, with or without "s"
     #   in case somebody uses `parameters`, `param`, or `params`
     colNames <- setdiff(sim$spreadFitAdditionalColNames,
                         grep(value = TRUE, "param", sim$spreadFitAdditionalColNames))
-    df <- as.data.frame(spreadFitPreRun)
+    df <- sim$spreadFitPreRun
     df <- df[colNames]
     dfList <- lapply(df, function(x) x[[1]])
     list2env(dfList, envir(sim)) # sim$nonForestedLCCGroups, sim$sppEquiv, sim$missingLCCgroup
@@ -391,7 +401,7 @@ Init <- function(sim) {
     list2env(sppOuts, envir = envir(sim))
 
 
-    pars <- spreadFitPreRun$params[[1]]
+    pars <- sim$spreadFitPreRun$params[[1]]
     lpn <- fireSenseUtils::logisticParamNames
     allMatched <- sapply(lpn, function(lpn) all(lpn %in% colnames(pars)))
     numMatches <- sapply(lpn, function(lpn) sum(colnames(pars) %in% lpn))
@@ -455,14 +465,21 @@ Init <- function(sim) {
   #   objs <- Map(obj = objs, function(obj) Map(ob = obj, function(ob) LandR::asInt(ob)))
   # }
   # standAges <- objs[["standAgeMaps"]]
-  rstLCCs <- objs
+  
+  
+  # This is at rasterToMatch_biomassParam which is needed by Biomass_borealDataPrep
+  sim$rstLCC <- tail(sim$rstLCCs, 1)[[1]]
+  
+  
+  # This makes rstLCCs same as sim$rasterToMatch instead of rasterToMatch_biomassParam
+  sim$rstLCCs <- objs
   # standAgeMap2020 <- objs[[2]]
   # rstLCC2010 <- objs[[3]]
   # rstLCC2020 <- objs[[4]]
   
   ## TODO: make this table multidimensional or a list
   sim$flammableRTMs <- Map(dy = mod$dyChars, function(dy) {
-    defineFlammable(rstLCCs[[dy]],
+    defineFlammable(sim$rstLCCs[[dy]],
                     nonFlammClasses = P(sim)$nonflammableLCC,
                     to = sim$rasterToMatch)
   })
@@ -479,7 +496,9 @@ Init <- function(sim) {
   
   # # Create the "objects for prediction cases 
   # sim$standAgeMap <- tail(sim$standAgeMaps, 1)[[1]]
-  # sim$rstLCC <- tail(sim$rstLCCs, 1)[[1]]
+  
+  # This is now RTM
+  sim$rstLCC_RTM <- tail(sim$rstLCCs, 1)[[1]]
   # sim$flammableRTM <- tail(sim$flammableRTMs, 1)[[1]]
   # sim$landcoverDT <- tail(sim$landcoverDTs, 1)[[1]]
   
@@ -658,8 +677,8 @@ Init <- function(sim) {
     ll <- makeLandcoverDT(rstLCC = sim$rstLCCs[[dy]],
                           flammableRTM = sim$flammableRTMs[[dy]],
                           forestedLCC = P(sim)$forestedLCC, sim$nonForestedLCCGroups)
-    correctMissingLCC(ll, sim[["pixelGroupMaps"]][[dy]], sim$missingLCCgroup)
-  }) |> Cache(.functionName = "makeLandcoverDT", 
+    correctMissingLCC(ll, sim[["pixelGroupMaps"]][[dy]], sim$missingLCCgroup)}) |> 
+    Cache(.functionName = "makeLandcoverDT", 
               .cacheExtra = list(rstLCC = digRstLCC, flammableRTM = digFlammableRTMs, 
                                  rasterToMatchs = digRTMs,
                                  sim$missingLCCgroup, P(sim)$forestedLCC, sim$nonForestedLCCGroups))
@@ -714,7 +733,6 @@ Init <- function(sim) {
 
   # Create the "objects for prediction cases 
   sim$standAgeMap <- tail(sim$standAgeMaps, 1)[[1]]
-  sim$rstLCC <- tail(sim$rstLCCs, 1)[[1]]
   sim$flammableRTM <- tail(sim$flammableRTMs, 1)[[1]]
   sim$landcoverDT <- tail(sim$landcoverDTs, 1)[[1]]
   return(invisible(sim))
