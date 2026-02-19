@@ -377,6 +377,8 @@ Init <- function(sim) {
 
   sa <- sim$studyArea
   if (inherits(sa, "SpatVector")) sa <- st_as_sf(sa)
+  
+  prepInputsFSURL <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitGoogleDriveFolder")
   sim$spreadFitPreRun <- CacheGeo(cloudFolderID = Par$spreadFitGoogleDriveFolder,
                               targetFile = Par$spreadFitFilename, purge = 7,
                               domain = sa, action = "nothing", useCache = FALSE,
