@@ -288,9 +288,9 @@ defineModule(sim, list(
     #               paste0("Raster of 2020 land cover - updated so that pixels above `P(sim)$flammabilityThreshold",
     #                      "have an assigned flammable landcover")),
     createsOutput("rstLCCs", "list", # sourceURL = NA,
-                  paste0("At rasterToMatch geoms. List of (2) SpatRasters of land cover - updated so that pixels above `P(sim)$flammabilityThreshold",
+                  paste0("At rasterToMatch geoms. List of (3) SpatRasters of land cover - updated so that pixels above `P(sim)$flammabilityThreshold",
                          "have an assigned flammable landcover")),
-    createsOutput("flammableRTMs", "list", "List of (2) binary SpatRaster of flammable landcover for years given by the list names"),
+    createsOutput("flammableRTMs", "list", "List of (3 binary SpatRaster of flammable landcover for years given by the list names"),
     # createsOutput("flammableRTM2010", "SpatRaster", "binary raster of flammable landcover for 2010"),
     # createsOutput("flammableRTM2020", "SpatRaster", "binary raster of flammable landcover for 2020"),
     createsOutput("sppEquiv", "data.table", "sppEquiv table potentially modified with new or overwritten fuel class"),
@@ -501,8 +501,8 @@ Init <- function(sim) {
   
   # This is now RTM
   sim$rstLCC_RTM <- tail(sim$rstLCCs, 1)[[1]]
-  # sim$flammableRTM <- tail(sim$flammableRTMs, 1)[[1]]
-  # sim$landcoverDT <- tail(sim$landcoverDTs, 1)[[1]]
+  sim$flammableRTM <- tail(sim$flammableRTMs, 1)[[1]]
+  sim$landcoverDT <- tail(sim$landcoverDTs, 1)[[1]]
   
   #}
 #   return(sim)
