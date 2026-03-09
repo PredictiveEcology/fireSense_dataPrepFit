@@ -308,6 +308,9 @@ defineModule(sim, list(
     createsOutput("landcoverDT", "data.table",
                   "`pixelID` and relevant landcover classes for flammable pixels in each layer, ",
                   "i.e, conditions at start(sim). Taken from last layer of landcoverDTs"),
+    createsOutput("nonForest_timeSinceDisturbance", "SpatRaster", 
+                  paste("raster tracking the time since disturbance (e.g. burn) in each pixel, forested or not.", 
+                        "Forested pixels are tracked based on the age in cohortData"))
     
   )
 ))
@@ -737,6 +740,7 @@ Init <- function(sim) {
   sim$standAgeMap <- tail(sim$standAgeMaps, 1)[[1]]
   sim$flammableRTM <- tail(sim$flammableRTMs, 1)[[1]]
   sim$landcoverDT <- tail(sim$landcoverDTs, 1)[[1]]
+  sim$nonForest_timeSinceDisturbance <- tail(sim$nonForest_timeSinceDisturbances, 1)[[1]]
   return(invisible(sim))
 }
 
