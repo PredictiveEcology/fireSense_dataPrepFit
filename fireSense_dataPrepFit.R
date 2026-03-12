@@ -7,7 +7,7 @@ defineModule(sim, list(
     person(c("Alex", "M"), "Chubaty", role = c("ctb"), email = "achubaty@for-cast.ca")
   ),
   childModules = character(0),
-  version = list(fireSense_dataPrepFit = "1.1.4"),
+  version = list(fireSense_dataPrepFit = "1.2.0"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -16,7 +16,7 @@ defineModule(sim, list(
   #                 after = c("canClimateData")),
   # after = c("canClimateData")),
   reqdPkgs = list("data.table", "fastDummies", "reproducible",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.0.6.9008)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.1.0)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@development (>= 1.1.5.9070)",
                   "PredictiveEcology/SpaDES.core@development (>= 2.0.2.9006)",
@@ -1318,180 +1318,230 @@ prepare_IgnitionFit <- function(sim) {
   dig1a <- .robustDigest(list(sim$cohortDatas, sim$pixelGroupMaps, sim$nonForest_timeSinceDisturbances))
   dig2 <- append(dig1, dig1a)
 
+  
   #  Makes youngAge, amongst other things
-  fuelClassesNew <- Map(f = fireSenseUtils:::fireSenseCovariatesCreate,
-                        cohortData = sim$cohortDatas,
-                        pixelGroupMap = sim$pixelGroupMaps,
-                        flammableRTM = sim$flammableRTMs,
-                        landcoverDT = sim$landcoverDTs,
-                        nonForest_timeSinceDisturbance = sim$nonForest_timeSinceDisturbances,
-                        MoreArgs = list(sppEquiv = sim$sppEquiv,
-                                        sppEquivCol = P(sim)$sppEquivCol,
-                                        fuelClassCol = P(sim)$fuelClassCol,
-                                        cutoffForYoungAge = P(sim)$cutoffForYoungAge,
-                                        missingLCCgroup = sim$missingLCCgroup,
-                                        nonForestedLCCGroups = sim$nonForestedLCCGroups,
-                                        nonForestCanBeYoungAge = P(sim)$nonForestCanBeYoungAge,
-                                        studyAreaName = P(sim)$.studyAreaName
-                        ) 
-  ) |>
+  fuelCovsCoarse <- Map(
+    f = function(..., fact = P(sim)$igAggFactor, rasTemplate = sim$flammableRTM) {
+      prepare_FuelCovsCoarse(..., rasTemplate = rasTemplate, fact = fact)
+    }, 
+    cohortData = sim$cohortDatas,
+    pixelGroupMap = sim$pixelGroupMaps,
+    flammableRTM = sim$flammableRTMs,
+    landcoverDT = sim$landcoverDTs,
+    nonForest_timeSinceDisturbance = sim$nonForest_timeSinceDisturbances,
+    MoreArgs = list(sppEquiv = sim$sppEquiv,
+                    sppEquivCol = P(sim)$sppEquivCol,
+                    fuelClassCol = P(sim)$fuelClassCol,
+                    cutoffForYoungAge = P(sim)$cutoffForYoungAge,
+                    missingLCCgroup = sim$missingLCCgroup,
+                    nonForestedLCCGroups = sim$nonForestedLCCGroups,
+                    nonForestCanBeYoungAge = P(sim)$nonForestCanBeYoungAge,
+                    studyAreaName = P(sim)$.studyAreaName
+    ))  |>
     Cache(.cacheExtra = dig2, 
           omitArgs = c("landcoverDT", "flammableRTM", "cohortData", "pixelGroupMap", "nonForest_timeSinceDisturbance"),
           .functionName = "ignitionCovariatesCreate")
+  # fuelCovs <- Map(fcn = fuelClassesNew, function(fcn) rastFromDF(fcn, rasTemplate = sim$flammableRTM)) |>
+  #   Cache(omitArgs = "fcn", .cacheExtra = dig2, .functionName = "convertFuelDF_toRast")
+  # 
+  # fuelCovsCoarse <- Map(fc = fuelCovs, function(fc) 
+  #   terra::aggregate(fc, fact = P(sim)$igAggFactor, fun = mean)
+  # ) |>
+  #   Cache(.functionName = "aggregate_fuelClasses_to_coarse", omitArgs = "fc", .cacheExtra = dig2)
   
-  if (FALSE) { # This is previous, idiosyncratic; As of Jan 23, 2026; removal by Eliot
-    ## TODO LCCras needs updating possibly
-    # LCCras
-    fuelClasses <- Map(
-      f = cohortsToFuelClasses,
-      cohortData = sim$cohortDatas, # list(sim$cohortData2010, sim$cohortData2020),
-      flammableRTM = sim$flammableRTMs, # list(sim$flammableRTM2010, sim$flammableRTM2020),
-      landcoverDT = sim$landcoverDTs, # list(sim$landcoverDT2010, sim$landcoverDT2020),
-      pixelGroupMap = sim$pixelGroupMaps,# list(sim$pixelGroupMap2010, sim$pixelGroupMap2020),
-      MoreArgs = list(sppEquiv = sim$sppEquiv,
-                      sppEquivCol = P(sim)$sppEquivCol,
-                      fuelClassCol = P(sim)$fuelClassCol,
-                      cutoffForYoungAge = P(sim)$cutoffForYoungAge)
+  if (FALSE) {
+    fuelClassesNew <- Map(f = fireSenseUtils:::fireSenseCovariatesCreate,
+                          cohortData = sim$cohortDatas,
+                          pixelGroupMap = sim$pixelGroupMaps,
+                          flammableRTM = sim$flammableRTMs,
+                          landcoverDT = sim$landcoverDTs,
+                          nonForest_timeSinceDisturbance = sim$nonForest_timeSinceDisturbances,
+                          MoreArgs = list(sppEquiv = sim$sppEquiv,
+                                          sppEquivCol = P(sim)$sppEquivCol,
+                                          fuelClassCol = P(sim)$fuelClassCol,
+                                          cutoffForYoungAge = P(sim)$cutoffForYoungAge,
+                                          missingLCCgroup = sim$missingLCCgroup,
+                                          nonForestedLCCGroups = sim$nonForestedLCCGroups,
+                                          nonForestCanBeYoungAge = P(sim)$nonForestCanBeYoungAge,
+                                          studyAreaName = P(sim)$.studyAreaName
+                          ) 
     ) |>
-      Cache(.cacheExtra = dig2, omitArgs = c("landcoverDT", "flammableRTM"),
-            .functionName = "cohortsToFuelClasses")
-    
-    fuelClasses <- lapply(fuelClasses, FUN = function(x){
-      bCols <- unique(sim$sppEquiv[[P(sim)$fuelClassCol]])
-      xYA <- terra::subset(x, !names(x) %in% bCols)
-      xBiomass <- terra::subset(x, names(x) %in% bCols)
-      #to lessen the leverage of zeroes where there is no biomass
-      #change the zeroes to one log below the minimum in the data (in this case 100 g/m2)
-      # (this assumes every class has one pixel with minimum B - probably a safe assumption)
-      minimumB <- exp(log(100) - 1)
-      xBiomass[xBiomass < minimumB] <- minimumB
-      xBiomass <- log(xBiomass)
-      x <- c(xBiomass, xYA)
-      return(x)
-    })
-    
-    if (P(sim)$nonForestCanBeYoungAge) {
-      ## this modifies the NF landcover by converting some NF to a new YA layer
-      ## it must be done before aggregating
-      LCCras <- Map(
-        f = fireSenseUtils::putBackIntoRaster,
-        landcoverDT = sim$landcoverDTs, # list(sim$landcoverDT2010, sim$landcoverDT2020),
-        flammableMap = sim$flammableRTMs, # list(sim$flammableRTM2010, sim$flammableRTM2020),
-        MoreArgs = list(lcc = names(sim$nonForestedLCCGroups))
-      ) |>
-        Cache(.functionName = "putBackIntoRaster",
-              .cacheExtra = dig1, omitArgs = c("landcoverDT", "flammableMap"),
-              userTags = c("putBackIntoRaster", P(sim)$.studyAreaName))
-      dig1b <- .robustDigest(list(LCCras))
-      
-      LCCras <- Map(
-        f = calcNonForestYoungAge,
-        landcoverDT = sim$landcoverDTs, # list(sim$landcoverDT2010, sim$landcoverDT2020),
-        NFTSD = sim$nonForest_timeSinceDisturbances, # list(sim$nonForest_timeSinceDisturbance2010,
-        # sim$nonForest_timeSinceDisturbance2020),
-        LCCras = LCCras, #  list(LCCras[[1]], LCCras[[2]]),
-        MoreArgs = list(cutoffForYoungAge = P(sim)$cutoffForYoungAge)
-      ) |>
-        Cache(.cacheExtra = append(dig1, dig1b), omitArgs = c("landcoverDT", "LCCras"))
-      
-      for (i in names(fuelClasses)) {
-        if (youngAgeName %in% names(fuelClasses[[i]])) {
-          
-          YA1 <- fuelClasses[[i]][[youngAgeName]]
-          YA2 <- LCCras[[i]][[youngAgeName]]
-          bothYA <- YA1 + YA2
-          fuelClasses[[i]][[youngAgeName]] <- bothYA
-        }  else {
-          fuelClasses[[i]][[youngAgeName]] <- LCCras[[i]][[youngAgeName]]
-        }
-        toKeep <- setdiff(names(LCCras[[i]]), youngAgeName)
-        LCCras[[i]] <- terra::subset(LCCras[[i]], toKeep) ## to avoid double-counting
-      }
-    }
-  }
-
-  fuelCovs <- Map(fcn = fuelClassesNew, function(fcn) rastFromDF(fcn, rasTemplate = sim$flammableRTM)) |>
-    Cache(omitArgs = "fcn", .cacheExtra = dig2, .functionName = "convertFuelDF_toRast")
-  ignitionClimate <- sim$historicalClimateRasters[sim$climateVariablesForFire$ignition]
-  digClimate <- .robustDigest(ignitionClimate)
-  dig3 <- append(dig2, digClimate)
-  
-  
-  #instead of aggregating, take the focal
-  if (P(sim)$igAggFactor > 1) {
+      Cache(.cacheExtra = dig2, 
+            omitArgs = c("landcoverDT", "flammableRTM", "cohortData", "pixelGroupMap", "nonForest_timeSinceDisturbance"),
+            .functionName = "ignitionCovariatesCreate")
+    fuelCovs <- Map(fcn = fuelClassesNew, function(fcn) rastFromDF(fcn, rasTemplate = sim$flammableRTM)) |>
+      Cache(omitArgs = "fcn", .cacheExtra = dig2, .functionName = "convertFuelDF_toRast")
     
     fuelCovsCoarse <- Map(fc = fuelCovs, function(fc) 
       terra::aggregate(fc, fact = P(sim)$igAggFactor, fun = mean)
     ) |>
       Cache(.functionName = "aggregate_fuelClasses_to_coarse", omitArgs = "fc", .cacheExtra = dig2)
-    if (FALSE) {
-      LCCrasCoarse <- lapply(LCCras, aggregate, fact = P(sim)$igAggFactor, fun = mean) |>
-        Cache(.functionName = "aggregate_LCCras_to_coarse")
-      
-      ## must specify terra::aggregate to avoid conflict with stats::aggregate
-      fuelClassesCoarse <- lapply(fuelClasses, FUN = terra::aggregate, fact = P(sim)$igAggFactor, fun = mean) |>
-        Cache(.functionName = "aggregate_fuelClasses_to_coarse")
-    }
-
-    ignitionClimateCoarse <- lapply(X = ignitionClimate, FUN = terra::aggregate,
-                              fact = P(sim)$igAggFactor, fun = mean) |>
-      Cache(.functionName = "aggregate_historicalClimateRasters_to_coarse")
-  } else if (P(sim)$igFocalFactor > 2) {
-    #two will trigger, 1 does nothing.
-    igSpatial <- lapply(X = list(ignitionClimate, fuelClasses, LCCras), FUN = function(x, size = P(sim)$igFocalFactor) {
-      #these are all lists due to time
-      x <- lapply(x, FUN = terra::focal, w =  size, fun = mean, na.rm = TRUE)
-    })
-    ignitionClimate <- igSpatial[[1]]
-    fuelClasses <- igSpatial[[2]]
-    LCCras <- igSpatial[[3]]
   }
+  
+  # if (FALSE) { # This is previous, idiosyncratic; As of Jan 23, 2026; removal by Eliot
+  #   ## TODO LCCras needs updating possibly
+  #   # LCCras
+  #   fuelClasses <- Map(
+  #     f = cohortsToFuelClasses,
+  #     cohortData = sim$cohortDatas, # list(sim$cohortData2010, sim$cohortData2020),
+  #     flammableRTM = sim$flammableRTMs, # list(sim$flammableRTM2010, sim$flammableRTM2020),
+  #     landcoverDT = sim$landcoverDTs, # list(sim$landcoverDT2010, sim$landcoverDT2020),
+  #     pixelGroupMap = sim$pixelGroupMaps,# list(sim$pixelGroupMap2010, sim$pixelGroupMap2020),
+  #     MoreArgs = list(sppEquiv = sim$sppEquiv,
+  #                     sppEquivCol = P(sim)$sppEquivCol,
+  #                     fuelClassCol = P(sim)$fuelClassCol,
+  #                     cutoffForYoungAge = P(sim)$cutoffForYoungAge)
+  #   ) |>
+  #     Cache(.cacheExtra = dig2, omitArgs = c("landcoverDT", "flammableRTM"),
+  #           .functionName = "cohortsToFuelClasses")
+  #   
+  #   fuelClasses <- lapply(fuelClasses, FUN = function(x){
+  #     bCols <- unique(sim$sppEquiv[[P(sim)$fuelClassCol]])
+  #     xYA <- terra::subset(x, !names(x) %in% bCols)
+  #     xBiomass <- terra::subset(x, names(x) %in% bCols)
+  #     #to lessen the leverage of zeroes where there is no biomass
+  #     #change the zeroes to one log below the minimum in the data (in this case 100 g/m2)
+  #     # (this assumes every class has one pixel with minimum B - probably a safe assumption)
+  #     minimumB <- exp(log(100) - 1)
+  #     xBiomass[xBiomass < minimumB] <- minimumB
+  #     xBiomass <- log(xBiomass)
+  #     x <- c(xBiomass, xYA)
+  #     return(x)
+  #   })
+  #   
+  #   if (P(sim)$nonForestCanBeYoungAge) {
+  #     ## this modifies the NF landcover by converting some NF to a new YA layer
+  #     ## it must be done before aggregating
+  #     LCCras <- Map(
+  #       f = fireSenseUtils::putBackIntoRaster,
+  #       landcoverDT = sim$landcoverDTs, # list(sim$landcoverDT2010, sim$landcoverDT2020),
+  #       flammableMap = sim$flammableRTMs, # list(sim$flammableRTM2010, sim$flammableRTM2020),
+  #       MoreArgs = list(lcc = names(sim$nonForestedLCCGroups))
+  #     ) |>
+  #       Cache(.functionName = "putBackIntoRaster",
+  #             .cacheExtra = dig1, omitArgs = c("landcoverDT", "flammableMap"),
+  #             userTags = c("putBackIntoRaster", P(sim)$.studyAreaName))
+  #     dig1b <- .robustDigest(list(LCCras))
+  #     
+  #     LCCras <- Map(
+  #       f = calcNonForestYoungAge,
+  #       landcoverDT = sim$landcoverDTs, # list(sim$landcoverDT2010, sim$landcoverDT2020),
+  #       NFTSD = sim$nonForest_timeSinceDisturbances, # list(sim$nonForest_timeSinceDisturbance2010,
+  #       # sim$nonForest_timeSinceDisturbance2020),
+  #       LCCras = LCCras, #  list(LCCras[[1]], LCCras[[2]]),
+  #       MoreArgs = list(cutoffForYoungAge = P(sim)$cutoffForYoungAge)
+  #     ) |>
+  #       Cache(.cacheExtra = append(dig1, dig1b), omitArgs = c("landcoverDT", "LCCras"))
+  #     
+  #     for (i in names(fuelClasses)) {
+  #       if (youngAgeName %in% names(fuelClasses[[i]])) {
+  #         
+  #         YA1 <- fuelClasses[[i]][[youngAgeName]]
+  #         YA2 <- LCCras[[i]][[youngAgeName]]
+  #         bothYA <- YA1 + YA2
+  #         fuelClasses[[i]][[youngAgeName]] <- bothYA
+  #       }  else {
+  #         fuelClasses[[i]][[youngAgeName]] <- LCCras[[i]][[youngAgeName]]
+  #       }
+  #       toKeep <- setdiff(names(LCCras[[i]]), youngAgeName)
+  #       LCCras[[i]] <- terra::subset(LCCras[[i]], toKeep) ## to avoid double-counting
+  #     }
+  #   }
+  # }
+
+  
+  # Climate data
+  ignitionClimateCoarse <- prepare_ignitionClimate(
+    ignitionClimateList = sim$historicalClimateRasters[sim$climateVariablesForFire$ignition], 
+    fact = P(sim)$igAggFactor,
+    digest = dig2) #{
+    # ignitionClimateList <- sim$historicalClimateRasters[sim$climateVariablesForFire$ignition]
+  # prepare_ignitionClimate <- function(ignitionClimateList, fact, digest) {
+  #   # ignitionClimateList <- sim$historicalClimateRasters[sim$climateVariablesForFire$ignition]
+  #   digClimate <- .robustDigest(ignitionClimateList)
+  #   dig3 <- append(digest, digClimate)
+  #   ignitionClimateCoarse <- lapply(X = ignitionClimateList, FUN = terra::aggregate,
+  #                                   fact = P(sim)$igAggFactor, fun = mean) |>
+  #     Cache(.functionName = "aggregate_historicalClimateRasters_to_coarse",
+  #           omitArgs = "x", .cacheExtra = dig3)
+  # }
+  
+  #instead of aggregating, take the focal --> Eliot -- this doesn't make sense, since we need to aggregate to coarser res
+  # if (P(sim)$igAggFactor > 1) {
+  #   
+  #   # fuelCovsCoarse <- Map(fc = fuelCovs, function(fc) 
+  #   #   terra::aggregate(fc, fact = P(sim)$igAggFactor, fun = mean)
+  #   # ) |>
+  #   #   Cache(.functionName = "aggregate_fuelClasses_to_coarse", omitArgs = "fc", .cacheExtra = dig2)
+  #   # # if (FALSE) {
+  #   # #   LCCrasCoarse <- lapply(LCCras, aggregate, fact = P(sim)$igAggFactor, fun = mean) |>
+  #   # #     Cache(.functionName = "aggregate_LCCras_to_coarse")
+  #   # #   
+  #   # #   ## must specify terra::aggregate to avoid conflict with stats::aggregate
+  #   # #   fuelClassesCoarse <- lapply(fuelClasses, FUN = terra::aggregate, fact = P(sim)$igAggFactor, fun = mean) |>
+  #   # #     Cache(.functionName = "aggregate_fuelClasses_to_coarse")
+  #   # # }
+  # 
+  #   ignitionClimateCoarse <- lapply(X = ignitionClimate, FUN = terra::aggregate,
+  #                             fact = P(sim)$igAggFactor, fun = mean) |>
+  #     Cache(.functionName = "aggregate_historicalClimateRasters_to_coarse")
+  # } 
+  # else if (P(sim)$igFocalFactor > 2) {
+  #   #two will trigger, 1 does nothing.
+  #   igSpatial <- lapply(X = list(ignitionClimate, fuelClasses, LCCras), FUN = function(x, size = P(sim)$igFocalFactor) {
+  #     #these are all lists due to time
+  #     x <- lapply(x, FUN = terra::focal, w =  size, fun = mean, na.rm = TRUE)
+  #   })
+  #   ignitionClimate <- igSpatial[[1]]
+  #   fuelClasses <- igSpatial[[2]]
+  #   LCCras <- igSpatial[[3]]
+  # }
   # names(LCCras) <- c("year2010", "year2020")
   # names(fuelClasses) <- c("year2010", "year2020")
 
-  lightningUrls <- list(lightningDays = "1jeKJquhVJsesoNk2EPP1QZkttX3Zwp5c",
-                        lightningDensity = "12fnhfKtER-JXkl06M4_yZ3GvpZWtQlIr" ,
-                        positiveCG = "1bn6cQ23tvPicFLHn1tz4Z3AqDzJI4r60",
-                        positiveCGdensity = "1GNixhXj1Ex1jT0tWXfhmxef-dX3ze1a4")
-  digCE <- .robustDigest(list(rtm = sim$rasterToMatch, 
-                              igAggFactor = P(sim)$igAggFactor,
-                              rld = readLightningData))
-  digURLs <- Map(url = lightningUrls, function(url) 
-    reproducible:::getRemoteMetadata(url = reproducible:::googledriveIDtoHumanURL(url), 
-    isGDurl = TRUE)$remoteHash)
-  sim$lightningMaps <- Map(url = lightningUrls, nam = names(lightningUrls), digURL = digURLs,
-                           function(url, nam, digURL) {
-                             {
-                               prepInputs(url = url,
-                                          fun = readLightningData(targetFile,
-                                                                  to = sim$rasterToMatch),
-                                          destinationPath = inputPath(sim), useCache = FALSE)  |>
-                                 terra::aggregate(fact = P(sim)$igAggFactor)} |>
-                               Cache(.functionName = paste0("prepInputs_lightning_", nam),
-                                     omitArgs = c("...", "x"), # x comes from terra::aggregate and is undefined at call; so returns different each time
-                                     .cacheExtra = append(list(url = digURL), digCE))
-                           }) |> Cache(.functionName = "prepInputs_lightning",
-                                       .cacheExtra = append(digURLs, digCE))
+  # lightningUrls <- list(lightningDays = "1jeKJquhVJsesoNk2EPP1QZkttX3Zwp5c",
+  #                       lightningDensity = "12fnhfKtER-JXkl06M4_yZ3GvpZWtQlIr" ,
+  #                       positiveCG = "1bn6cQ23tvPicFLHn1tz4Z3AqDzJI4r60",
+  #                       positiveCGdensity = "1GNixhXj1Ex1jT0tWXfhmxef-dX3ze1a4")
+  # digCE <- .robustDigest(list(rtm = sim$rasterToMatch, 
+  #                             igAggFactor = P(sim)$igAggFactor,
+  #                             rld = readLightningData))
+  # digURLs <- Map(url = lightningUrls, function(url) 
+  #   reproducible:::getRemoteMetadata(url = reproducible:::googledriveIDtoHumanURL(url), 
+  #   isGDurl = TRUE)$remoteHash)
+  # sim$lightningMaps <- Map(url = lightningUrls, nam = names(lightningUrls), digURL = digURLs,
+  #                          function(url, nam, digURL) {
+  #                            {
+  #                              prepInputs(url = url,
+  #                                         fun = readLightningData(targetFile,
+  #                                                                 to = sim$rasterToMatch),
+  #                                         destinationPath = inputPath(sim), useCache = FALSE)  |>
+  #                                terra::aggregate(fact = P(sim)$igAggFactor)} |>
+  #                              Cache(.functionName = paste0("prepInputs_lightning_", nam),
+  #                                    omitArgs = c("...", "x"), # x comes from terra::aggregate and is undefined at call; so returns different each time
+  #                                    .cacheExtra = append(list(url = digURL), digCE))
+  #                          }) |> Cache(.functionName = "prepInputs_lightning",
+  #                                      .cacheExtra = append(digURLs, digCE))
 
+  sim$lightningMaps <- prepare_LightningData(sim$rasterToMatch, P(sim)$igAggFactor, 
+                                             dPath = inputPath(sim))
 
-
-  compareGeom(sim$lightningMaps[[1]], ignitionClimateCoarse[[1]], fuelCovsCoarse[[1]], fuelCovsCoarse[[2]]) ## safety check
+  do.call(compareGeom, unname(Reduce(append, list(sim$lightningMaps, ignitionClimateCoarse, fuelCovsCoarse))))
+  # compareGeom(sim$lightningMaps[[1]], ignitionClimateCoarse[[1]], fuelCovsCoarse[[1]], fuelCovsCoarse[[2]]) ## safety check
   # compareGeom(ignitionClimate[[1]], fuelClasses[[1]], fuelClasses[[2]]) ## safety check
 
   ## ignition won't have same years as spread so we do not use names of init objects
   ## The reason is some years may have ignitions but no fires, e.g. 2010 in RIA
+    # pre2012 <- paste0(fireSenseUtils::yearChar, min(P(sim)$fireYears):2011)
+  # post2012 <- paste0(fireSenseUtils::yearChar, 2012:max(P(sim)$fireYears))
+  # allYears <- c(pre2012, post2012)
   years <- yearGroups(Par$dataYears, Par$fireYears, FALSE)
   years <- Map(y = years, function(y) paste0(fireSenseUtils::yearChar, y))
   mod$allYears <- years
   allYearsVect <- unlist(mod$allYears)
-
-  # pre2012 <- paste0(fireSenseUtils::yearChar, min(P(sim)$fireYears):2011)
-  # post2012 <- paste0(fireSenseUtils::yearChar, 2012:max(P(sim)$fireYears))
-  # allYears <- c(pre2012, post2012)
-
   #assume that if multiple climate variables are present, they are of equal length
   #else bigger problems exist
-  whAvailable <- allYearsVect %in% names(ignitionClimate[[1]])
+  whAvailable <- allYearsVect %in% names(ignitionClimateCoarse[[1]])
   yearsInClimateRast <- allYearsVect[whAvailable]
   yearsNotAvailable <- allYearsVect[!whAvailable]
 
@@ -1521,55 +1571,65 @@ prepare_IgnitionFit <- function(sim) {
   #     userTags = names(ignitionClimate)
   #   )
 
-  fireSense_ignitionCovariates <- Map(
-    f = fireSenseUtils::stackAndExtract,
-    years = years, # list(pre2012, post2012),
-    fuel = Map(lrc = fuelCovsCoarse, function(lrc) lrc[[setdiff(names(lrc), names(sim$nonForestedLCCGroups))]]),
-    LCC = Map(lrc = fuelCovsCoarse, function(lrc) lrc[[names(sim$nonForestedLCCGroups)]]), # list(LCCras$year2010, LCCras$year2020),
-    MoreArgs = list(climate = ignitionClimateCoarse,
-                    fires = sim$ignitionFirePoints)
-  ) |>
-    Cache(omitArgs = c("fuel", "LCC", "climate"), 
-          .cacheExtra = append(dig3, list(P(sim)$igAggFactor)),
-          .functionName = "stackAndExtract",
-          userTags = names(ignitionClimate)
-    )
-
+  if (FALSE) {
+    fireSense_ignitionCovariates <- Map(
+      f = fireSenseUtils::stackAndExtract,
+      years = years, # list(pre2012, post2012),
+      fuel = Map(lrc = fuelCovsCoarse, function(lrc) lrc[[setdiff(names(lrc), names(sim$nonForestedLCCGroups))]]),
+      LCC = Map(lrc = fuelCovsCoarse, function(lrc) lrc[[names(sim$nonForestedLCCGroups)]]), # list(LCCras$year2010, LCCras$year2020),
+      MoreArgs = list(climate = ignitionClimateCoarse,
+                      fires = sim$ignitionFirePoints)
+    ) |>
+      Cache(omitArgs = c("fuel", "LCC"), 
+            .cacheExtra = append(dig2, list(P(sim)$igAggFactor)),
+            .functionName = "stackAndExtract",
+            userTags = names(ignitionClimateCoarse)
+      )
     
-  fireSense_ignitionCovariates <- rbindlist(fireSense_ignitionCovariates)
-
-  ## remove any pixels that are 0 for all classes
-  fireSense_ignitionCovariates[, coverSums := rowSums(.SD),
-                               .SD = setdiff(names(fireSense_ignitionCovariates),
-                                             c(names(ignitionClimate), "cell", "ignitions", fireSenseUtils::yearChar))]
-  fireSense_ignitionCovariates <- fireSense_ignitionCovariates[coverSums > 0]
-  set(fireSense_ignitionCovariates, NULL, "coverSums", NULL)
-
-  ## rename cells to pixelID - though aggregated raster is not saved
-  setnames(fireSense_ignitionCovariates, old = "cell", new = "pixelID")
-  fireSense_ignitionCovariates[, year := as.numeric(year)]
-
-  # add lightning
-  # https://www.tandfonline.com/doi/full/10.1080/07055900.2020.1845117
-  
-  # Eliot tested using all 4 and there was one clear winner basedon on variable importance
-  #   lightningDays -- in ELF 4.3
-  lightning <- sim$lightningMaps["lightningDays"]
-  
-  set(fireSense_ignitionCovariates, NULL, names(lightning),
-      as.data.frame(terra::values(terra::rast(lightning))[fireSense_ignitionCovariates[["pixelID"]],]))
-
-  ## for random effect
-  if (grepl("xgb", Par$modelAlgorithm) %in% FALSE) {
-    # ranEffs <- "fireSenseUtils::yearChar"
-    set(fireSense_ignitionCovariates, NULL, ranEffsLabel, as.character(fireSense_ignitionCovariates$year))
+    
+    fireSense_ignitionCovariates <- rbindlist(fireSense_ignitionCovariates)
+    
+    ## remove any pixels that are 0 for all classes
+    fireSense_ignitionCovariates[, coverSums := rowSums(.SD),
+                                 .SDcols = setdiff(names(fireSense_ignitionCovariates),
+                                                   c(names(ignitionClimate), "cell", "ignitions", fireSenseUtils::yearChar))]
+    fireSense_ignitionCovariates <- fireSense_ignitionCovariates[coverSums > 0]
+    set(fireSense_ignitionCovariates, NULL, "coverSums", NULL)
+    
+    ## rename cells to pixelID - though aggregated raster is not saved
+    setnames(fireSense_ignitionCovariates, old = "cell", new = "pixelID")
+    fireSense_ignitionCovariates[, year := as.numeric(year)]
+    
+    # add lightning
+    # https://www.tandfonline.com/doi/full/10.1080/07055900.2020.1845117
+    
+    # Eliot tested using all 4 and there was one clear winner basedon on variable importance
+    #   lightningDays -- in ELF 4.3
+    lightning <- sim$lightningMaps["lightningDays"]
+    
+    set(fireSense_ignitionCovariates, NULL, names(lightning),
+        as.data.frame(terra::values(terra::rast(lightning))[fireSense_ignitionCovariates[["pixelID"]],]))
+    
+    ## for random effect
+    if (grepl("xgb", Par$modelAlgorithm) %in% FALSE) {
+      # ranEffs <- "fireSenseUtils::yearChar"
+      set(fireSense_ignitionCovariates, NULL, ranEffsLabel, as.character(fireSense_ignitionCovariates$year))
+    }
+    firstCols <- c("pixelID", "ignitions", names(ignitionClimate), youngAgeName)
+    firstCols <- firstCols[firstCols %in% names(fireSense_ignitionCovariates)]
+    setcolorder(fireSense_ignitionCovariates, neworder = firstCols)
+    
+    sim$fireSense_ignitionCovariates <- fireSense_ignitionCovariates
+    
   }
-  firstCols <- c("pixelID", "ignitions", names(ignitionClimate), youngAgeName)
-  firstCols <- firstCols[firstCols %in% names(fireSense_ignitionCovariates)]
-  setcolorder(fireSense_ignitionCovariates, neworder = firstCols)
-
-  sim$fireSense_ignitionCovariates <- fireSense_ignitionCovariates
-
+  
+  sim$fireSense_ignitionCovariates <- 
+    mergePreparedCovs(years, fuelCovsCoarse, sim$ignitionFirePoints, sim$nonForestedLCCGroups,
+                      ignitionClimateCoarse, sim$lightningMaps["lightningDays"], 
+                      digest = append(dig2, list(P(sim)$igAggFactor)))
+  # END OF CREATING ignitionCovariates
+  
+  
   ## make new ignition object, ignitionFitRTM
   sim$ignitionFitRTM <- rast(fuelCovsCoarse[[1]][[1]])
   sim$ignitionFitRTM <- setValues(sim$ignitionFitRTM, 1) ## avoids a warning
