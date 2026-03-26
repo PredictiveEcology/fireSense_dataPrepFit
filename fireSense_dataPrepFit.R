@@ -16,7 +16,7 @@ defineModule(sim, list(
   #                 after = c("canClimateData")),
   # after = c("canClimateData")),
   reqdPkgs = list("data.table", "fastDummies", "reproducible",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.1.0)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.1.4)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@development (>= 1.1.5.9070)",
                   "PredictiveEcology/SpaDES.core@development (>= 2.0.2.9006)",
@@ -678,6 +678,10 @@ Init <- function(sim) {
     print(sim$nonForestedLCCGroups)
 
   }
+  
+  #make this object small
+  standAgeMaps <- lapply(sim$standAgeMaps, reproducible::postProcess, to = sim$rasterToMatch)
+  
   sim$landcoverDTs <- Map(dy = mod$dyChars, function(dy) {
     ll <- makeLandcoverDT(rstLCC = sim$rstLCCs[[dy]],
                           flammableRTM = sim$flammableRTMs[[dy]],
@@ -699,18 +703,21 @@ Init <- function(sim) {
 
   ## TODO: this object is used to track annual youngAge of all pixels, forested or not
   ## so "nonForest" is a poor choice of name. It should not have values for non-flammable pixels.
+  
+  
   sim$nonForest_timeSinceDisturbances <- Map(dy = mod$dyChars, dyNum = mod$dys, function(dy, dyNum) {
     tsd <- makeTSD(
       year = dyNum,
       fireRaster = sim$historicalFireRaster, ## can be NULL
       firePolys = sim$firePolysForAge,
-      standAgeMap = sim$standAgeMaps[[dy]],
+      standAgeMap = standAgeMaps[[dy]],
       lcc = sim$landcoverDTs[[dy]],
       cutoffForYoungAge = P(sim)$cutoffForYoungAge
     )
     tsd[sim$flammableRTMs[[dy]][] == 0] <- NA
     tsd
   })
+
   # sim$nonForest_timeSinceDisturbance2010 <- makeTSD(
   #   year = 2010,
   #   fireRaster = sim$historicalFireRaster, ## can be NULL
@@ -737,7 +744,7 @@ Init <- function(sim) {
   ## but its youngAge status for spread is deterimined by whether standAge < 15 in 2008
 
   # Create the "objects for prediction cases 
-  sim$standAgeMap <- tail(sim$standAgeMaps, 1)[[1]]
+  sim$standAgeMap <- tail(standAgeMaps, 1)[[1]]
   sim$flammableRTM <- tail(sim$flammableRTMs, 1)[[1]]
   sim$landcoverDT <- tail(sim$landcoverDTs, 1)[[1]]
   sim$nonForest_timeSinceDisturbance <- tail(sim$nonForest_timeSinceDisturbances, 1)[[1]]
@@ -1098,7 +1105,7 @@ prepare_SpreadFitFire_Raster <- function(sim) {
   ## historical fire Raster is currently not in outputs - if assigned to sim here, it should be added
   ## as we modify it by removing non-flammable fires.
 
-  browser() # The next line needs to use sim$flammableRTMs instead of sim$flammableRTM
+ 
   historicalFireRaster <- mask(historicalFireRaster, sim$flammableRTM,
                                maskvalues = 0, updatevalue = NA)
 
