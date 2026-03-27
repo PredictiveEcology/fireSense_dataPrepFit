@@ -500,7 +500,8 @@ Init <- function(sim) {
   
   
   # # Create the "objects for prediction cases 
-  # sim$standAgeMap <- tail(sim$standAgeMaps, 1)[[1]]
+  #this object is still at biomassParam size 
+  sim$standAgeMap <- tail(sim$standAgeMaps, 1)[[1]]
   
   # This is now RTM
   sim$rstLCC_RTM <- tail(sim$rstLCCs, 1)[[1]]
@@ -744,7 +745,7 @@ Init <- function(sim) {
   ## but its youngAge status for spread is deterimined by whether standAge < 15 in 2008
 
   # Create the "objects for prediction cases 
-  sim$standAgeMap <- tail(standAgeMaps, 1)[[1]]
+  # sim$standAgeMap <- tail(standAgeMaps, 1)[[1]]
   sim$flammableRTM <- tail(sim$flammableRTMs, 1)[[1]]
   sim$landcoverDT <- tail(sim$landcoverDTs, 1)[[1]]
   sim$nonForest_timeSinceDisturbance <- tail(sim$nonForest_timeSinceDisturbances, 1)[[1]]
