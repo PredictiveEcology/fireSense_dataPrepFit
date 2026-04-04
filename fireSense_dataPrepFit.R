@@ -299,6 +299,8 @@ defineModule(sim, list(
                         "This only includes fires that escaped (e.g. `size > res(flammableRTM)`.")),
     
     # For fireSense_**Predict modules
+    createsOutput("propFlammable", "SpatRaster", sourceURL = NA,
+                 "SpatRaster with proportion of flammable landcover in a pixel - for post-hoc analysis"),
     createsOutput("standAgeMap", "SpatRaster", "Single layer, which will be taken from the last of standAgeMaps"),
     createsOutput("rstLCC_RTM", "SpatRaster", # sourceURL = NA,
                   paste0("Same as rstLCC, but at rasterToMatch geoms")),
@@ -502,6 +504,7 @@ Init <- function(sim) {
   # # Create the "objects for prediction cases 
   #this object is still at biomassParam size 
   sim$standAgeMap <- tail(sim$standAgeMaps, 1)[[1]]
+  sim$propFlammable <- tail(sim$propFlammables, 1)[[1]]
   
   # This is now RTM
   sim$rstLCC_RTM <- tail(sim$rstLCCs, 1)[[1]]
