@@ -2996,7 +2996,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">fireSense_dataPrepFit Manual</h1>
 <h3 class="subtitle">v.1.2.0</h3>
-<h4 class="date">Last updated: 2026-03-27</h4>
+<h4 class="date">Last updated: 2026-04-04</h4>
 
 </div>
 
@@ -4031,6 +4031,9 @@ objectClass
 <th style="text-align:left;">
 desc
 </th>
+<th style="text-align:left;">
+sourceURL
+</th>
 </tr>
 </thead>
 <tbody>
@@ -4044,6 +4047,8 @@ list
 <td style="text-align:left;">
 A list detailing which climate variables in <code>sim$historicalClimateRasters</code> to use for which fire processes (ignition and spread). If the list is length one, both processes will use the same variables. This will be an output if there is an existing studyAreaWithParams
 </td>
+<td style="text-align:left;">
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -4054,6 +4059,8 @@ data.frame
 </td>
 <td style="text-align:left;">
 This is a data.frame that has a geometry list column, so it can be converted to a sf or SpatVector (e.g., <code>terra::vect(sf::st_as_sf(sim$spreadFitPreRun))</code> , plus other mostly list columns: numIterations, objFunVal (not list), params, sppEquiv, nonForestedLCCGroups, missingLCCgroup, and polygonID. These are from previously fitted SpreadFit. If no pre-existing object exists from CacheGeo, this will be NULL
+</td>
+<td style="text-align:left;">
 </td>
 </tr>
 <tr>
@@ -4066,6 +4073,8 @@ sf
 <td style="text-align:left;">
 This is the studyArea, but with parameters from a previously fitted SpreadFit. If no pre-existing object exists from CacheGeo, this will be NULL
 </td>
+<td style="text-align:left;">
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -4076,6 +4085,8 @@ character
 </td>
 <td style="text-align:left;">
 named character vector of hex colour codes corresponding to each species. This may be updated if CacheGeo has different values than the inputted version of this object
+</td>
+<td style="text-align:left;">
 </td>
 </tr>
 <tr>
@@ -4088,6 +4099,8 @@ list
 <td style="text-align:left;">
 a list, named by climate variable using ‘projected_’ or ‘historical_’ prefixes, with each list element containing a list of three arguments: vars - the raw variables used to derive the target variable, fun - the quoted function used to derive the target variable, where ‘quote(calcAsIs)’ denotes target variables that ARE the raw variable, and dots - additional arguments passed to ‘fun’. See the .inputObjects for examples of how to build this object and ?climateData::prepClimateLayers for how it is used . The GCM, SSP, and selected years, whether projected or historical, are set by module parameters and must be identical for all variables
 </td>
+<td style="text-align:left;">
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -4098,6 +4111,8 @@ list
 </td>
 <td style="text-align:left;">
 list of data.tables with fire id, <code>pixelID</code>, and buffer status
+</td>
+<td style="text-align:left;">
 </td>
 </tr>
 <tr>
@@ -4110,6 +4125,8 @@ data.table
 <td style="text-align:left;">
 table with assigned fuel class of each tree species, after running assessFuelClasses
 </td>
+<td style="text-align:left;">
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -4120,6 +4137,8 @@ list
 </td>
 <td style="text-align:left;">
 list of sf polygon objects representing annual fires
+</td>
+<td style="text-align:left;">
 </td>
 </tr>
 <tr>
@@ -4132,6 +4151,8 @@ list
 <td style="text-align:left;">
 list of tables with climate covariates, <code>youngAge</code>, burn status, <code>polyID</code>, and <code>pixelID</code>
 </td>
+<td style="text-align:left;">
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -4142,6 +4163,8 @@ data.table
 </td>
 <td style="text-align:left;">
 ignition covariates with added column of escapes
+</td>
+<td style="text-align:left;">
 </td>
 </tr>
 <tr>
@@ -4154,6 +4177,8 @@ character
 <td style="text-align:left;">
 formula for escape, using fuel classes and landcover, as character
 </td>
+<td style="text-align:left;">
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -4164,6 +4189,8 @@ data.table
 </td>
 <td style="text-align:left;">
 table of aggregated ignition covariates with annual ignitions
+</td>
+<td style="text-align:left;">
 </td>
 </tr>
 <tr>
@@ -4176,6 +4203,8 @@ character
 <td style="text-align:left;">
 formula for ignition, using climate and vegetation covariates, as character
 </td>
+<td style="text-align:left;">
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -4186,6 +4215,8 @@ list
 </td>
 <td style="text-align:left;">
 list of two tables with vegetation covariates, burn status, polyID, and <code>pixelID</code>
+</td>
+<td style="text-align:left;">
 </td>
 </tr>
 <tr>
@@ -4198,6 +4229,8 @@ character
 <td style="text-align:left;">
 formula for spread, using climate and vegetation covariates, as character
 </td>
+<td style="text-align:left;">
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -4208,6 +4241,8 @@ sf
 </td>
 <td style="text-align:left;">
 Same as object that is an input, but possibly changed CRS
+</td>
+<td style="text-align:left;">
 </td>
 </tr>
 <tr>
@@ -4220,6 +4255,8 @@ SpatRaster
 <td style="text-align:left;">
 A (template) raster with information with regards to the spatial resolution and geographical extent of <code>fireSense_ignitionCovariates</code>. Used to pass this information onto <code>fireSense_ignitionFitted</code> Needs to have number of non-NA cells as attribute (<code>attributes(ignitionFitRTM)$nonNAs</code>).
 </td>
+<td style="text-align:left;">
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -4230,6 +4267,8 @@ list
 </td>
 <td style="text-align:left;">
 List of (2) <code>data.table</code>s with <code>pixelID</code> and relevant landcover classes for flammable pixels in each layer
+</td>
+<td style="text-align:left;">
 </td>
 </tr>
 <tr>
@@ -4242,6 +4281,8 @@ SpatRaster
 <td style="text-align:left;">
 A 4-layer SpatRaster of lightning: lightningDays, lightningDensity, positiveCG, positiveCGdensity
 </td>
+<td style="text-align:left;">
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -4252,6 +4293,8 @@ character
 </td>
 <td style="text-align:left;">
 if estimating fuel classes, the nonforest class to assign forested pixels absent from <code>sim$cohortData</code>
+</td>
+<td style="text-align:left;">
 </td>
 </tr>
 <tr>
@@ -4264,6 +4307,8 @@ list
 <td style="text-align:left;">
 a named list of non-forested landcover groups forming distinct fuel classes e.g. list(‘wetland’ = c(19, 23, 32))
 </td>
+<td style="text-align:left;">
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -4275,6 +4320,8 @@ list
 <td style="text-align:left;">
 List of (2) SpatRaster with time since burn for non-forested pixels in each layer
 </td>
+<td style="text-align:left;">
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -4284,7 +4331,9 @@ rstLCCs
 list
 </td>
 <td style="text-align:left;">
-At rasterToMatch geoms. List of (3) SpatRasters of land cover - updated so that pixels above <code>P(sim)$flammabilityThresholdhave an assigned flammable landcover &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; flammableRTMs &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; list &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; List of (3 binary SpatRaster of flammable landcover for years given by the list names &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; sppEquiv &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; data.table &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; sppEquiv table potentially modified with new or overwritten fuel class &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; spreadFirePoints &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; list &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; Named list of</code>sf<code>polygon objects representing annual fire centroids. This only includes fires that escaped (e.g.</code>size &gt; res(flammableRTM)<code>. &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; standAgeMap &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; SpatRaster &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; Single layer, which will be taken from the last of standAgeMaps &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; rstLCC_RTM &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; SpatRaster &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; Same as rstLCC, but at rasterToMatch geoms &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; rstLCC &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; SpatRaster &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; At rasterToMatch_biomassParams geoms. Final SpatRaster of land cover, i.e, conditions at start(sim). Taken from last layer of rstLCCs &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; flammableRTM &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; SpatRaster &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; Flammable landcover i.e, conditions at start(sim). Taken from last layer of rstLCCs &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; landcoverDT &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; data.table &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt;</code>pixelID` and relevant landcover classes for flammable pixels in each layer, i.e, conditions at start(sim). Taken from last layer of landcoverDTs
+At rasterToMatch geoms. List of (3) SpatRasters of land cover - updated so that pixels above <code>P(sim)$flammabilityThresholdhave an assigned flammable landcover &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt;  &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; flammableRTMs &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; list &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; List of (3 binary SpatRaster of flammable landcover for years given by the list names &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt;  &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; sppEquiv &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; data.table &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; sppEquiv table potentially modified with new or overwritten fuel class &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt;  &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; spreadFirePoints &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; list &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; Named list of</code>sf<code>polygon objects representing annual fire centroids. This only includes fires that escaped (e.g.</code>size &gt; res(flammableRTM)<code>. &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt;  &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; propFlammable &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; SpatRaster &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; SpatRaster with proportion of flammable landcover in a pixel - for post-hoc analysis &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; standAgeMap &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; SpatRaster &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; Single layer, which will be taken from the last of standAgeMaps &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt;  &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; rstLCC_RTM &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; SpatRaster &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; Same as rstLCC, but at rasterToMatch geoms &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt;  &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; rstLCC &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; SpatRaster &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; At rasterToMatch_biomassParams geoms. Final SpatRaster of land cover, i.e, conditions at start(sim). Taken from last layer of rstLCCs &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt;  &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; flammableRTM &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; SpatRaster &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; Flammable landcover i.e, conditions at start(sim). Taken from last layer of rstLCCs &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt;  &lt;/td&gt;   &lt;/tr&gt;   &lt;tr&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; landcoverDT &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt; data.table &lt;/td&gt;    &lt;td style=&quot;text-align:left;&quot;&gt;</code>pixelID` and relevant landcover classes for flammable pixels in each layer, i.e, conditions at start(sim). Taken from last layer of landcoverDTs
+</td>
+<td style="text-align:left;">
 </td>
 </tr>
 <tr>
@@ -4296,6 +4345,8 @@ SpatRaster
 </td>
 <td style="text-align:left;">
 raster tracking the time since disturbance (e.g. burn) in each pixel, forested or not. Forested pixels are tracked based on the age in cohortData
+</td>
+<td style="text-align:left;">
 </td>
 </tr>
 </tbody>
