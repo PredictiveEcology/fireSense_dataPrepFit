@@ -1863,7 +1863,7 @@ runBorealDP_forCohortData <- function(sim) {
     if (is.null(sim$studyAreaLarge)) {
       if (!is.null(sim$rasterToMatchLarge)) {
         message("Creating studyArea_biomassParam from sim$rasterToMatchLarge")
-        sim$studyArea_biomassParam <- terra::as.polygons(sim$rasterToMatchLarge) |> aggregate()
+        sim$studyArea_biomassParam <- terra::as.polygons(sim$rasterToMatchLarge) |> terra::aggregate()
       } else {
         warning("studyArea_biomassParam is not supplied; using studyArea, which is likely wrong as ",
                 "several modules in the Biomass_** family expect studyArea_biomassParam to be from ",
