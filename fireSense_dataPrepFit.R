@@ -1876,7 +1876,7 @@ runBorealDP_forCohortData <- function(sim) {
     }
   }
 
-  if (!suppliedElsewhere("sppEquiv", sim)) {
+  if (!suppliedElsewhere("sppEquiv", sim, where = c("user", "initEvent"))) { # it is showing up in some cases with sim$sppEquiv = NULL
     sp <- LandR::speciesInStudyArea(studyArea = sim$studyArea)
     sp <- LandR::equivalentName(sp$speciesList, df = sppEquivalencies_CA, column = Par$sppEquivCol)
     sp <- sp[nzchar(sp)]
