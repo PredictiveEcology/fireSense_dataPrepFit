@@ -1858,7 +1858,6 @@ runBorealDP_forCohortData <- function(sim) {
   mod$dys <- P(sim)$dataYears
   mod$dataYears <- P(sim)$dataYears
 
-
   if (!suppliedElsewhere("studyArea_biomassParam", sim)) {
     if (is.null(sim$studyAreaLarge)) {
       if (!is.null(sim$rasterToMatchLarge)) {
