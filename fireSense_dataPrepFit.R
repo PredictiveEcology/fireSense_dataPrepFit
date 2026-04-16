@@ -1699,7 +1699,13 @@ prepare_EscapeFit <- function(sim) {
                                     fact = P(sim)$igAggFactor, fun = mean) |>
     Cache(.functionName = "aggregate_historicalClimateRasters_forTemplate")
 
-  coords <- st_coordinates(escapes)
+  if (is(escapes, "SpatVector")) {
+    escapesOrig <- escapes
+    coords <- terra::geom(escapesOrig)[, c("x","y")]
+  } else {
+    escapes <- sf::st_as_sf(escapes)
+    coords <- st_coordinates(escapes)
+  }
   escapeCells <- cellFromXY(aggregatedRas, coords)
   escapeDT <- as.data.table(escapes)
   setnames(escapeDT, "YEAR", fireSenseUtils::yearChar)
