@@ -15,7 +15,8 @@ defineModule(sim, list(
   loadOrder = list(before = c("Biomass_speciesData", "Biomass_borealDataPrep", "Biomass_speciesParameters")),
   #                 after = c("canClimateData")),
   # after = c("canClimateData")),
-  reqdPkgs = list("data.table", "fastDummies", "reproducible",
+  reqdPkgs = list("data.table", "fastDummies", "reproducible", "Require",
+                  "PredictiveEcology/climateData@development (>= 2.2.3)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.1.4)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@development (>= 1.1.5.9070)",
@@ -180,14 +181,14 @@ defineModule(sim, list(
     #                     "have an assigned flammable landcover")),
     expectsInput("sppEquiv", "data.table", sourceURL = NA,
                  "table of LandR species equivalencies"),
-    expectsInput("sppColorVect", "character",
-                 desc = "named character vector of hex colour codes corresponding to each species"),
+    # expectsInput("sppColorVect", "character",
+    #              desc = "named character vector of hex colour codes corresponding to each species"),
     expectsInput("standAgeMaps", "list", sourceURL = NA,
                  "list of length 2 of maps of stand age in dataYear[[1]] and dataYear[[2]]",
                  " used to create `cohortDatas`"),
-    expectsInput("standAgeMap", "SpatRaster", sourceURL = NA,
-                 "Single layer, which will be taken from the last of standAgeMaps, if not supplied. ",
-                 "This is used by other modules in the LandR ecosystem, plus this module"),
+    # expectsInput("standAgeMap", "SpatRaster", sourceURL = NA,
+    #              "Single layer, which will be taken from the last of standAgeMaps, if not supplied. ",
+    #              "This is used by other modules in the LandR ecosystem, plus this module"),
     expectsInput("spreadFirePolys", "list", sourceURL = NA,
                   "list of sf polygon objects representing annual fires; this is an 'input' because ",
                   " the object is modified in a subsequent event; this is not required at 'init'"),
@@ -223,8 +224,11 @@ defineModule(sim, list(
                                "fitted SpreadFit. If no pre-existing object exists from ",
                                "CacheGeo, this will be NULL")),
     createsOutput("sppColorVect", "character",
-                 desc = "named character vector of hex colour codes corresponding to each species. ",
-                 "This may be updated if CacheGeo has different values than the inputted version of this object"),
+                  desc = "named character vector of hex colour codes corresponding to each species. ",
+                  "This may be updated if CacheGeo has different values than the inputted version of this object"),
+    createsOutput("sppNameVector", "character",
+                 desc = paste("a vector of species names pulled from `sppEquiv`.",
+                              "Is sets it to sim$sppEquiv[[Par$sppEquivCol]]")),
     createsOutput("climateVariables", "list",
                   paste("a list, named by climate variable using 'projected_' or 'historical_'",
                         "prefixes, with each list element containing a list of three arguments:",
@@ -384,6 +388,7 @@ Init <- function(sim) {
   if (inherits(sa, "SpatVector")) sa <- st_as_sf(sa)
   
   prepInputsFSURL <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitGoogleDriveFolder")
+  browser()
   sim$spreadFitPreRun <- CacheGeo(cloudFolderID = Par$spreadFitGoogleDriveFolder,
                               targetFile = Par$spreadFitFilename, purge = 7,
                               domain = sa, action = "nothing", useCache = FALSE,
@@ -400,12 +405,12 @@ Init <- function(sim) {
     df <- sim$spreadFitPreRun
     df <- df[colNames]
     dfList <- lapply(df, function(x) x[[1]])
-    list2env(dfList, envir(sim)) # sim$nonForestedLCCGroups, sim$sppEquiv, sim$missingLCCgroup
+    list2env(dfList, envir(sim)) # nolint: vars nonForestedLCCGroups, sppEquiv, missingLCCgroup
     sim$sppNameVector <- unique(sim$sppEquiv[[Par$sppEquivCol]])
     sppOuts <- sppHarmonize(sim$sppEquiv, sim$sppNameVector, P(sim)$sppEquivCol, sppColorVect = NULL,
                             vegLeadingProportion = NULL, studyArea = sim$studyArea)
     # sim$sppColorVect, P(sim)$vegLeadingProportion, sim$studyArea_biomassParam)
-    list2env(sppOuts, envir = envir(sim))
+    list2env(sppOuts, envir = envir(sim))  # nolint: vars sppEquiv sppColorVect # ## TODO what else?
 
 
     pars <- sim$spreadFitPreRun$params[[1]]
@@ -879,7 +884,7 @@ prepare_SpreadFit <- function(sim) {
   
   # prep the fire data ####
   # sim$fireBufferedListDT is made in these functions
-  if (P(sim)$useRasterizedFire) {
+  if (P(sim)$useRasterizedFireForSpread) {
     #TODO: fix this approach to work with two flammableRTMs
     sim <- prepare_SpreadFitFire_Raster(sim)
   } else {
@@ -1852,7 +1857,7 @@ runBorealDP_forCohortData <- function(sim) {
     outNY[[saObj]] <- outNY[[saMap]]
     mget(c(cohDatObj, pixGrpMap, saObj), envir = envir(outNY))
   })
-  lapply(cds, function(cd) list2env(cd, envir = envir(sim))) # puts into sim$cohortDatas
+  lapply(cds, function(cd) list2env(cd, envir = envir(sim))) # nolint: vars cohortDatas pixelGroupMaps standAgeMaps
   sim
 }
 
@@ -1955,7 +1960,7 @@ runBorealDP_forCohortData <- function(sim) {
     return(list(standAgeMaps = standAgeMap, rstLCCs = LCC$lcc, propFlammables = LCC$flammableProp))
   })
   outsRev <- Require::invertList(outs)
-  list2env(outsRev, envir = envir(sim)) # sim$standAgeMaps, sim$propFlammables, sim$rstLCCs
+  list2env(outsRev, envir = envir(sim)) # nolint: vars standAgeMaps propFlammables rstLCCs
   
   mod$dyChars <- sapply(mod$dys, function(dy) grep(dy, names(sim$rstLCCs), value = TRUE))
   
@@ -1971,8 +1976,8 @@ runBorealDP_forCohortData <- function(sim) {
       namPlural <- paste0(nam, "s")
       # This next line puts them in the ascending order
       cdnames <- sapply(mod$dys, function(dy) grep(paste0(nam, dy), names(sim), value = TRUE))
-      sim[[namPlural]] <- mget(cdnames, envir(sim))
-      names(sim[[namPlural]]) <- mod$dyChars
+      sim[[namPlural]] <- mget(cdnames, envir(sim)) # nolint: vars cohortDatas pixelGroupMaps # nolint: unresolved_accessor
+      names(sim[[namPlural]]) <- mod$dyChars # nolint: unresolved_accessor
       rm(list = cdnames, envir = envir(sim))
     }
   }
@@ -2099,7 +2104,7 @@ runBorealDP_forCohortData <- function(sim) {
     stop("please supply sim$historicalClimateRasters")
   }
 
-  if (P(sim)$useRasterizedFire) {
+  if (P(sim)$useRasterizedFireForSpread) {
     if (!suppliedElsewhere("historicalFireRaster", sim)) {
       sim$historicalFireRaster <- prepInputs(url = extractURL("historicalFireRaster", sim),
                                              rasterToMatch = sim$rasterToMatch,
@@ -2137,6 +2142,11 @@ runBorealDP_forCohortData <- function(sim) {
   #                                              "maxAsymptote", "hillSlope1", "hillSlope2")
   #
   # }
+  
+  if (!suppliedElsewhere("spreadFirePolys", sim)) {
+    stop("fireSense module family requires a spreadFirePolys object")
+  }
+  
 
   return(invisible(sim))
 }
