@@ -358,9 +358,9 @@ Init <- function(sim) {
 
 
     FuelNames <- c(sim$sppEquiv$FuelClass, names(sim$nonForestedLCCGroups))
-    hasYoungAge <- youngAgeName %in% colnames(pars)
+    hasYoungAge <- youngAgeTxt %in% colnames(pars)
     if (isTRUE(hasYoungAge))
-      FuelNames <- c(youngAgeName, FuelNames)
+      FuelNames <- c(youngAgeTxt, FuelNames)
 
     ClimateNames <- setdiff(setdiff(colnames(pars), lpn[[whLogistic]]), FuelNames)
 
@@ -678,8 +678,8 @@ prepare_SpreadFit <- function(sim) {
 
   indices <- Map(yrs = mod$allYears, function(yrs) {
     dt <- rbindlist(sim$fireBufferedListDT[yrs], idcol = "fireYear")
-    yrsNum <- gsub(fireSenseUtils::yearChar, "", yrs) |> as.integer()
-    vegData[, year := gsub(fireSenseUtils::yearChar, "", year) |> as.integer()] # need for next inequality check
+    yrsNum <- gsub(fireSenseUtils::yearTxt, "", yrs) |> as.integer()
+    vegData[, year := gsub(fireSenseUtils::yearTxt, "", year) |> as.integer()] # need for next inequality check
 
     dt2 <- dt[vegData[min(yrsNum) >= year & year < max(yrsNum)], on = c("pixelID")]
     dt2[!is.na(buffer)]
@@ -696,7 +696,7 @@ prepare_SpreadFit <- function(sim) {
   #because they can be burned or unburned, or in >1 fire years that are < 10 years apart
   setnames(fireSenseVegData, "buffer", "burned")
 
-  nonVegColnames <- c("pixelID", "burned", "ids", grep(fireSenseUtils::yearChar, ignore.case = TRUE, colnames(fireSenseVegData), value = TRUE))
+  nonVegColnames <- c("pixelID", "burned", "ids", grep(fireSenseUtils::yearTxt, ignore.case = TRUE, colnames(fireSenseVegData), value = TRUE))
   vegCols <- setdiff(names(fireSenseVegData),
                      nonVegColnames)
   dropCols <- names(which(colSums(fireSenseVegData[, ..vegCols], na.rm = TRUE) == 0))
@@ -719,7 +719,7 @@ prepare_SpreadFit <- function(sim) {
     }
   }
 
-  RHS <- paste(paste0(sim$climateVariablesForFire$spread, collapse = " + "), youngAgeName,
+  RHS <- paste(paste0(sim$climateVariablesForFire$spread, collapse = " + "), youngAgeTxt,
                paste0(vegCols, collapse = " + "), sep =  " + ")
 
   ## this is a funny way to get years but avoids years with 0 fires
@@ -733,18 +733,18 @@ prepare_SpreadFit <- function(sim) {
   spreadClimate <- sim$historicalClimateRasters[sim$climateVariablesForFire$spread]
   #don't need climate data for years outside fire years
   spreadClimate <- lapply(spreadClimate, FUN = function(x){
-    x <- terra::subset(x, subset = names(x) %in% paste0(fireSenseUtils::yearChar, P(sim)$fireYears))
+    x <- terra::subset(x, subset = names(x) %in% paste0(fireSenseUtils::yearTxt, P(sim)$fireYears))
   })
 
   climateDT <- climateRasterToDataTable(historicalClimateRasters = spreadClimate) |>
     Cache(userTags = c("climateRasterToDataTable", names(spreadClimate)))
 
-  fbl <- rbindlist(sim$fireBufferedListDT, idcol = fireSenseUtils::yearChar)
-  rmCols <- setdiff(colnames(fbl), c("pixelID", fireSenseUtils::yearChar))
+  fbl <- rbindlist(sim$fireBufferedListDT, idcol = fireSenseUtils::yearTxt)
+  rmCols <- setdiff(colnames(fbl), c("pixelID", fireSenseUtils::yearTxt))
   set(fbl, NULL, rmCols, NULL)
-  fbl <- climateDT[fbl, on = c(fireSenseUtils::yearChar, "pixelID"), nomatch = NULL]
+  fbl <- climateDT[fbl, on = c(fireSenseUtils::yearTxt, "pixelID"), nomatch = NULL]
 
-  fireSense_annualSpreadFitCovariates <- split(fbl, by = fireSenseUtils::yearChar, keep.by = FALSE)
+  fireSense_annualSpreadFitCovariates <- split(fbl, by = fireSenseUtils::yearTxt, keep.by = FALSE)
 
   ## prepare non-annual spread fit covariates by getting the youngAge
   # have to remove years that have no fires and so no climate data needed
@@ -770,7 +770,7 @@ prepare_SpreadFit <- function(sim) {
   annualCovariates <- Map(ac = annualCovariates, yrNum = names(annualCovariates),
       function(ac,
                yrNum) {
-        yrChar <- paste0(fireSenseUtils::yearChar, yrNum)
+        yrChar <- paste0(fireSenseUtils::yearTxt, yrNum)
     lapply(ac, function(x) {
       x[pixelID %in% sim$landcoverDTs[[yrChar]]$pixelID, ]
     })
@@ -790,11 +790,11 @@ prepare_SpreadFit <- function(sim) {
 
   if (!P(sim)$nonForestCanBeYoungAge) {
     ## TODO: test this inversion of makeMutuallyExclusive's regular use
-    args <- as.list(rep(youngAgeName, length = length(sim$nonForestedLCCGroups)))
+    args <- as.list(rep(youngAgeTxt, length = length(sim$nonForestedLCCGroups)))
     names(args) <- names(sim$nonForestedLCCGroups)
   } else {
     ## this is done later in spreadFit - but done here for accuracy of outputs
-    args <- list(names(sim$nonForestedLCCGroups)) |> setNames(youngAgeName)
+    args <- list(names(sim$nonForestedLCCGroups)) |> setNames(youngAgeTxt)
   }
 
   annualCovariates <- lapply(annualCovariates, makeMutuallyExclusive, mutuallyExclusiveCols = args)
@@ -858,7 +858,7 @@ prepare_SpreadFitFire_Raster <- function(sim) {
                                  flammableRTM = sim$flammableRTM)
 
   ## TODO: this is temporary while we migrate out of spatial/raster constructs
-  ## the fireSenseUtils::yearChar prefix is added by fireSenseUtils::makeLociList - discuss what to do
+  ## the fireSenseUtils::yearTxt prefix is added by fireSenseUtils::makeLociList - discuss what to do
   tempFun <- function(pts, year){
     pts$YEAR <- year
     return(pts)
@@ -1057,7 +1057,7 @@ prepare_IgnitionFit <- function(sim) {
   ## ignition won't have same years as spread so we do not use names of init objects
   ## The reason is some years may have ignitions but no fires, e.g. 2010 in RIA
   years <- yearGroups(Par$dataYears, Par$fireYears, FALSE)
-  years <- Map(y = years, function(y) paste0(fireSenseUtils::yearChar, y))
+  years <- Map(y = years, function(y) paste0(fireSenseUtils::yearTxt, y))
   mod$allYears <- years
   allYearsVect <- unlist(mod$allYears)
   #assume that if multiple climate variables are present, they are of equal length
@@ -1072,7 +1072,7 @@ prepare_IgnitionFit <- function(sim) {
             "\ntruncating P(sim)$fireYears to: ",
             paste0(min(yearsInClimateRast), ":", max(yearsInClimateRast)))
     years <- Map(y = years, function(y) intersect(y, yearsInClimateRast))
-    P(sim)$fireYears <- intersect(as.numeric(gsub(fireSenseUtils::yearChar, "", yearsInClimateRast)),
+    P(sim)$fireYears <- intersect(as.numeric(gsub(fireSenseUtils::yearTxt, "", yearsInClimateRast)),
                                   P(sim)$fireYears)
   }
 
@@ -1103,7 +1103,7 @@ prepare_IgnitionFit <- function(sim) {
     igCovariates <- names(sim$fireSense_ignitionCovariates)
     igCovariates <- igCovariates[!igCovariates %in%
                                    c(names(ignitionClimate),
-                                     fireSenseUtils::yearChar, "ignitions", "ignitionsNoGT1", "pixelID")]
+                                     fireSenseUtils::yearTxt, "ignitions", "ignitionsNoGT1", "pixelID")]
     ## this is safer for multiple climate variables
     interactionsDF <- as.data.table(expand.grid(igCovariates, sim$climateVariablesForFire$ignition))
     interactionsDF[, interaction := do.call(paste, c(.SD, sep = ":")), .SDcols = names(interactionsDF)]
@@ -1150,15 +1150,15 @@ prepare_EscapeFit <- function(sim) {
   }
   escapeCells <- cellFromXY(aggregatedRas, coords)
   escapeDT <- as.data.table(escapes)
-  setnames(escapeDT, "YEAR", fireSenseUtils::yearChar)
+  setnames(escapeDT, "YEAR", fireSenseUtils::yearTxt)
   escapeDT[, pixelID := escapeCells]
   escapeDT <- escapeDT[, .(year, pixelID)]
   escapeDT <- escapeDT[, .(escapes = .N), .(year, pixelID)]
   escapeDT[, year := as.numeric(year)]
-  escapeDT <- escapeDT[sim$fireSense_ignitionCovariates, on = c("pixelID", fireSenseUtils::yearChar)]
+  escapeDT <- escapeDT[sim$fireSense_ignitionCovariates, on = c("pixelID", fireSenseUtils::yearTxt)]
   escapeDT[is.na(escapes), escapes := 0]
 
-  escapeVars <- names(escapeDT)[!names(escapeDT) %in% c(fireSenseUtils::yearChar, "pixelID", "escapes",
+  escapeVars <- names(escapeDT)[!names(escapeDT) %in% c(fireSenseUtils::yearTxt, "pixelID", "escapes",
                                                         sim$climateVariablesForFire$ignition,
                                                         "ignitions", ranEffsLabel)]
 
@@ -1205,9 +1205,9 @@ plotAndMessage <- function(sim) {
 }
 
 rmMissingPixels <- function(fbldt, pixelIDsAllowed)  {
-  fbldt <- rbindlist(fbldt, idcol = fireSenseUtils::yearChar)
+  fbldt <- rbindlist(fbldt, idcol = fireSenseUtils::yearTxt)
   fbldt <- fbldt[pixelID %in% unique(pixelIDsAllowed)]
-  fireBufferedListDT <- split(fbldt, by = fireSenseUtils::yearChar, keep.by = FALSE)
+  fireBufferedListDT <- split(fbldt, by = fireSenseUtils::yearTxt, keep.by = FALSE)
 }
 
 runBorealDP_forCohortData <- function(sim) {
@@ -1362,7 +1362,7 @@ runBorealDP_forCohortData <- function(sim) {
   doRstLCCs <- !suppliedElsewhere("rstLCCs", sim)
   doStandAgeMaps <- !suppliedElsewhere("standAgeMaps", sim)
 
-  dyChars <- paste0(fireSenseUtils::yearChar, mod$dys)
+  dyChars <- paste0(fireSenseUtils::yearTxt, mod$dys)
   outs <- Map(dyChar = dyChars, dy = mod$dys, function(dyChar, dy) {
     if (doRstLCCs) {
       #use a threshold to to assign non-flammable cover (e.g. if < 10% flammable cover)
@@ -1463,10 +1463,10 @@ runBorealDP_forCohortData <- function(sim) {
     }
 
     if (!suppliedElsewhere("firePolys", sim)) {
-      sim$firePolys <- allFirePolys[names(allFirePolys) %in% paste0(fireSenseUtils::yearChar, P(sim)$fireYears)]
+      sim$firePolys <- allFirePolys[names(allFirePolys) %in% paste0(fireSenseUtils::yearTxt, P(sim)$fireYears)]
       if (sum(lengths(sim$firePolys)) == 0) {
         stop("There are no fires in this study area during these years:\n",
-                paste(paste0(fireSenseUtils::yearChar, P(sim)$fireYears), collapse = ", "))
+                paste(paste0(fireSenseUtils::yearTxt, P(sim)$fireYears), collapse = ", "))
       }
     }
 
@@ -1556,14 +1556,14 @@ runBorealDP_forCohortData <- function(sim) {
   }
 
   if (!suppliedElsewhere("spreadFitAdditionalColNames")) {
-    sim$spreadFitAdditionalColNames <- fireSenseUtils::spreadFitAdditionalColNames
+    sim$spreadFitAdditionalColNames <- fireSenseUtils::spreadFitAdditionalColNamesTxt
   }
 
   return(invisible(sim))
 }
 
-youngAgeName <- fireSenseUtils::youngAgeName
-ranEffsLabel <- fireSenseUtils::yearChar
+youngAgeTxt <- fireSenseUtils::youngAgeTxt
+ranEffsLabel <- fireSenseUtils::yearTxt
 cohDat <- "cohortData"
 pixGM <- "pixelGroupMap"
 saMap <- "standAgeMap"
