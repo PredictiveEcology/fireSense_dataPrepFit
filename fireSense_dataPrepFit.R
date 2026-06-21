@@ -434,7 +434,7 @@ Init <- function(sim) {
       sort()
     
     # sppColourVector
-    scv <- sort(lapply(1:9, function(x) outs2[[x]][["sppColorVect"]]) |> unlist())
+    scv <- sort(lapply(seq_along(outs2), function(x) outs2[[x]][["sppColorVect"]]) |> unlist())
     scvUnique <- data.frame(scv = scv, scn = names(scv)) |> unique() 
     scvUnique <- scvUnique[order(scvUnique$scn),]
     whMixed <- which(scvUnique$scn %in% "Mixed")
@@ -496,6 +496,11 @@ Init <- function(sim) {
     defineFlammable(sim$rstLCCs[[dy]],
                     nonFlammClasses = P(sim)$nonflammableLCC,
                     to = sim$rasterToMatch)
+  })
+  # recover the factors; the defineFlammable needed it to be integer; so this is after that
+  sim$rstLCCs <- Map(r = sim$rstLCCs, function(r) {
+    levels(r) <- terra::cats(sim$rstLCC)
+    r
   })
   
   digFlammableRTMs <- .robustDigest(sim$flammableRTMs)
@@ -690,9 +695,7 @@ Init <- function(sim) {
   
   
   
-  
   # sim$landcoverDTs <- Map(dy = mod$dyChars, function(dy) {
-  #   browser()
   #   ll <- makeLandcoverDT(rstLCC = sim$rstLCCs[[dy]],
   #                         flammableRTM = sim$flammableRTMs[[dy]],
   #                         forestedLCC = P(sim)$forestedLCC, sim$nonForestedLCCGroups)
@@ -1166,7 +1169,7 @@ prepare_IgnitionFit <- function(sim) {
                     nonForestCanBeYoungAge = P(sim)$nonForestCanBeYoungAge,
                     studyAreaName = P(sim)$.studyAreaName
     ))  |>
-    Cache(.cacheExtra = dig2,
+    Cache(.cacheExtra = list(prepare_FuelCovsCoarse = prepare_FuelCovsCoarse, dig2, fireSenseCovariatesCreate = fireSenseCovariatesCreate), # add the inner function
           omitArgs = c("landcoverDT", "flammableRTM", "cohortData", "pixelGroupMap", "nonForest_timeSinceDisturbance"),
           .functionName = "ignitionCovariatesCreate")
 
@@ -1449,7 +1452,7 @@ runBorealDP_forCohortData <- function(sim) {
   }
 
   if (!suppliedElsewhere("sppEquiv", sim, where = c("user", "initEvent"))) { # it is showing up in some cases with sim$sppEquiv = NULL
-    sp <- LandR::speciesInStudyArea(studyArea = sim$studyArea)
+    sp <- LandR::speciesInStudyArea(studyArea = sim$studyArea, dPath = inputPath(sim))
     sp <- LandR::equivalentName(sp$speciesList, df = sppEquivalencies_CA, column = Par$sppEquivCol)
     sp <- sp[nzchar(sp)]
     sim$sppEquiv <- sppEquivalencies_CA[get(Par$sppEquivCol) %in% sp]
@@ -1482,6 +1485,7 @@ runBorealDP_forCohortData <- function(sim) {
       sim$rasterToMatch_biomassParam <- sim$rasterToMatchLarge
     } else {
       sim$rasterToMatch_biomassParam <- sim$rasterToMatch
+      sim$rasterToMatchLarge <- sim$rasterToMatch # needed for Biomass_speciesData
     }
   }
 
@@ -1508,16 +1512,18 @@ runBorealDP_forCohortData <- function(sim) {
         nonflammableLCC = P(sim)$nonflammableLCC,
         flammabilityThreshold = P(sim)$flammabilityThreshold) |>
         Cache(userTags = c("makeFireSenseLCC", dy),
-              .functionName = paste0("makeForeSenseLCC", dy))
+              .functionName = paste0("makeFireSenseLCC", dy))
     }
     
     if (doStandAgeMaps) {
       standAgeMap <- prepInputsStandAgeMap(rasterToMatch = sim$rasterToMatch_biomassParam,
-                                           studyArea = sim$studyArea_biomassParam,
+                                           # studyArea = sim$studyArea_biomassParam,
                                            destinationPath = dPath,
                                            dataYear = dy) |>
         Cache(.functionName = paste0("prepInputsStandAgeMap", dy),
               userTags = c(cacheTags, "prepInputsStandAgeMap"))
+    } else {
+      standAgeMap <- sim$standAgeMaps[[dyChar]]
     }
     
     return(list(standAgeMaps = standAgeMap, rstLCCs = LCC$lcc, propFlammables = LCC$flammableProp))
