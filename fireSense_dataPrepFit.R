@@ -1991,7 +1991,7 @@ runBorealDP_forCohortData <- function(sim) {
       fireYears <- c(min(P(sim)$fireYears - P(sim)$cutoffForYoungAge):max(P(sim)$fireYears))
       ## TODO: check why this isn't resulting in identical crs between firePolys, studyArea
       allFirePolys <- fireSenseUtils::getFirePolygons(
-        url = "https://cwfis.cfs.nrcan.gc.ca/downloads/nbac/NBAC_1972to2024_20250506_shp.zip",
+        # url = "https://cwfis.cfs.nrcan.gc.ca/downloads/nbac/NBAC_1972to2025_20260513_shp.zip",
         fun = "terra::vect",
         years = fireYears,
         useInnerCache = FALSE,
