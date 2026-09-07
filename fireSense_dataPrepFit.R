@@ -618,6 +618,9 @@ Init <- function(sim) {
 
   }
   
+  #make this object small (used by the landcoverDT and time-since-disturbance steps)
+  standAgeMaps <- lapply(sim$standAgeMaps, reproducible::postProcess, to = sim$rasterToMatch)
+
   # One landcover table per year for THIS study area, keyed by pixelID only. A fit is
   # always single-ELF: it uses the fuel objects assessed or supplied above
   # (nonForestedLCCGroups, missingLCCgroup), never ledger geometry. The per-polygon
