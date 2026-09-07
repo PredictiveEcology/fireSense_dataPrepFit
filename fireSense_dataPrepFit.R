@@ -1675,9 +1675,18 @@ runBorealDP_forCohortData <- function(sim) {
   }
 
   if (!suppliedElsewhere("nonForestedLCCGroups", sim)) {
-    vals <- freq(terra::rast(sim$rstLCCs))
+    # Compare in CODE space: `nonflammableLCC` and `forestedLCC` are land-cover
+    # codes, but freq() on a categorical raster (makeFireSenseLCC() attaches the
+    # SCANFI levels) returns the LABELS, so nothing matched and every class present
+    # -- coniferous, broadleaf, mixedwood included -- became "non-forest".
+    rstLCC <- terra::rast(sim$rstLCCs)
+    if (any(terra::is.factor(rstLCC))) {
+      rstLCC <- terra::deepcopy(rstLCC)
+      levels(rstLCC) <- NULL
+    }
+    vals <- freq(rstLCC)
     forestOrNonFlamm <- sort(unique(c(Par$nonflammableLCC, Par$forestedLCC)))
-    sim$nonForestedLCCGroups <- list(nf = setdiff(vals$value, forestOrNonFlamm))
+    sim$nonForestedLCCGroups <- list(nf = sort(setdiff(unique(vals$value), forestOrNonFlamm)))
     ## TODO: consider moving this to init - and checking if unsupplied
   }
 
