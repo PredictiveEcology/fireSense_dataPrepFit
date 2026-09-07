@@ -338,30 +338,6 @@ Init <- function(sim) {
     sim$studyAreaWithSpreadParams <- sim$spreadFitPreRun
     
     
-    # This is about the ELFs --> need to intersect the ELFs with the studyArea
-    rtmELF <- resample(sim$rasterToMatchELF, sim$rasterToMatch)
-    rasterPolys <- as.polygons(rtmELF, dissolve = TRUE)
-    
-    # rasterPolys: clean 9-polygon SpatVector from as.polygons, with polygonID column
-    names(rasterPolys)[1] <- fireSenseUtils::polygonIDTxt
-    # rasterPolys[[fireSenseUtils::polygonIDTxt]][[fireSenseUtils::polygonIDTxt]] <- 
-    #   as.character(rasterPolys[[fireSenseUtils::polygonIDTxt]])
-    
-    # Convert clean geometry to sfc (just the geometry column, no attributes)
-    cleanGeom <- st_as_sf(rasterPolys)
-    cleanGeom[[fireSenseUtils::polygonIDTxt]] <- as.character(cleanGeom[[fireSenseUtils::polygonIDTxt]])
-    
-    # Match raster classes to rows of the original sf object
-    srcIDs <- as.character(sim$studyAreaWithSpreadParams[[fireSenseUtils::polygonIDTxt]])
-    idx <- match(cleanGeom[[fireSenseUtils::polygonIDTxt]], srcIDs)
-    stopifnot(!anyNA(idx))
-    
-    # Reorder the sf object - list columns survive this untouched
-    studyAreaWithSpreadParamsNoOverlap <- sim$studyAreaWithSpreadParams[idx, ]
-    
-    # Swap in the clean geometry. st_geometry<- preserves all attribute columns,
-    # including list columns.
-    st_geometry(studyAreaWithSpreadParamsNoOverlap) <- st_geometry(cleanGeom)
     
     # remove the column called "params" ... this just allows for partial matching, with or without "s"
     #   in case somebody uses `parameters`, `param`, or `params`
@@ -642,68 +618,30 @@ Init <- function(sim) {
 
   }
   
-  #make this object small
+  #make this object small (used by the landcoverDT and time-since-disturbance steps)
   standAgeMaps <- lapply(sim$standAgeMaps, reproducible::postProcess, to = sim$rasterToMatch)
-  
-  oldOpts <- terraOptions(print = FALSE)
-  terraOptions(memmax = Inf, todisk = FALSE)
-  on.exit(terraOptions(memmax = oldOpts$memmax, todisk = oldOpts$todisk), add = TRUE)
-  
-  studyAreaSV <- vect(studyAreaWithSpreadParamsNoOverlap)
-  
-  oneYearByPolygon <- function(dy) {
-    rstLCC       <- sim$rstLCCs[[dy]]
-    flammableRTM <- sim$flammableRTMs[[dy]]
-    standAgeMap  <- standAgeMaps[[dy]]
-    
-    perPolyDT <- lapply(seq_len(nrow(studyAreaSV)), function(i) {
-      poly <- studyAreaSV[i, ]
-      pid  <- poly[[fireSenseUtils::polygonIDTxt]][[1]]
-      compareGeom(rstLCC, standAgeMap, flammableRTM)
-      rstLCC_i       <- mask(crop(rstLCC,       poly), poly)
-      flammableRTM_i <- mask(crop(flammableRTM, poly), poly)
-      standAgeMap_i  <- mask(crop(standAgeMap,  poly), poly)
-      
-      dt <- makeLandcoverDT(
-        rstLCC               = rstLCC_i,
-        flammableRTM         = flammableRTM_i,
-        forestedLCC          = P(sim)$forestedLCC,
-        nonForestedLCCGroups = sim$nonForestedLCCGroupsList[[pid]]
-      )
-      
-      dt <- correctMissingLCC(
-        dt,
-        standAgeMap_i,
-        sim$missingLCCgroupList[[pid]]
-      )
-      
-      # Translate child pixelIDs to parent pixelIDs
-      xy <- xyFromCell(rstLCC_i, dt$pixelID)
-      dt[, pixelID := cellFromXY(rstLCC, xy)]
-      set(dt, NULL, fireSenseUtils::polygonIDTxt, pid)
-      # dt[, polygonID := pid]
-      dt
-    })
-    
-    rbindlist(perPolyDT, use.names = TRUE, fill = TRUE)
-  }
-  sim$landcoverDTs <- Map(oneYearByPolygon, dy = names(sim$rstLCCs)) |> 
-    Cache(.functionName = "makeLandcoverDT", 
-          .cacheExtra = list(rstLCC = digRstLCC, flammableRTM = digFlammableRTMs, 
+
+  # One landcover table per year for THIS study area, keyed by pixelID only. A fit is
+  # always single-ELF: it uses the fuel objects assessed or supplied above
+  # (nonForestedLCCGroups, missingLCCgroup), never ledger geometry. The per-polygon
+  # build introduced for multi-ELF prediction (2026-06) depended on
+  # studyAreaWithSpreadParamsNoOverlap, which exists only when the ledger already
+  # covers the study area, so every fresh fit failed here with
+  # "object 'studyAreaWithSpreadParamsNoOverlap' not found".
+  sim$landcoverDTs <- Map(dy = names(sim$rstLCCs), function(dy) {
+    ll <- makeLandcoverDT(rstLCC = sim$rstLCCs[[dy]],
+                          flammableRTM = sim$flammableRTMs[[dy]],
+                          forestedLCC = P(sim)$forestedLCC,
+                          nonForestedLCCGroups = sim$nonForestedLCCGroups)
+    correctMissingLCC(ll, sim[["pixelGroupMaps"]][[dy]], sim$missingLCCgroup)
+  }) |>
+    Cache(.functionName = "makeLandcoverDT",
+          .cacheExtra = list(rstLCC = digRstLCC, flammableRTM = digFlammableRTMs,
                              rasterToMatchs = digRTMs,
-                             sim$missingLCCgroupList, P(sim)$forestedLCC, sim$nonForestedLCCGroupsList))
+                             sim$missingLCCgroup, P(sim)$forestedLCC, sim$nonForestedLCCGroups))
   
   
   
-  # sim$landcoverDTs <- Map(dy = mod$dyChars, function(dy) {
-  #   ll <- makeLandcoverDT(rstLCC = sim$rstLCCs[[dy]],
-  #                         flammableRTM = sim$flammableRTMs[[dy]],
-  #                         forestedLCC = P(sim)$forestedLCC, sim$nonForestedLCCGroups)
-  #   correctMissingLCC(ll, sim[["pixelGroupMaps"]][[dy]], sim$missingLCCgroup)}) |> 
-  #   Cache(.functionName = "makeLandcoverDT", 
-  #             .cacheExtra = list(rstLCC = digRstLCC, flammableRTM = digFlammableRTMs, 
-  #                                rasterToMatchs = digRTMs,
-  #                                sim$missingLCCgroup, P(sim)$forestedLCC, sim$nonForestedLCCGroups))
 
   ## cannot merge because before subsetting due to column differences over time
 
