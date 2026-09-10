@@ -18,7 +18,7 @@ defineModule(sim, list(
                   "PredictiveEcology/climateData@development (>= 2.2.3)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.1.4)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
-                  "PredictiveEcology/LandR@development (>= 1.1.5.9070)",
+                  "PredictiveEcology/LandR@development (>= 1.2.0.9012)",
                   "PredictiveEcology/SpaDES.core@development (>= 2.0.2.9006)",
                   "PredictiveEcology/SpaDES.project@development",
                   "PredictiveEcology/SpaDES.tools@development (>= 2.1.1.9000)",
@@ -1390,11 +1390,10 @@ runBorealDP_forCohortData <- function(sim) {
   }
 
   if (!suppliedElsewhere("sppEquiv", sim, where = c("user", "initEvent"))) { # it is showing up in some cases with sim$sppEquiv = NULL
-    sp <- LandR::speciesInStudyArea(studyArea = sim$studyArea, dPath = inputPath(sim))
-    sp <- LandR::equivalentName(sp$speciesList, df = sppEquivalencies_CA, column = Par$sppEquivCol)
-    sp <- sp[nzchar(sp)]
-    sim$sppEquiv <- sppEquivalencies_CA[get(Par$sppEquivCol) %in% sp]
-    sim$sppEquiv <- sim$sppEquiv[LANDIS_traits != "",] # ONLY USE THE SPECIES THAT HAVE TRAITS
+    ## the same table fireSense_ELFs uses: no _Spp genus entries, only species with LANDIS
+    ## traits, Engelmann spruce merged into Pice_eng
+    sim$sppEquiv <- LandR::speciesInStudyArea(studyArea = sim$studyArea, sppEquivCol = Par$sppEquivCol,
+                                              dPath = inputPath(sim))$sppEquiv
   }
 
   SpaDES.core::paramCheckOtherMods(sim, paramToCheck = "sppEquivCol")
