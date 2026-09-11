@@ -6,12 +6,13 @@ test_that("a function in .cacheExtra makes Cache re-run when that function's cod
   inner <- function(x) x + 1
   outer <- function(x) inner(x)
 
-  expect_identical(reproducible::Cache(outer(1)), 2)
-  expect_identical(reproducible::Cache(outer(1), .cacheExtra = list(inner)), 2)
+  ## Cache attaches its tags as attributes, so compare values only
+  expect_identical(as.numeric(reproducible::Cache(outer(1))), 2)
+  expect_identical(as.numeric(reproducible::Cache(outer(1), .cacheExtra = list(inner))), 2)
 
   inner <- function(x) x + 100
   ## without it, the old result comes back
-  expect_identical(reproducible::Cache(outer(1)), 2)
+  expect_identical(as.numeric(reproducible::Cache(outer(1))), 2)
   ## with it, the call runs again
-  expect_identical(reproducible::Cache(outer(1), .cacheExtra = list(inner)), 101)
+  expect_identical(as.numeric(reproducible::Cache(outer(1), .cacheExtra = list(inner))), 101)
 })
