@@ -1,3 +1,11 @@
+# fireSense_dataPrepFit (development version)
+
+- Fire records are read with `fireregimetools` and downloaded with `reproducible::preProcess()`, so
+  `reproducible::preProcessCheckURLs()` can recheck them against the server. NFDB ignition points come
+  from `current_version/NFDB_point_shp.zip`; the URL used before (`NFDB_point.zip`) returns HTTP 404, so
+  no NFDB release newer than the local copy could be fetched. NBAC perimeters still come from the newest
+  release, and its URL is now part of the Cache key.
+
 # fireSense_dataPrepFit 1.2.0
 
 First release from `development` since `main` was last updated (2023-02-07). Full history: https://github.com/PredictiveEcology/fireSense_dataPrepFit/compare/4b4e921...v1.2.0
