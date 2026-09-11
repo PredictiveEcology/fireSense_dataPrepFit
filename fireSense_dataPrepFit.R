@@ -1205,10 +1205,10 @@ prepare_EscapeFit <- function(sim) {
 
   if (is(escapes, "SpatVector")) {
     escapesOrig <- escapes
-    coords <- terra::geom(escapesOrig)[, c("x","y")]
+    coords <- pointCoords(escapesOrig)
   } else {
     escapes <- sf::st_as_sf(escapes)
-    coords <- st_coordinates(escapes)
+    coords <- pointCoords(escapes)
   }
   escapeCells <- cellFromXY(aggregatedRas, coords)
   escapeDT <- as.data.table(escapes)
@@ -1669,6 +1669,17 @@ joinFireBuffersToVeg <- function(fireBufferedListDT, vegData, allYears) {
     dt2[!is.na(buffer)]
   })
   rbindlist(indices)
+}
+
+## x/y of each point as a two-column matrix, for terra::cellFromXY(). `terra::geom(points)[, c("x", "y")]`
+## without drop = FALSE turned a single point into a plain vector, which cellFromXY() rejects
+## ("unable to find an inherited method ... xy = numeric"; ELF 12.1, one escape).
+pointCoords <- function(points) {
+  if (is(points, "SpatVector")) {
+    terra::geom(points)[, c("x", "y"), drop = FALSE]
+  } else {
+    sf::st_coordinates(points)
+  }
 }
 
 # polygonIDTxt <- "polygonID"
