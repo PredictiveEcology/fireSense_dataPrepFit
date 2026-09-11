@@ -16,7 +16,7 @@ defineModule(sim, list(
   loadOrder = list(before = c("Biomass_speciesData", "Biomass_borealDataPrep", "Biomass_speciesParameters")),
   reqdPkgs = list("data.table", "fastDummies", "reproducible", "Require",
                   "PredictiveEcology/climateData@development (>= 2.2.3)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.1.4)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9005)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9012)",
                   "PredictiveEcology/SpaDES.core@development (>= 2.0.2.9006)",
@@ -893,9 +893,7 @@ prepare_SpreadFitFire_Raster <- function(sim) {
   historicalFireRaster <- mask(historicalFireRaster, sim$flammableRTM,
                                maskvalues = 0, updatevalue = NA)
 
-  ## Sequential. The forked (mclapply) workers hang forever in a multi-threaded job process:
-  ## every child waits on a lock with 0 CPU from the moment it is forked (2026-09-10 fits).
-  nCores <- 1L
+  nCores <- ifelse(grepl("Windows", Sys.info()[["sysname"]]), 1L, length(Par$fireYears))
 
   ## this is analogous to buffer to area but for raster datasets as opposed to polygon
   ## the inner looping function is very similar - one difference is that non-flammable
@@ -989,9 +987,9 @@ prepare_SpreadFitFire_Vector <- function(sim) {
   ## ultimately this function should combine the climate data to avoid needless iteration,
   ## and even this duplicated step should be a function of "fire period" for >2 periods
   ## however, the rasterized fire prep is significantly different, and needs review first
-  ## Sequential, for the same reason as in prepare_SpreadFitFire_Raster(): the forked
-  ## (mcMap) workers in fireSenseUtils::bufferToArea() hang forever in a job process.
-  nCores <- 1L
+  allYearsVect <- unlist(mod$allYears)
+  nCores <- ifelse(grepl("Windows", Sys.info()[["sysname"]]), 1L,
+                   sum(names(sim$spreadFirePolys) %in% allYearsVect))
   if (FALSE) {
     # This chunk visualizes the largest fire in each year, along with the buffers
     sizes <- lapply(harmonized2010$firePolys, function(x) max(x$SIZE_HA))
