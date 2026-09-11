@@ -1445,7 +1445,9 @@ runBorealDP_forCohortData <- function(sim) {
         nonflammableLCC = P(sim)$nonflammableLCC,
         flammabilityThreshold = P(sim)$flammabilityThreshold) |>
         Cache(userTags = c("makeFireSenseLCC", dy),
-              .functionName = paste0("makeFireSenseLCC", dy))
+              .functionName = paste0("makeFireSenseLCC", dy),
+              ## Cache digests only makeFireSenseLCC's own code; the land cover comes from this LandR function
+              .cacheExtra = list(LandR::prepInputs_NTEMS_LCC_FAO))
     }
     
     if (doStandAgeMaps) {
@@ -1454,7 +1456,9 @@ runBorealDP_forCohortData <- function(sim) {
                                            destinationPath = dPath,
                                            dataYear = dy) |>
         Cache(.functionName = paste0("prepInputsStandAgeMap", dy),
-              userTags = c(cacheTags, "prepInputsStandAgeMap"))
+              userTags = c(cacheTags, "prepInputsStandAgeMap"),
+              ## Cache digests only prepInputsStandAgeMap's own code; it adjusts ages in fires with this function
+              .cacheExtra = list(LandR::replaceAgeInFires))
     } else {
       standAgeMap <- sim$standAgeMaps[[dyChar]]
     }
