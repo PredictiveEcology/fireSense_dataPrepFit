@@ -17,6 +17,7 @@ defineModule(sim, list(
   reqdPkgs = list("data.table", "fastDummies", "reproducible", "Require",
                   "PredictiveEcology/climateData@development (>= 2.2.3)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9005)",
+                  "FOR-CAST/fireregimetools@main (>= 0.1.0.9006)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9012)",
                   "PredictiveEcology/SpaDES.core@development (>= 2.0.2.9006)",
@@ -1489,23 +1490,13 @@ runBorealDP_forCohortData <- function(sim) {
     if (!suppliedElsewhere("firePolys", sim) | !suppliedElsewhere("firePolysForAge", sim)) {
       ## don't want to needlessly postProcess the same firePolys objects
 
-      saNotLatLong <- if (isTRUE(sf::st_is_longlat(sim$studyArea))) {
-        terra::project(sim$studyArea, terra::crs(sim$rasterToMatch))
-      } else {
-        sim$studyArea
-      }
-
       fireYears <- c(min(P(sim)$fireYears - P(sim)$cutoffForYoungAge):max(P(sim)$fireYears))
-      ## TODO: check why this isn't resulting in identical crs between firePolys, studyArea
-      allFirePolys <- fireSenseUtils::getFirePolygons(
-        # url = "https://cwfis.cfs.nrcan.gc.ca/downloads/nbac/NBAC_1972to2025_20260513_shp.zip",
-        fun = "terra::vect",
+      ## the newest NBAC release; its URL is part of the Cache key, so a new release is picked up
+      allFirePolys <- firePolysByYear(
+        url = fireSenseUtils::latestNBACUrl(),
         years = fireYears,
-        useInnerCache = FALSE,
-        destinationPath = dPath,
-        cropTo = sim$rasterToMatch,
-        maskTo = saNotLatLong,
-        projectTo = sim$rasterToMatch) |>
+        studyArea = postProcessTo(sim$studyArea, projectTo = sim$rasterToMatch),
+        destinationPath = dPath) |>
         Cache(userTags = c(cacheTags, "firePolys", paste0(fireYears, collapse = ":")))
     }
     if (anyPlotting(Par$.plots)) {
@@ -1531,7 +1522,7 @@ runBorealDP_forCohortData <- function(sim) {
             filename = "Historical Fire Maps") } |>
         Cache(.cacheExtra = attr(allFirePolys, "tags"),
               omitArgs = "data",
-              .functionName = "Plots_fireMaps") # uses the cacheId of the getFirePolygons; only plot if changed
+              .functionName = "Plots_fireMaps") # uses the cacheId of the firePolysByYear; only plot if changed
     }
 
     if (!suppliedElsewhere("firePolys", sim)) {
@@ -1580,21 +1571,16 @@ runBorealDP_forCohortData <- function(sim) {
   }
 
   if (!suppliedElsewhere("ignitionFirePoints", sim)) {
-    ignitionFirePoints <- {
-      getFirePoints_NFDB_V2(
-        studyArea = sim$studyArea,
-        years = P(sim)$fireYears,
-        NFDB_pointPath = dPath,
-        fun = "terra::vect",
-        plot = !is.na(P(sim)$.plotInitialTime)) |>
-        postProcessTo(projectTo = sim$rasterToMatch) } |>
-      Cache(.functionName = "prepInputs_ignitionFirePoints",
-            omitArgs = c("from", "projectTo"),
-            .cacheExtra = list(sim$studyArea, Par$fireYears, sim$rasterToMatch),
-            userTags = c("ignitionFirePoints", P(sim)$.studyAreaName)) ## default redownload means it will update annually - I think this is fine?
+    ignitionFirePoints <- nfdbFirePoints(
+      url = "https://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_pnt/current_version/NFDB_point_shp.zip",
+      years = P(sim)$fireYears,
+      studyArea = sim$studyArea,
+      destinationPath = dPath) |>
+      Cache(userTags = c("ignitionFirePoints", P(sim)$.studyAreaName)) |>
+      postProcessTo(projectTo = sim$rasterToMatch)
     sim$ignitionFirePoints <- ignitionFirePoints[ignitionFirePoints$CAUSE %in% c("L", "N"),]
     if (nrow(sim$ignitionFirePoints) == 0) {
-      stop("no ignitions present - review getFirePoints-NFDB_V2")
+      stop("no lightning- or natural-caused (CAUSE L or N) NFDB fire points in the study area during fireYears")
       #this was happening with data update - the module will still run with no fire
     }
   }
