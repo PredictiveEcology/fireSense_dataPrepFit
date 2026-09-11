@@ -746,16 +746,7 @@ prepare_SpreadFit <- function(sim) {
   }
 
   ## join fire and veg data
-
-  indices <- Map(yrs = mod$allYears, function(yrs) {
-    dt <- rbindlist(sim$fireBufferedListDT[yrs], idcol = "fireYear")
-    yrsNum <- gsub(fireSenseUtils::yearTxt, "", yrs) |> as.integer()
-    vegData[, year := gsub(fireSenseUtils::yearTxt, "", year) |> as.integer()] # need for next inequality check
-
-    dt2 <- dt[vegData[min(yrsNum) >= year & year < max(yrsNum)], on = c("pixelID")]
-    dt2[!is.na(buffer)]
-  })
-  fireSenseVegData <- rbindlist(indices)
+  fireSenseVegData <- joinFireBuffersToVeg(sim$fireBufferedListDT, vegData, mod$allYears)
 
   ## TODO: discuss if this is expected (as far as I can tell, it is)
 
@@ -1668,6 +1659,18 @@ yearGroups <- function(dataYears, fireYears, minmaxOnly = TRUE) {
   if (isTRUE(minmaxOnly))
     ageGroups <- Map(ag = ageGroups, function(ag) c(min(ag), max(ag)))
   ageGroups
+}
+
+## Join each group of fire years (`allYears`, named by data year, from `yearGroups()`) to the
+## vegetation of that data year only. `vegData` is modified by reference (`year` becomes integer).
+joinFireBuffersToVeg <- function(fireBufferedListDT, vegData, allYears) {
+  vegData[, year := gsub(fireSenseUtils::yearTxt, "", year) |> as.integer()]
+  indices <- Map(yrs = allYears, dataYear = as.integer(names(allYears)), function(yrs, dataYear) {
+    dt <- rbindlist(fireBufferedListDT[yrs], idcol = "fireYear")
+    dt2 <- dt[vegData[year == dataYear], on = c("pixelID")]
+    dt2[!is.na(buffer)]
+  })
+  rbindlist(indices)
 }
 
 # polygonIDTxt <- "polygonID"
