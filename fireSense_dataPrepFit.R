@@ -35,8 +35,9 @@ defineModule(sim, list(
     defineParameter("cutoffForYoungAge", "numeric", 15, NA, NA,
                     "Age at and below which pixels are considered 'young' (`young <- age <= cutoffForYoungAge`)"),
     defineParameter("dataYears", "integer", c(2000L, 2010L, 2020L), NA_integer_, NA_integer_,
-                    paste("A numeric vector of length 2 or more (only tested with 2 and 3) indicating",
-                          "which years should be used for standAgeMaps, rstLCCs etc.")),
+                    paste("A numeric vector of 2 or more increasing years indicating",
+                          "which years should be used for standAgeMaps, rstLCCs etc.",
+                          "Each fire year uses the data year at or before it, so no `fireYears` may precede the first.")),
     defineParameter("estimateFuelClasses", "logical", TRUE, NA, NA,
                     paste("estimate fuel classes from combination of data and P(sim)$fuelClassCol?")),
     defineParameter("fireYears", "integer", 2002:2025, NA, NA,
@@ -461,7 +462,7 @@ Init <- function(sim) {
       postProcess(x, to = sim$rasterToMatch, method = "near")})
     objs <- objs2
   }
-  if (!isInt(objs$year2000)) {
+  if (!all(vapply(objs, isInt, logical(1)))) {
     objs <- Map(obj = objs, function(obj) LandR::asInt(obj))
   }
   # This makes rstLCCs same as sim$rasterToMatch instead of rasterToMatch_biomassParam
@@ -1653,13 +1654,18 @@ defaultClimateVariablesForFire <- list("spread" = "MDC",
                                        "ignition" = "MDC")
 
 
+## Each fire year belongs to the latest data year at or before it, whose vegetation it uses.
+## Returns one element per data year, named by it.
 yearGroups <- function(dataYears, fireYears, minmaxOnly = TRUE) {
-  mm <- match(dataYears, fireYears)
-  mm[is.na(mm)] <- 1
-  mm1 <- rep(mm[1:2], diff(mm))
-  mm2 <- c(mm1, rep(length(mm1) + 1, length(fireYears) - length(mm1) ))
-  ageGroups <- split(fireYears, mm2)
-  names(ageGroups) <- dataYears
+  if (any(fireYears < min(dataYears))) {
+    stop("fireYears before the first dataYear (", min(dataYears), ") have no vegetation data: ",
+         paste(fireYears[fireYears < min(dataYears)], collapse = ", "))
+  }
+  ageGroups <- split(fireYears, factor(dataYears[findInterval(fireYears, dataYears)], levels = dataYears))
+  empty <- lengths(ageGroups) == 0
+  if (any(empty)) {
+    stop("dataYears with no fireYears before the next dataYear: ", paste(dataYears[empty], collapse = ", "))
+  }
   if (isTRUE(minmaxOnly))
     ageGroups <- Map(ag = ageGroups, function(ag) c(min(ag), max(ag)))
   ageGroups
