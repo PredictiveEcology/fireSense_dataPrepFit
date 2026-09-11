@@ -18,6 +18,20 @@ crs <- "EPSG:3978"
 studyArea <- terra::vect(terra::ext(0, 10000, 0, 10000), crs = crs)
 square <- function(x0, y0, side) terra::as.polygons(terra::ext(x0, x0 + side, y0, y0 + side), crs = crs)
 
+## The NFDB URL is the same for every release, so the module keys its Cache on the shapefile's name,
+## which carries the release.
+test_that("fireRecordShapefile returns the archive's shapefile, named as in the archive", {
+  pts <- terra::vect(cbind(1000, 1000), crs = crs)
+  pts$YEAR <- 2002
+  dir <- withr::local_tempdir()
+
+  shp <- fireRecordShapefile(url = NULL, destinationPath = dir,
+                             archive = fireArchive(pts, "NFDB_point_20260811", dir))
+
+  expect_identical(basename(shp), "NFDB_point_20260811.shp")
+  expect_true(file.exists(shp))
+})
+
 test_that("firePolysByYear returns the NBAC perimeters in the study area, split by year", {
   polys <- rbind(square(1000, 1000, 2000),   # 2001
                  square(9000, 5000, 2000),   # 2001, half outside the study area
@@ -28,9 +42,9 @@ test_that("firePolysByYear returns the NBAC perimeters in the study area, split 
   polys$NFIREID <- 1:5
   polys$POLY_HA <- polys$ADJ_HA <- c(400, 400, 0.25, 100, 100)
   dir <- withr::local_tempdir()
+  shp <- fireRecordShapefile(url = NULL, destinationPath = dir, archive = fireArchive(polys, "NBAC_test", dir))
 
-  out <- firePolysByYear(url = NULL, archive = fireArchive(polys, "NBAC_test", dir), years = 2001:2003,
-                         studyArea = studyArea, destinationPath = dir)
+  out <- firePolysByYear(shp, years = 2001:2003, studyArea = studyArea)
 
   expect_identical(names(out), paste0(fireSenseUtils::yearTxt, 2001:2003))
   expect_null(out[["year2002"]])
@@ -51,9 +65,9 @@ test_that("nfdbFirePoints keeps fires of every size and cause in the study area 
   pts$SIZE_HA <- c(0, 0.1, 50, 1, 5)
   pts$CAUSE <- c("L", "N", "H", "L", "L")
   dir <- withr::local_tempdir()
+  shp <- fireRecordShapefile(url = NULL, destinationPath = dir, archive = fireArchive(pts, "NFDB_point_test", dir))
 
-  out <- nfdbFirePoints(url = NULL, archive = fireArchive(pts, "NFDB_point_test", dir), years = 1995:2005,
-                        studyArea = studyArea, destinationPath = dir)
+  out <- nfdbFirePoints(shp, years = 1995:2005, studyArea = studyArea)
 
   ## "d" is from 2010, "e" is outside the study area
   expect_identical(sort(out$FIRE_ID), c("a", "b", "c"))

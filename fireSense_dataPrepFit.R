@@ -1491,13 +1491,14 @@ runBorealDP_forCohortData <- function(sim) {
       ## don't want to needlessly postProcess the same firePolys objects
 
       fireYears <- c(min(P(sim)$fireYears - P(sim)$cutoffForYoungAge):max(P(sim)$fireYears))
-      ## the newest NBAC release; its URL is part of the Cache key, so a new release is picked up
+      ## the newest NBAC release; the shapefile's name carries the release, so it keys the Cache
+      nbacShp <- fireRecordShapefile(fireSenseUtils::latestNBACUrl(), destinationPath = dPath)
       allFirePolys <- firePolysByYear(
-        url = fireSenseUtils::latestNBACUrl(),
+        shp = nbacShp,
         years = fireYears,
-        studyArea = postProcessTo(sim$studyArea, projectTo = sim$rasterToMatch),
-        destinationPath = dPath) |>
-        Cache(userTags = c(cacheTags, "firePolys", paste0(fireYears, collapse = ":")))
+        studyArea = postProcessTo(sim$studyArea, projectTo = sim$rasterToMatch)) |>
+        Cache(omitArgs = "shp", .cacheExtra = basename(nbacShp),
+              userTags = c(cacheTags, "firePolys", paste0(fireYears, collapse = ":")))
     }
     if (anyPlotting(Par$.plots)) {
       fp <- allFirePolys[!sapply(allFirePolys, is.null)]
@@ -1571,12 +1572,16 @@ runBorealDP_forCohortData <- function(sim) {
   }
 
   if (!suppliedElsewhere("ignitionFirePoints", sim)) {
+    ## the URL is the same for every NFDB release; the shapefile's name carries the release, so it keys the Cache
+    nfdbShp <- fireRecordShapefile(
+      "https://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_pnt/current_version/NFDB_point_shp.zip",
+      destinationPath = dPath)
     ignitionFirePoints <- nfdbFirePoints(
-      url = "https://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_pnt/current_version/NFDB_point_shp.zip",
+      shp = nfdbShp,
       years = P(sim)$fireYears,
-      studyArea = sim$studyArea,
-      destinationPath = dPath) |>
-      Cache(userTags = c("ignitionFirePoints", P(sim)$.studyAreaName)) |>
+      studyArea = sim$studyArea) |>
+      Cache(omitArgs = "shp", .cacheExtra = basename(nfdbShp),
+            userTags = c("ignitionFirePoints", P(sim)$.studyAreaName)) |>
       postProcessTo(projectTo = sim$rasterToMatch)
     sim$ignitionFirePoints <- ignitionFirePoints[ignitionFirePoints$CAUSE %in% c("L", "N"),]
     if (nrow(sim$ignitionFirePoints) == 0) {
