@@ -1334,10 +1334,7 @@ runBorealDP_forCohortData <- function(sim) {
     parms$Biomass_borealDataPrep$exportModels <- "none"
 
     # Digest the source code of modules; in case they change
-    outerDirs <- file.path(pathsLocal$modulePath, neededModule)
-    innerRDirs <- file.path(outerDirs, "R")
-    allModuleFiles <- dir(c(outerDirs, innerRDirs ), pattern = ".R$")
-    sourceCodeDig <- .robustDigest(asPath(allModuleFiles))
+    sourceCodeDig <- moduleCodeDigest(pathsLocal$modulePath, neededModule)
 
     outNY <- SpaDES.core::simInitAndSpades(paths = pathsLocal,
                                            params = parms,
@@ -1448,7 +1445,9 @@ runBorealDP_forCohortData <- function(sim) {
         nonflammableLCC = P(sim)$nonflammableLCC,
         flammabilityThreshold = P(sim)$flammabilityThreshold) |>
         Cache(userTags = c("makeFireSenseLCC", dy),
-              .functionName = paste0("makeFireSenseLCC", dy))
+              .functionName = paste0("makeFireSenseLCC", dy),
+              ## Cache digests only makeFireSenseLCC's own code; the land cover comes from this LandR function
+              .cacheExtra = list(LandR::prepInputs_NTEMS_LCC_FAO))
     }
     
     if (doStandAgeMaps) {
@@ -1457,7 +1456,9 @@ runBorealDP_forCohortData <- function(sim) {
                                            destinationPath = dPath,
                                            dataYear = dy) |>
         Cache(.functionName = paste0("prepInputsStandAgeMap", dy),
-              userTags = c(cacheTags, "prepInputsStandAgeMap"))
+              userTags = c(cacheTags, "prepInputsStandAgeMap"),
+              ## Cache digests only prepInputsStandAgeMap's own code; it adjusts ages in fires with this function
+              .cacheExtra = list(LandR::replaceAgeInFires))
     } else {
       standAgeMap <- sim$standAgeMaps[[dyChar]]
     }
@@ -1692,6 +1693,15 @@ pointCoords <- function(points) {
   } else {
     sf::st_coordinates(points)
   }
+}
+
+## Digest of the code of `modules` (each module's .R file and its R/ folder), for a Cache key that
+## changes when that code does. `dir()` without `full.names` gave bare file names, whose digest does
+## not read the files, so an edited Biomass_borealDataPrep still hit the old cached run.
+moduleCodeDigest <- function(modulePath, modules) {
+  outerDirs <- file.path(modulePath, modules)
+  files <- dir(c(outerDirs, file.path(outerDirs, "R")), pattern = "\\.R$", full.names = TRUE)
+  .robustDigest(asPath(files))
 }
 
 # polygonIDTxt <- "polygonID"
