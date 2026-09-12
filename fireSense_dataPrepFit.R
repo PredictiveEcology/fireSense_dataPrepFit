@@ -8,7 +8,7 @@ defineModule(sim, list(
     person(c("Alex", "M"), "Chubaty", role = "ctb", email = "achubaty@for-cast.ca")
   ),
   childModules = character(0),
-  version = list(fireSense_dataPrepFit = "1.2.0.9000"),
+  version = list(fireSense_dataPrepFit = "1.2.0.9001"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -1127,18 +1127,12 @@ prepare_IgnitionFit <- function(sim) {
   #assume that if multiple climate variables are present, they are of equal length
   #else bigger problems exist
   whAvailable <- allYearsVect %in% names(ignitionClimateCoarse[[1]])
-  yearsInClimateRast <- allYearsVect[whAvailable]
   yearsNotAvailable <- allYearsVect[!whAvailable]
 
-  if (length(yearsNotAvailable)) {
-    warning("P(sim)$fireYears includes more years than are available in ",
-            "sim$historicalClimateRasters; \nmissing: ", paste(yearsNotAvailable, collapse = ", "),
-            "\ntruncating P(sim)$fireYears to: ",
-            paste0(min(yearsInClimateRast), ":", max(yearsInClimateRast)))
-    years <- Map(y = years, function(y) intersect(y, yearsInClimateRast))
-    P(sim)$fireYears <- intersect(as.numeric(gsub(fireSenseUtils::yearTxt, "", yearsInClimateRast)),
-                                  P(sim)$fireYears)
-  }
+  ## Explicitly requested fire years must never be dropped quietly: this used to warn and
+  ## truncate P(sim)$fireYears to whatever climate happened to cover, so a short climate raster
+  ## silently changed the fitting window and the fit looked successful.
+  checkClimateYears(allYearsVect, whAvailable)
 
   ## join fuel class, LCC, and climate, subsetting to flamIndex, calculating n of ignitions
 
@@ -1661,6 +1655,24 @@ yearGroups <- function(dataYears, fireYears, minmaxOnly = TRUE) {
   if (isTRUE(minmaxOnly))
     ageGroups <- Map(ag = ageGroups, function(ag) c(min(ag), max(ag)))
   ageGroups
+}
+
+## Stop when the climate rasters do not cover every requested fire year.
+##
+## This used to warn and truncate P(sim)$fireYears to whatever climate covered. A fit then ran,
+## and finished, on a different window than the one asked for -- and because the launcher pins
+## the window once per campaign, some ELFs could be fit on 1985:2024 and others on 1985:2022
+## with nothing in the results to say so. A year the caller asked for is a requirement, not a
+## preference: report every missing year and stop.
+checkClimateYears <- function(allYearsVect, whAvailable) {
+  if (all(whAvailable))
+    return(invisible(allYearsVect))
+  missingYears <- gsub(fireSenseUtils::yearTxt, "", allYearsVect[!whAvailable])
+  stop("sim$historicalClimateRasters has no climate for ", sum(!whAvailable), " of the ",
+       length(allYearsVect), " requested fireYears: ", paste(missingYears, collapse = ", "),
+       "\nEither supply climate for those years or set P(sim)$fireYears to a window the ",
+       "climate data covers. It is NOT truncated automatically: that would silently fit a ",
+       "different window than the one requested.")
 }
 
 ## Join each group of fire years (`allYears`, named by data year, from `yearGroups()`) to the
