@@ -32,6 +32,25 @@ test_that("fireRecordShapefile returns the archive's shapefile, named as in the 
   expect_true(file.exists(shp))
 })
 
+## caret, a fireSense_IgnitionFit reqdPkg, defines its own preProcess() generic. Attached after
+## reproducible it masked reproducible::preProcess(), and fireRecordShapefile() stopped with
+## 'argument "x" is missing, with no default' (ELFs 13.1, 5.2.1, 11.3, 2026-09-12).
+test_that("fireRecordShapefile still works when an attached package masks preProcess", {
+  masker <- new.env()
+  masker$preProcess <- function(x, ...) UseMethod("preProcess")
+  masker$preProcess.default <- function(x, ...) stop("argument \"x\" is missing, with no default")
+  attach(masker, name = "package:preProcessMasker", warn.conflicts = FALSE)
+  withr::defer(detach("package:preProcessMasker", character.only = TRUE))
+  pts <- terra::vect(cbind(1000, 1000), crs = crs)
+  pts$YEAR <- 2002
+  dir <- withr::local_tempdir()
+
+  shp <- fireRecordShapefile(url = NULL, destinationPath = dir,
+                             archive = fireArchive(pts, "NFDB_point_masked", dir))
+
+  expect_identical(basename(shp), "NFDB_point_masked.shp")
+})
+
 test_that("firePolysByYear returns the NBAC perimeters in the study area, split by year", {
   polys <- rbind(square(1000, 1000, 2000),   # 2001
                  square(9000, 5000, 2000),   # 2001, half outside the study area
