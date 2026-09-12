@@ -1,5 +1,9 @@
 # fireSense_dataPrepFit (development version)
 
+- `fireRecordShapefile()` calls `reproducible::preProcess()` by its full name. caret, a
+  fireSense_IgnitionFit dependency, defines its own `preProcess()` generic; attached after reproducible
+  it masked the bare name, and the fire-record download stopped with 'argument "x" is missing, with no
+  default'.
 - Fire records are read with `fireregimetools` and downloaded with `reproducible::preProcess()`, so
   `reproducible::preProcessCheckURLs()` can recheck them against the server. NFDB ignition points come
   from `current_version/NFDB_point_shp.zip`; the URL used before (`NFDB_point.zip`) returns HTTP 404, so

@@ -10,7 +10,10 @@
 ## NFDB URL stays the same from one release to the next. With `fun = NA`, preProcess() returns every
 ## file in the archive, and the CFS archives also carry metadata (schema.ini, a pdf, a spreadsheet).
 fireRecordShapefile <- function(url, destinationPath, ...) {
-  files <- preProcess(url = url, destinationPath = destinationPath, fun = NA, ...)$targetFilePath
+  ## reproducible:: by name: caret (a fireSense_IgnitionFit reqdPkg) defines its own preProcess()
+  ## generic, and once caret is attached after reproducible the bare name resolves to caret's, which
+  ## stops with 'argument "x" is missing, with no default' (ELFs 13.1, 5.2.1, 11.3, 2026-09-12)
+  files <- reproducible::preProcess(url = url, destinationPath = destinationPath, fun = NA, ...)$targetFilePath
   grep("\\.shp$", files, value = TRUE)
 }
 
