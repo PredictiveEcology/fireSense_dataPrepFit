@@ -8,7 +8,7 @@ defineModule(sim, list(
     person(c("Alex", "M"), "Chubaty", role = "ctb", email = "achubaty@for-cast.ca")
   ),
   childModules = character(0),
-  version = list(fireSense_dataPrepFit = "1.2.0.9002"),
+  version = list(fireSense_dataPrepFit = "1.2.0.9003"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -1378,8 +1378,10 @@ runBorealDP_forCohortData <- function(sim) {
 
   ## suppliedElsewhere() is TRUE whenever another module declares sppEquiv as an output, even
   ## when that module has already run and left it NULL (fireSense_ELFs does, for an ELF without
-  ## Engelmann spruce), so also build it when there is no table.
-  if (!suppliedElsewhere("sppEquiv", sim, where = c("user", "initEvent")) || NROW(sim$sppEquiv) == 0) {
+  ## Engelmann spruce), so also build it when there is NO table. A table with zero rows is not
+  ## "no table": fireSense_ELFs supplies one for an ELF with no tree species, and rebuilding the
+  ## list here (over this module's studyArea, with LandR's defaults) overrode that decision.
+  if (!suppliedElsewhere("sppEquiv", sim, where = c("user", "initEvent")) || is.null(sim$sppEquiv)) {
     sp <- LandR::speciesInStudyArea(studyArea = sim$studyArea, dPath = inputPath(sim))
     sp <- LandR::equivalentName(sp$speciesList, df = sppEquivalencies_CA, column = Par$sppEquivCol)
     sp <- sp[nzchar(sp)]
