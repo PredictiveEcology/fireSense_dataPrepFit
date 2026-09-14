@@ -8,7 +8,7 @@ defineModule(sim, list(
     person(c("Alex", "M"), "Chubaty", role = "ctb", email = "achubaty@for-cast.ca")
   ),
   childModules = character(0),
-  version = list(fireSense_dataPrepFit = "1.2.0"),
+  version = list(fireSense_dataPrepFit = "1.2.0.9003"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -16,7 +16,8 @@ defineModule(sim, list(
   loadOrder = list(before = c("Biomass_speciesData", "Biomass_borealDataPrep", "Biomass_speciesParameters")),
   reqdPkgs = list("data.table", "fastDummies", "reproducible", "Require",
                   "PredictiveEcology/climateData@development (>= 2.2.3)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.1.4)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9005)",
+                  "FOR-CAST/fireregimetools@main (>= 0.1.0.9006)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9012)",
                   "PredictiveEcology/SpaDES.core@development (>= 2.0.2.9006)",
@@ -35,8 +36,9 @@ defineModule(sim, list(
     defineParameter("cutoffForYoungAge", "numeric", 15, NA, NA,
                     "Age at and below which pixels are considered 'young' (`young <- age <= cutoffForYoungAge`)"),
     defineParameter("dataYears", "integer", c(2000L, 2010L, 2020L), NA_integer_, NA_integer_,
-                    paste("A numeric vector of length 2 or more (only tested with 2 and 3) indicating",
-                          "which years should be used for standAgeMaps, rstLCCs etc.")),
+                    paste("A numeric vector of 2 or more increasing years indicating",
+                          "which years should be used for standAgeMaps, rstLCCs etc.",
+                          "Each fire year uses the data year at or before it, so no `fireYears` may precede the first.")),
     defineParameter("estimateFuelClasses", "logical", TRUE, NA, NA,
                     paste("estimate fuel classes from combination of data and P(sim)$fuelClassCol?")),
     defineParameter("fireYears", "integer", 2002:2025, NA, NA,
@@ -461,7 +463,7 @@ Init <- function(sim) {
       postProcess(x, to = sim$rasterToMatch, method = "near")})
     objs <- objs2
   }
-  if (!isInt(objs$year2000)) {
+  if (!all(vapply(objs, isInt, logical(1)))) {
     objs <- Map(obj = objs, function(obj) LandR::asInt(obj))
   }
   # This makes rstLCCs same as sim$rasterToMatch instead of rasterToMatch_biomassParam
@@ -556,7 +558,7 @@ Init <- function(sim) {
                                      fires = fires,
                                      nonforestLCC = sim$nonForestedLCCGroups)) |>
       Cache(.functionName = "fuelClassPrep", userTags = c("fireSenseDataPrepFit", "fuelClassPrep"),
-            .omitArgs = c("pixelGroupMap", "rstLCC"), .cacheExtra = list(digRTMs, digRstLCC))
+            omitArgs = c("pixelGroupMap", "rstLCC"), .cacheExtra = list(digRTMs, digRstLCC))
 
     # Combine landscapes and finalize data
     landscape <- rbindlist(landscape)
@@ -746,16 +748,7 @@ prepare_SpreadFit <- function(sim) {
   }
 
   ## join fire and veg data
-
-  indices <- Map(yrs = mod$allYears, function(yrs) {
-    dt <- rbindlist(sim$fireBufferedListDT[yrs], idcol = "fireYear")
-    yrsNum <- gsub(fireSenseUtils::yearTxt, "", yrs) |> as.integer()
-    vegData[, year := gsub(fireSenseUtils::yearTxt, "", year) |> as.integer()] # need for next inequality check
-
-    dt2 <- dt[vegData[min(yrsNum) >= year & year < max(yrsNum)], on = c("pixelID")]
-    dt2[!is.na(buffer)]
-  })
-  fireSenseVegData <- rbindlist(indices)
+  fireSenseVegData <- joinFireBuffersToVeg(sim$fireBufferedListDT, vegData, mod$allYears)
 
   ## TODO: discuss if this is expected (as far as I can tell, it is)
 
@@ -1134,18 +1127,12 @@ prepare_IgnitionFit <- function(sim) {
   #assume that if multiple climate variables are present, they are of equal length
   #else bigger problems exist
   whAvailable <- allYearsVect %in% names(ignitionClimateCoarse[[1]])
-  yearsInClimateRast <- allYearsVect[whAvailable]
   yearsNotAvailable <- allYearsVect[!whAvailable]
 
-  if (length(yearsNotAvailable)) {
-    warning("P(sim)$fireYears includes more years than are available in ",
-            "sim$historicalClimateRasters; \nmissing: ", paste(yearsNotAvailable, collapse = ", "),
-            "\ntruncating P(sim)$fireYears to: ",
-            paste0(min(yearsInClimateRast), ":", max(yearsInClimateRast)))
-    years <- Map(y = years, function(y) intersect(y, yearsInClimateRast))
-    P(sim)$fireYears <- intersect(as.numeric(gsub(fireSenseUtils::yearTxt, "", yearsInClimateRast)),
-                                  P(sim)$fireYears)
-  }
+  ## Explicitly requested fire years must never be dropped quietly: this used to warn and
+  ## truncate P(sim)$fireYears to whatever climate happened to cover, so a short climate raster
+  ## silently changed the fitting window and the fit looked successful.
+  checkClimateYears(allYearsVect, whAvailable)
 
   ## join fuel class, LCC, and climate, subsetting to flamIndex, calculating n of ignitions
 
@@ -1214,10 +1201,10 @@ prepare_EscapeFit <- function(sim) {
 
   if (is(escapes, "SpatVector")) {
     escapesOrig <- escapes
-    coords <- terra::geom(escapesOrig)[, c("x","y")]
+    coords <- pointCoords(escapesOrig)
   } else {
     escapes <- sf::st_as_sf(escapes)
-    coords <- st_coordinates(escapes)
+    coords <- pointCoords(escapes)
   }
   escapeCells <- cellFromXY(aggregatedRas, coords)
   escapeDT <- as.data.table(escapes)
@@ -1316,6 +1303,9 @@ runBorealDP_forCohortData <- function(sim) {
                   "species", "speciesTable", "sppEquiv")
   objsNeeded <- intersect(ls(sim), objsNeeded)
   objsNeeded <- mget(objsNeeded, envir = envir(sim))
+  ## simInit applies `objects` after the modules' .inputObjects, so a NULL passed here would
+  ## replace what those modules build (e.g. Biomass_speciesData's sppEquiv) with NULL.
+  objsNeeded <- objsNeeded[!vapply(objsNeeded, is.null, logical(1))]
   cds <- Map(ny = neededYears, function(ny, objs = objsNeeded) {
     messageColoured(colour = "yellow", "Running Biomass_borealDataPrep for year ", ny)
     messageColoured(colour = "yellow", "  inside fireSense_dataPrepFit to estimate cohortData", ny)
@@ -1339,10 +1329,7 @@ runBorealDP_forCohortData <- function(sim) {
     parms$Biomass_borealDataPrep$exportModels <- "none"
 
     # Digest the source code of modules; in case they change
-    outerDirs <- file.path(pathsLocal$modulePath, neededModule)
-    innerRDirs <- file.path(outerDirs, "R")
-    allModuleFiles <- dir(c(outerDirs, innerRDirs ), pattern = ".R$")
-    sourceCodeDig <- .robustDigest(asPath(allModuleFiles))
+    sourceCodeDig <- moduleCodeDigest(pathsLocal$modulePath, neededModule)
 
     outNY <- SpaDES.core::simInitAndSpades(paths = pathsLocal,
                                            params = parms,
@@ -1449,7 +1436,9 @@ runBorealDP_forCohortData <- function(sim) {
         nonflammableLCC = P(sim)$nonflammableLCC,
         flammabilityThreshold = P(sim)$flammabilityThreshold) |>
         Cache(userTags = c("makeFireSenseLCC", dy),
-              .functionName = paste0("makeFireSenseLCC", dy))
+              .functionName = paste0("makeFireSenseLCC", dy),
+              ## Cache digests only makeFireSenseLCC's own code; the land cover comes from this LandR function
+              .cacheExtra = list(LandR::prepInputs_NTEMS_LCC_FAO))
     }
     
     if (doStandAgeMaps) {
@@ -1458,7 +1447,9 @@ runBorealDP_forCohortData <- function(sim) {
                                            destinationPath = dPath,
                                            dataYear = dy) |>
         Cache(.functionName = paste0("prepInputsStandAgeMap", dy),
-              userTags = c(cacheTags, "prepInputsStandAgeMap"))
+              userTags = c(cacheTags, "prepInputsStandAgeMap"),
+              ## Cache digests only prepInputsStandAgeMap's own code; it adjusts ages in fires with this function
+              .cacheExtra = list(LandR::replaceAgeInFires))
     } else {
       standAgeMap <- sim$standAgeMaps[[dyChar]]
     }
@@ -1491,24 +1482,15 @@ runBorealDP_forCohortData <- function(sim) {
     if (!suppliedElsewhere("firePolys", sim) | !suppliedElsewhere("firePolysForAge", sim)) {
       ## don't want to needlessly postProcess the same firePolys objects
 
-      saNotLatLong <- if (isTRUE(sf::st_is_longlat(sim$studyArea))) {
-        terra::project(sim$studyArea, terra::crs(sim$rasterToMatch))
-      } else {
-        sim$studyArea
-      }
-
       fireYears <- c(min(P(sim)$fireYears - P(sim)$cutoffForYoungAge):max(P(sim)$fireYears))
-      ## TODO: check why this isn't resulting in identical crs between firePolys, studyArea
-      allFirePolys <- fireSenseUtils::getFirePolygons(
-        # url = "https://cwfis.cfs.nrcan.gc.ca/downloads/nbac/NBAC_1972to2025_20260513_shp.zip",
-        fun = "terra::vect",
+      ## the newest NBAC release; the shapefile's name carries the release, so it keys the Cache
+      nbacShp <- fireRecordShapefile(fireSenseUtils::latestNBACUrl(), destinationPath = dPath)
+      allFirePolys <- firePolysByYear(
+        shp = nbacShp,
         years = fireYears,
-        useInnerCache = FALSE,
-        destinationPath = dPath,
-        cropTo = sim$rasterToMatch,
-        maskTo = saNotLatLong,
-        projectTo = sim$rasterToMatch) |>
-        Cache(userTags = c(cacheTags, "firePolys", paste0(fireYears, collapse = ":")))
+        studyArea = postProcessTo(sim$studyArea, projectTo = sim$rasterToMatch)) |>
+        Cache(omitArgs = "shp", .cacheExtra = basename(nbacShp),
+              userTags = c(cacheTags, "firePolys", paste0(fireYears, collapse = ":")))
     }
     if (anyPlotting(Par$.plots)) {
       fp <- allFirePolys[!sapply(allFirePolys, is.null)]
@@ -1533,7 +1515,7 @@ runBorealDP_forCohortData <- function(sim) {
             filename = "Historical Fire Maps") } |>
         Cache(.cacheExtra = attr(allFirePolys, "tags"),
               omitArgs = "data",
-              .functionName = "Plots_fireMaps") # uses the cacheId of the getFirePolygons; only plot if changed
+              .functionName = "Plots_fireMaps") # uses the cacheId of the firePolysByYear; only plot if changed
     }
 
     if (!suppliedElsewhere("firePolys", sim)) {
@@ -1582,21 +1564,20 @@ runBorealDP_forCohortData <- function(sim) {
   }
 
   if (!suppliedElsewhere("ignitionFirePoints", sim)) {
-    ignitionFirePoints <- {
-      getFirePoints_NFDB_V2(
-        studyArea = sim$studyArea,
-        years = P(sim)$fireYears,
-        NFDB_pointPath = dPath,
-        fun = "terra::vect",
-        plot = !is.na(P(sim)$.plotInitialTime)) |>
-        postProcessTo(projectTo = sim$rasterToMatch) } |>
-      Cache(.functionName = "prepInputs_ignitionFirePoints",
-            omitArgs = c("from", "projectTo"),
-            .cacheExtra = list(sim$studyArea, Par$fireYears, sim$rasterToMatch),
-            userTags = c("ignitionFirePoints", P(sim)$.studyAreaName)) ## default redownload means it will update annually - I think this is fine?
+    ## the URL is the same for every NFDB release; the shapefile's name carries the release, so it keys the Cache
+    nfdbShp <- fireRecordShapefile(
+      "https://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_pnt/current_version/NFDB_point_shp.zip",
+      destinationPath = dPath)
+    ignitionFirePoints <- nfdbFirePoints(
+      shp = nfdbShp,
+      years = P(sim)$fireYears,
+      studyArea = sim$studyArea) |>
+      Cache(omitArgs = "shp", .cacheExtra = basename(nfdbShp),
+            userTags = c("ignitionFirePoints", P(sim)$.studyAreaName)) |>
+      postProcessTo(projectTo = sim$rasterToMatch)
     sim$ignitionFirePoints <- ignitionFirePoints[ignitionFirePoints$CAUSE %in% c("L", "N"),]
     if (nrow(sim$ignitionFirePoints) == 0) {
-      stop("no ignitions present - review getFirePoints-NFDB_V2")
+      stop("no lightning- or natural-caused (CAUSE L or N) NFDB fire points in the study area during fireYears")
       #this was happening with data update - the module will still run with no fire
     }
   }
@@ -1655,16 +1636,71 @@ defaultClimateVariablesForFire <- list("spread" = "MDC",
                                        "ignition" = "MDC")
 
 
+## Each fire year belongs to the latest data year at or before it, whose vegetation it uses.
+## Returns one element per data year, named by it.
 yearGroups <- function(dataYears, fireYears, minmaxOnly = TRUE) {
-  mm <- match(dataYears, fireYears)
-  mm[is.na(mm)] <- 1
-  mm1 <- rep(mm[1:2], diff(mm))
-  mm2 <- c(mm1, rep(length(mm1) + 1, length(fireYears) - length(mm1) ))
-  ageGroups <- split(fireYears, mm2)
-  names(ageGroups) <- dataYears
+  if (any(fireYears < min(dataYears))) {
+    stop("fireYears before the first dataYear (", min(dataYears), ") have no vegetation data: ",
+         paste(fireYears[fireYears < min(dataYears)], collapse = ", "))
+  }
+  ageGroups <- split(fireYears, factor(dataYears[findInterval(fireYears, dataYears)], levels = dataYears))
+  empty <- lengths(ageGroups) == 0
+  if (any(empty)) {
+    stop("dataYears with no fireYears before the next dataYear: ", paste(dataYears[empty], collapse = ", "))
+  }
   if (isTRUE(minmaxOnly))
     ageGroups <- Map(ag = ageGroups, function(ag) c(min(ag), max(ag)))
   ageGroups
+}
+
+## Stop when the climate rasters do not cover every requested fire year.
+##
+## This used to warn and truncate P(sim)$fireYears to whatever climate covered. A fit then ran,
+## and finished, on a different window than the one asked for -- and because the launcher pins
+## the window once per campaign, some ELFs could be fit on 1985:2024 and others on 1985:2022
+## with nothing in the results to say so. A year the caller asked for is a requirement, not a
+## preference: report every missing year and stop.
+checkClimateYears <- function(allYearsVect, whAvailable) {
+  if (all(whAvailable))
+    return(invisible(allYearsVect))
+  missingYears <- gsub(fireSenseUtils::yearTxt, "", allYearsVect[!whAvailable])
+  stop("sim$historicalClimateRasters has no climate for ", sum(!whAvailable), " of the ",
+       length(allYearsVect), " requested fireYears: ", paste(missingYears, collapse = ", "),
+       "\nEither supply climate for those years or set P(sim)$fireYears to a window the ",
+       "climate data covers. It is NOT truncated automatically: that would silently fit a ",
+       "different window than the one requested.")
+}
+
+## Join each group of fire years (`allYears`, named by data year, from `yearGroups()`) to the
+## vegetation of that data year only. `vegData` is modified by reference (`year` becomes integer).
+joinFireBuffersToVeg <- function(fireBufferedListDT, vegData, allYears) {
+  vegData[, year := gsub(fireSenseUtils::yearTxt, "", year) |> as.integer()]
+  indices <- Map(yrs = allYears, dataYear = as.integer(names(allYears)), function(yrs, dataYear) {
+    dt <- rbindlist(fireBufferedListDT[yrs], idcol = "fireYear")
+    dt2 <- dt[vegData[year == dataYear], on = c("pixelID")]
+    dt2[!is.na(buffer)]
+  })
+  rbindlist(indices)
+}
+
+## x/y of each point as a two-column matrix, for terra::cellFromXY(). `terra::geom(points)[, c("x", "y")]`
+## without drop = FALSE turned a single point into a plain vector, which cellFromXY() rejects
+## ("unable to find an inherited method ... xy = numeric"; ELF 12.1, one escape).
+pointCoords <- function(points) {
+  if (is(points, "SpatVector")) {
+    terra::geom(points)[, c("x", "y"), drop = FALSE]
+  } else {
+    sf::st_coordinates(points)
+  }
+}
+
+## Digest of the code of `modules` (each module's .R file and its R/ folder), for a Cache key that
+## changes when that code does. `dir()` without `full.names` gave bare file names, whose digest does
+## not read the files, so an edited Biomass_borealDataPrep still hit the old cached run.
+moduleCodeDigest <- function(modulePath, modules) {
+  outerDirs <- file.path(modulePath, modules)
+  files <- dir(c(outerDirs, file.path(outerDirs, "R")), pattern = "\\.R$", full.names = TRUE)
+  .robustDigest(asPath(files))
 }
 
 # polygonIDTxt <- "polygonID"
