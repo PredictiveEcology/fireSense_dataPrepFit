@@ -1,5 +1,10 @@
 # fireSense_dataPrepFit (development version)
 
+- The cached `fuelClassPrep()` step passed `.omitArgs` (a typo for `omitArgs`) to `Cache()`. With caching on
+  the two rasters it meant to omit were digested every time; with caching off (`spades.useCache = "eventsOnly"`)
+  the stray argument made `Cache()`'s bypass call the result as a function (`could not find function "FUN"`).
+  Version 1.2.0.9003.
+
 - `fireRecordShapefile()` calls `reproducible::preProcess()` by its full name. caret, a
   fireSense_IgnitionFit dependency, defines its own `preProcess()` generic; attached after reproducible
   it masked the bare name, and the fire-record download stopped with 'argument "x" is missing, with no
