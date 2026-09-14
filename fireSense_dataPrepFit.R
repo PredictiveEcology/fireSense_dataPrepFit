@@ -1376,15 +1376,11 @@ runBorealDP_forCohortData <- function(sim) {
     }
   }
 
-  ## suppliedElsewhere() is TRUE whenever another module declares sppEquiv as an output, even
-  ## when that module has already run and left it NULL (fireSense_ELFs does, for an ELF without
-  ## Engelmann spruce), so also build it when there is no table.
-  if (!suppliedElsewhere("sppEquiv", sim, where = c("user", "initEvent")) || NROW(sim$sppEquiv) == 0) {
-    sp <- LandR::speciesInStudyArea(studyArea = sim$studyArea, dPath = inputPath(sim))
-    sp <- LandR::equivalentName(sp$speciesList, df = sppEquivalencies_CA, column = Par$sppEquivCol)
-    sp <- sp[nzchar(sp)]
-    sim$sppEquiv <- sppEquivalencies_CA[get(Par$sppEquivCol) %in% sp]
-    sim$sppEquiv <- sim$sppEquiv[LANDIS_traits != "",] # ONLY USE THE SPECIES THAT HAVE TRAITS
+  if (!suppliedElsewhere("sppEquiv", sim, where = c("user", "initEvent"))) { # it is showing up in some cases with sim$sppEquiv = NULL
+    ## the same table fireSense_ELFs uses: no _Spp genus entries, only species with LANDIS
+    ## traits, Engelmann spruce merged into Pice_eng
+    sim$sppEquiv <- LandR::speciesInStudyArea(studyArea = sim$studyArea, sppEquivCol = Par$sppEquivCol,
+                                              dPath = inputPath(sim))$sppEquiv
   }
 
   SpaDES.core::paramCheckOtherMods(sim, paramToCheck = "sppEquivCol")
