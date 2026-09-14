@@ -1376,7 +1376,12 @@ runBorealDP_forCohortData <- function(sim) {
     }
   }
 
-  if (!suppliedElsewhere("sppEquiv", sim, where = c("user", "initEvent"))) { # it is showing up in some cases with sim$sppEquiv = NULL
+  ## suppliedElsewhere() is TRUE whenever another module declares sppEquiv as an output, even
+  ## when that module has not run yet and sim$sppEquiv is still NULL, so also build it when there
+  ## is NO table. A table with zero rows is not "no table": fireSense_ELFs supplies one for an ELF
+  ## with no tree species, and rebuilding the list here (over this module's studyArea, with
+  ## LandR's defaults) overrode that decision.
+  if (!suppliedElsewhere("sppEquiv", sim, where = c("user", "initEvent")) || is.null(sim$sppEquiv)) {
     ## the same table fireSense_ELFs uses: no _Spp genus entries, only species with LANDIS
     ## traits, Engelmann spruce merged into Pice_eng
     sim$sppEquiv <- LandR::speciesInStudyArea(studyArea = sim$studyArea, sppEquivCol = Par$sppEquivCol,
