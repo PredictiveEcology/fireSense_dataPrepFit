@@ -448,8 +448,15 @@ Provide a summary of user-visible parameters (Table \@ref(tab:moduleParams-fireS
 
 ##### init
 
+During this event, Google Drive is checked for an existing SpreadFit for this study area; if there is one, its species, fuel classes and climate variables are used.
+This event cannot be cached, because caching would freeze that answer. It schedules `dataPrepBuild`.
+
+##### dataPrepBuild
+
+This event runs straight after `init`, before other modules' `init` events.
 During this event, objects are created and prepared if they are used by all three fire processes, such as the `flammableMap`, `landcoverDT`, and `nonForest_timeSinceDisturbance` for each fire period.
 This is also when fuel class estimation occurs.
+It can be cached: add `"dataPrepBuild"` to `.useCache`.
 
 ##### prepIgnitionFitData
 

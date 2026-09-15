@@ -8,7 +8,7 @@ defineModule(sim, list(
     person(c("Alex", "M"), "Chubaty", role = "ctb", email = "achubaty@for-cast.ca")
   ),
   childModules = character(0),
-  version = list(fireSense_dataPrepFit = "1.2.0.9003"),
+  version = list(fireSense_dataPrepFit = "1.2.0.9004"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -107,7 +107,16 @@ defineModule(sim, list(
                     "`studyArea` name that will be appended to file-backed rasters"),
     defineParameter(".useCache", "logical", FALSE, NA, NA,
                     paste("Should this entire module be run with caching activated? This is intended",
-                          "for data-type modules, where stochasticity and time are not relevant"))
+                          "for data-type modules, where stochasticity and time are not relevant")),
+    defineParameter(".useCacheArgs", "list",
+                    list(dataPrepBuild = list(.cacheExtra = quote(list(
+                      LandR::.compareRas, LandR::asInt, LandR::defineFlammable, LandR::isInt,
+                      fireSenseUtils::assessFuelClasses, fireSenseUtils::fuelClassPrep,
+                      fireSenseUtils::makeLandcoverDT, fireSenseUtils::makeTSD)))),
+                    NA, NA,
+                    paste("Extra `reproducible::Cache()` arguments, by event. A cached event's digest covers",
+                          "this module's code but not the package functions it calls, so `dataPrepBuild`",
+                          "passes those in `.cacheExtra`: a changed function then re-runs the event."))
   ),
   inputObjects = bindrows(
     expectsInput("climateVariablesForFire", "list", sourceURL = NA,
@@ -300,9 +309,15 @@ doEvent.fireSense_dataPrepFit = function(sim, eventTime, eventType) {
 
       ## do stuff for this event
       sim <- Init(sim)
+      ## Priority 0 runs dataPrepBuild straight after this event and ahead of every other module's
+      ## init (those are at .first(), i.e. 1): the point at which this work ran while part of Init().
+      sim <- scheduleEvent(sim, start(sim), "fireSense_dataPrepFit", "dataPrepBuild", eventPriority = 0)
 
       sim <- scheduleEvent(sim, end(sim), "fireSense_dataPrepFit", "plotAndMessage", eventPriority = 9)
       sim <- scheduleEvent(sim, start(sim), "fireSense_dataPrepFit", "cleanUp", eventPriority = 10)
+    },
+    dataPrepBuild = {
+      sim <- dataPrepBuild(sim)
     },
     prepIgnitionFitData = {
       sim <- prepare_IgnitionFit(sim)
@@ -448,6 +463,17 @@ Init <- function(sim) {
   
   }
   
+  ## dataPrepBuild is cached. Its digest covers expected inputs, this module's functions and
+  ## mod$ contents, but not sim$.userSuppliedObjNames, so record what it needs from that here.
+  fuelObjs <- c("nonForestedLCCGroups", "fuelClassTable")
+  mod$userSuppliedFuelObjs <- stats::setNames(fuelObjs %in% sim$.userSuppliedObjNames, fuelObjs)
+  return(invisible(sim))
+}
+
+## The expensive part of what was Init(), as its own event so it can be cached: Init() asks
+## Google Drive whether a fit already exists, so it cannot be. This runs whether or not a fit
+## exists; mod$haveSpreadFit, set by Init(), selects behaviour inside it and is in its digest.
+dataPrepBuild <- function(sim) {
   sim$sppEquiv <- copy(sim$sppEquiv) #debugging error where FuelClass disappears
 
   #because BBDP wants objects potentially larger than studyArea,
@@ -535,8 +561,8 @@ Init <- function(sim) {
   fires <- Reduce(rbind, sim$spreadFirePolys)
   #this must ensure landcover overrides species - it does not currently
 
-  fuelObjs <- c("nonForestedLCCGroups", "fuelClassTable")
-  userSupplied <- fuelObjs %in% sim$.userSuppliedObjNames
+  fuelObjs <- names(mod$userSuppliedFuelObjs)
+  userSupplied <- unname(mod$userSuppliedFuelObjs)
   sppFCSupplied <- LandR::sppEquivalencies_CA[sim$sppEquiv, on = "LandR"]
   userSuppliedFC <- sppFCSupplied[, FuelClass == i.FuelClass]
 

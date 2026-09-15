@@ -1,5 +1,14 @@
 # fireSense_dataPrepFit (development version)
 
+- `init` is split in two. `init` keeps the Google Drive check for an existing fit (it cannot be cached,
+  because caching would freeze that answer) and schedules a new `dataPrepBuild` event, which holds the
+  land-cover, flammability, fuel-class, landcover-table and time-since-disturbance work. `dataPrepBuild`
+  can be cached (add it to `.useCache`), so a warm cache no longer rebuilds all of it on every run
+  (6.6 minutes per ELF observed). It runs at priority 0, straight after `init` and before other modules'
+  `init` events, which is where the same work ran before. Results are unchanged with a cold or a warm
+  cache. New parameter `.useCacheArgs` passes the LandR and fireSenseUtils functions `dataPrepBuild` calls
+  as `.cacheExtra`, so a change to one of them re-runs the event. Version 1.2.0.9004.
+
 - The cached `fuelClassPrep()` step passed `.omitArgs` (a typo for `omitArgs`) to `Cache()`. With caching on
   the two rasters it meant to omit were digested every time; with caching off (`spades.useCache = "eventsOnly"`)
   the stray argument made `Cache()`'s bypass call the result as a function (`could not find function "FUN"`).

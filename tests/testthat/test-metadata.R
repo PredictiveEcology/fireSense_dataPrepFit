@@ -89,7 +89,7 @@ test_that("parameters are the expected names", {
   expect_identical(
     sort(md$parameters$paramName),
     sort(c(".plotInterval", ".saveInitialTime", ".saveInterval", ".studyAreaName",
-           ".useCache", "areaMultiplier", "bufferForFireRaster", "cutoffForYoungAge",
+           ".useCache", ".useCacheArgs", "areaMultiplier", "bufferForFireRaster", "cutoffForYoungAge",
            "dataYears", "estimateFuelClasses", "fireYears", "flammabilityThreshold",
            "forestedLCC", "fuelClassCol", "igAggFactor", "igFocalFactor",
            "minBufferSize", "modelAlgorithm", "nonflammableLCC",
