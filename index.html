@@ -33,7 +33,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">fireSense_dataPrepFit</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9003</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9004</span>
       </span>
     </div>
 
@@ -670,7 +670,12 @@ Should this entire module be run with caching activated? This is intended for da
 <div class="section level5">
 <h5 id="init">init<a class="anchor" aria-label="anchor" href="#init"></a>
 </h5>
-<p>During this event, objects are created and prepared if they are used by all three fire processes, such as the <code>flammableMap</code>, <code>landcoverDT</code>, and <code>nonForest_timeSinceDisturbance</code> for each fire period. This is also when fuel class estimation occurs.</p>
+<p>During this event, Google Drive is checked for an existing SpreadFit for this study area; if there is one, its species, fuel classes and climate variables are used. This event cannot be cached, because caching would freeze that answer. It schedules <code>dataPrepBuild</code>.</p>
+</div>
+<div class="section level5">
+<h5 id="dataprepbuild">dataPrepBuild<a class="anchor" aria-label="anchor" href="#dataprepbuild"></a>
+</h5>
+<p>This event runs straight after <code>init</code>, before other modules’ <code>init</code> events. During this event, objects are created and prepared if they are used by all three fire processes, such as the <code>flammableMap</code>, <code>landcoverDT</code>, and <code>nonForest_timeSinceDisturbance</code> for each fire period. This is also when fuel class estimation occurs. It can be cached: add <code>"dataPrepBuild"</code> to <code>.useCache</code>.</p>
 </div>
 <div class="section level5">
 <h5 id="prepignitionfitdata">prepIgnitionFitData<a class="anchor" aria-label="anchor" href="#prepignitionfitdata"></a>

@@ -1,7 +1,7 @@
 ---
 title: "fireSense_dataPrepFit Manual"
-subtitle: "v.1.2.0.9003"
-date: "Last updated: 2026-09-14"
+subtitle: "v.1.2.0.9004"
+date: "Last updated: 2026-09-15"
 output:
   bookdown::html_document2:
     toc: true
@@ -489,6 +489,14 @@ Provide a summary of user-visible parameters (Table \@ref(tab:moduleParams-fireS
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Should this entire module be run with caching activated? This is intended for data-type modules, where stochasticity and time are not relevant </td>
   </tr>
+  <tr>
+   <td style="text-align:left;"> .useCacheArgs </td>
+   <td style="text-align:left;"> list </td>
+   <td style="text-align:left;"> list(.ca.... </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Extra `reproducible::Cache()` arguments, by event. A cached event's digest covers this module's code but not the package functions it calls, so `dataPrepBuild` passes those in `.cacheExtra`: a changed function then re-runs the event. </td>
+  </tr>
 </tbody>
 </table>
 
@@ -496,8 +504,15 @@ Provide a summary of user-visible parameters (Table \@ref(tab:moduleParams-fireS
 
 ##### init
 
+During this event, Google Drive is checked for an existing SpreadFit for this study area; if there is one, its species, fuel classes and climate variables are used.
+This event cannot be cached, because caching would freeze that answer. It schedules `dataPrepBuild`.
+
+##### dataPrepBuild
+
+This event runs straight after `init`, before other modules' `init` events.
 During this event, objects are created and prepared if they are used by all three fire processes, such as the `flammableMap`, `landcoverDT`, and `nonForest_timeSinceDisturbance` for each fire period.
 This is also when fuel class estimation occurs.
+It can be cached: add `"dataPrepBuild"` to `.useCache`.
 
 ##### prepIgnitionFitData
 
