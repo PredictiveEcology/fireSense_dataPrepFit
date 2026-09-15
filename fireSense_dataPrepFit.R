@@ -8,7 +8,7 @@ defineModule(sim, list(
     person(c("Alex", "M"), "Chubaty", role = "ctb", email = "achubaty@for-cast.ca")
   ),
   childModules = character(0),
-  version = list(fireSense_dataPrepFit = "1.2.0.9004"),
+  version = list(fireSense_dataPrepFit = "1.2.0.9005"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -16,7 +16,7 @@ defineModule(sim, list(
   loadOrder = list(before = c("Biomass_speciesData", "Biomass_borealDataPrep", "Biomass_speciesParameters")),
   reqdPkgs = list("data.table", "fastDummies", "reproducible", "Require",
                   "PredictiveEcology/climateData@development (>= 2.2.3)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9014)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9015)",
                   "FOR-CAST/fireregimetools@main (>= 0.1.0.9006)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9015)",
@@ -1485,7 +1485,13 @@ runBorealDP_forCohortData <- function(sim) {
       standAgeMap <- sim$standAgeMaps[[dyChar]]
     }
     
-    return(list(standAgeMaps = standAgeMap, rstLCCs = LCC$lcc, propFlammables = LCC$flammableProp))
+    ## land cover only when it was built here: a supplied rstLCCs (and its propFlammables) stays as it is
+    out <- list(standAgeMaps = standAgeMap)
+    if (doRstLCCs) {
+      out$rstLCCs <- LCC$lcc
+      out$propFlammables <- LCC$flammableProp
+    }
+    return(out)
   })
   outsRev <- Require::invertList(outs)
   list2env(outsRev, envir = envir(sim)) # nolint: vars standAgeMaps propFlammables rstLCCs

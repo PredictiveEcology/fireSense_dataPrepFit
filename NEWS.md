@@ -1,5 +1,9 @@
 # fireSense_dataPrepFit (development version)
 
+- `.inputObjects` no longer stops with `object 'LCC' not found` when `rstLCCs` is supplied. Its per-year
+  step returned the land cover and flammable proportion it builds whether or not it had built them; a
+  supplied `rstLCCs` (with its `propFlammables`) is now left as it is. Version 1.2.0.9005.
+
 - `init` is split in two. `init` keeps the Google Drive check for an existing fit (it cannot be cached,
   because caching would freeze that answer) and schedules a new `dataPrepBuild` event, which holds the
   land-cover, flammability, fuel-class, landcover-table and time-since-disturbance work. `dataPrepBuild`
