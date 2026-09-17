@@ -360,8 +360,7 @@ Init <- function(sim) {
     #   in case somebody uses `parameters`, `param`, or `params`
     colNames <- setdiff(sim$spreadFitAdditionalColNames,
                         grep(value = TRUE, "param", sim$spreadFitAdditionalColNames))
-    df <- sim$spreadFitPreRun
-    df <- df[colNames]
+    df <- ledgerColumns(sim$spreadFitPreRun, colNames)
     
     #affected objects sppNameVector
     assignToSim <- outputObjects(sim)$objectName
