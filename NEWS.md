@@ -1,5 +1,12 @@
 # fireSense_dataPrepFit (development version)
 
+- `dataPrepInit` now always clips `ignitionFirePoints` to the study-area polygon, via the new
+  `clipPointsToStudyArea()`. The clip used to run only inside an `if (!same.crs(points, rasterToMatch))`
+  branch, and clipped to the `rasterToMatch` rectangle rather than the polygon, so points that arrived
+  already in the raster's CRS were never clipped at all. `prepare_IgnitionFit()` asserts that every
+  ignition point is within the study area, and ELF 5.1.2 failed it three times on a single NFDB point
+  618 m outside the polygon but inside the raster extent. Version 1.2.0.9006.
+
 - `.inputObjects` no longer stops with `object 'LCC' not found` when `rstLCCs` is supplied. Its per-year
   step returned the land cover and flammable proportion it builds whether or not it had built them; a
   supplied `rstLCCs` (with its `propFlammables`) is now left as it is. Version 1.2.0.9005.
