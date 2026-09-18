@@ -16,7 +16,7 @@ defineModule(sim, list(
   loadOrder = list(before = c("Biomass_speciesData", "Biomass_borealDataPrep", "Biomass_speciesParameters")),
   reqdPkgs = list("data.table", "fastDummies", "reproducible", "Require",
                   "PredictiveEcology/climateData@development (>= 2.2.3)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9015)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9024)",
                   "FOR-CAST/fireregimetools@main (>= 0.1.0.9006)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9015)",
@@ -1467,8 +1467,10 @@ runBorealDP_forCohortData <- function(sim) {
         flammabilityThreshold = P(sim)$flammabilityThreshold) |>
         Cache(userTags = c("makeFireSenseLCC", dy),
               .functionName = paste0("makeFireSenseLCC", dy),
-              ## Cache digests only makeFireSenseLCC's own code; the land cover comes from this LandR function
-              .cacheExtra = list(LandR::prepInputs_NTEMS_LCC_FAO))
+              ## Cache digests only makeFireSenseLCC's own code, so the functions it CALLS must be named
+              ## here. Which ones depends on lccSource, a run-time option, so ask rather than list: the
+              ## list written out here still named the NTEMS function after the default became SCANFI.
+              .cacheExtra = fireSenseUtils::makeFireSenseLCCDeps())
     }
     
     if (doStandAgeMaps) {
