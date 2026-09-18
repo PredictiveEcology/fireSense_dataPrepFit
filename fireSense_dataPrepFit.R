@@ -8,7 +8,7 @@ defineModule(sim, list(
     person(c("Alex", "M"), "Chubaty", role = "ctb", email = "achubaty@for-cast.ca")
   ),
   childModules = character(0),
-  version = list(fireSense_dataPrepFit = "1.2.0.9005"),
+  version = list(fireSense_dataPrepFit = "1.2.0.9006"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -532,12 +532,7 @@ dataPrepBuild <- function(sim) {
     mod$studyAreaUnion <- projectTo(mod$studyAreaUnion, terra::crs(sim$rasterToMatch))
   }
 
-  if (!terra::same.crs(sim$ignitionFirePoints, sim$rasterToMatch)) {
-    ## project it first, faster than the postProcessTo sequence pre-crop, project, mask, crop
-    sim$ignitionFirePoints <- projectTo(sim$ignitionFirePoints, sim$rasterToMatch) |>
-      cropTo(sim$rasterToMatch) |>
-      maskTo(sim$rasterToMatch)
-  }
+  sim$ignitionFirePoints <- clipPointsToStudyArea(sim$ignitionFirePoints, mod$studyAreaUnion)
 
   ## possible, if user-supplied
   if (!terra::same.crs(sim$firePolys[[1]], sim$rasterToMatch)) {
@@ -1730,6 +1725,18 @@ pointCoords <- function(points) {
   } else {
     sf::st_coordinates(points)
   }
+}
+
+## Project `points` to the CRS of `studyAreaUnion` if needed, and drop the ones outside it.
+## prepare_IgnitionFit() asserts that every ignition point is within the study area, so the clip
+## must be unconditional and against the polygon: it used to happen only when the points needed
+## reprojecting, and only against the rasterToMatch rectangle, which let a point just outside the
+## polygon but inside the raster extent through (ELF 5.1.2, 1 of 3307 points, 618 m out).
+clipPointsToStudyArea <- function(points, studyAreaUnion) {
+  if (!terra::same.crs(points, studyAreaUnion)) {
+    points <- projectTo(points, terra::crs(studyAreaUnion))
+  }
+  maskTo(points, studyAreaUnion)
 }
 
 ## Digest of the code of `modules` (each module's .R file and its R/ folder), for a Cache key that
