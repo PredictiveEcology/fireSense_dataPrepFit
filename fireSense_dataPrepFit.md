@@ -1,7 +1,7 @@
 ---
 title: "fireSense_dataPrepFit Manual"
-subtitle: "v.1.1.1"
-date: "Last updated: 2025-04-08"
+subtitle: "v.1.2.0.9005"
+date: "Last updated: 2026-09-18"
 output:
   bookdown::html_document2:
     toc: true
@@ -31,7 +31,7 @@ always_allow_html: true
 
 #### Authors:
 
-Ian Eddy <ian.eddy@nrcan-rncan.gc.ca> [aut, cre], Alex M Chubaty <achubaty@for-cast.ca> [ctb] <!-- ideally separate authors with new lines, '\n' not working -->
+Ian Eddy <ian.eddy@nrcan-rncan.gc.ca> [aut, cre], Eliot McIntire <eliot.mcintire@nrcan-rncan.gc.ca> [aut], Alex M Chubaty <achubaty@for-cast.ca> [ctb] <!-- ideally separate authors with new lines, '\n' not working -->
 
 ## Module Overview
 
@@ -110,7 +110,7 @@ Finally, for fuel classes that are modelled with biomass instead of presence/abs
 
 Table \@ref(tab:moduleInputs-fireSense-dataPrepFit) shows the full list of module inputs.
 
-<table class="table" style="color: black; margin-left: auto; margin-right: auto;">
+<table class="table" style="margin-left: auto; margin-right: auto;">
 <caption>(\#tab:moduleInputs-fireSense-dataPrepFit)(\#tab:moduleInputs-fireSense-dataPrepFit)List of (ref:fireSense_dataPrepFit) input objects and their description.</caption>
  <thead>
   <tr>
@@ -128,21 +128,21 @@ Table \@ref(tab:moduleInputs-fireSense-dataPrepFit) shows the full list of modul
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> cohortData2001 </td>
-   <td style="text-align:left;"> data.table </td>
-   <td style="text-align:left;"> Table that defines the cohorts by pixelGroup in 2001 </td>
-   <td style="text-align:left;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> cohortData2011 </td>
-   <td style="text-align:left;"> data.table </td>
-   <td style="text-align:left;"> Table that defines the cohorts by pixelGroup in 2011 </td>
+   <td style="text-align:left;"> cohortDatas </td>
+   <td style="text-align:left;"> list </td>
+   <td style="text-align:left;"> List of (2) data.tables with cohortData that defines the cohorts by pixelGroup in the years represented by the names of the list </td>
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
    <td style="text-align:left;"> spreadFirePoints </td>
    <td style="text-align:left;"> list </td>
    <td style="text-align:left;"> named list of spatial points for each fire year with each point denoting an ignition location. </td>
+   <td style="text-align:left;"> NA </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> spreadFitAdditionalColNames </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;"> The column names used to attach the spreadFit object and several ancilliary objects </td>
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
@@ -171,8 +171,8 @@ Table \@ref(tab:moduleInputs-fireSense-dataPrepFit) shows the full list of modul
   </tr>
   <tr>
    <td style="text-align:left;"> ignitionFirePoints </td>
-   <td style="text-align:left;"> sf </td>
-   <td style="text-align:left;"> list of sf polygon objects representing annual ignition locations. This includes all fires regardless of size. It should have the same CRS as `sim$rasterToMatch` </td>
+   <td style="text-align:left;"> SpatVector </td>
+   <td style="text-align:left;"> SpatVector of points representing annual ignition locations. This includes all fires regardless of size. It should have the same CRS as `sim$rasterToMatch` </td>
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
@@ -188,15 +188,15 @@ Table \@ref(tab:moduleInputs-fireSense-dataPrepFit) shows the full list of modul
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> pixelGroupMap2001 </td>
-   <td style="text-align:left;"> SpatRaster </td>
-   <td style="text-align:left;"> defines the `pixelGroups` for cohortData table in 2001 </td>
+   <td style="text-align:left;"> pixelGroupMaps </td>
+   <td style="text-align:left;"> list </td>
+   <td style="text-align:left;"> List of (2) SpatRaster that goes with cohortDatas and that defines the cohorts by pixelGroup in the years represented by the names of the list </td>
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> pixelGroupMap2011 </td>
-   <td style="text-align:left;"> SpatRaster </td>
-   <td style="text-align:left;"> defines the `pixelGroups` for cohortData table in 2011 </td>
+   <td style="text-align:left;"> propFlammables </td>
+   <td style="text-align:left;"> list </td>
+   <td style="text-align:left;"> Lists of (2) SpatRasters with proportion of flammable landcover in a pixel - for post-hoc analysis </td>
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
@@ -206,15 +206,15 @@ Table \@ref(tab:moduleInputs-fireSense-dataPrepFit) shows the full list of modul
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> rstLCC2001 </td>
+   <td style="text-align:left;"> rasterToMatch_biomassParam </td>
    <td style="text-align:left;"> SpatRaster </td>
-   <td style="text-align:left;"> Raster of land cover - will use Biomass_borealDataPrep to generate if missing. </td>
+   <td style="text-align:left;"> template raster for studyArea_biomassParam. Passed to Biomass_borealDataPrep. This is expected to be large as in previously it was rasterToMatchLarge. Several downstream steps assume that it is larger than studyArea or rasterToMatch </td>
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> rstLCC2011 </td>
-   <td style="text-align:left;"> SpatRaster </td>
-   <td style="text-align:left;"> Raster of land cover - will use Biomass_borealDataPrep to generate if missing. </td>
+   <td style="text-align:left;"> rstLCCs </td>
+   <td style="text-align:left;"> list </td>
+   <td style="text-align:left;"> List of (2) SpatRasters of land cover - updated so that pixels above `P(sim)$flammabilityThresholdhave an assigned flammable landcover </td>
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
@@ -224,21 +224,27 @@ Table \@ref(tab:moduleInputs-fireSense-dataPrepFit) shows the full list of modul
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> standAgeMap2001 </td>
-   <td style="text-align:left;"> SpatRaster </td>
-   <td style="text-align:left;"> map of stand age in 2001 used to create `cohortData2001` </td>
+   <td style="text-align:left;"> standAgeMaps </td>
+   <td style="text-align:left;"> list </td>
+   <td style="text-align:left;"> list of length 2 of maps of stand age in dataYear[[1]] and dataYear[[2]] used to create `cohortDatas` </td>
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> standAgeMap2011 </td>
-   <td style="text-align:left;"> SpatRaster </td>
-   <td style="text-align:left;"> map of stand age in 2011 used to create `cohortData2011` </td>
+   <td style="text-align:left;"> spreadFirePolys </td>
+   <td style="text-align:left;"> list </td>
+   <td style="text-align:left;"> list of sf polygon objects representing annual fires; this is an 'input' because the object is modified in a subsequent event; this is not required at 'init' </td>
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
    <td style="text-align:left;"> studyArea </td>
-   <td style="text-align:left;"> sf </td>
+   <td style="text-align:left;"> SpatVector </td>
    <td style="text-align:left;"> study area that determines spatial boundaries of all data. Should be buffered to accomodate edge effects </td>
+   <td style="text-align:left;"> NA </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> studyArea_biomassParam </td>
+   <td style="text-align:left;"> SpatVector </td>
+   <td style="text-align:left;"> study area passed to Biomass_borealDataPrep for vegetation calibration </td>
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
@@ -252,7 +258,7 @@ Table \@ref(tab:moduleInputs-fireSense-dataPrepFit) shows the full list of modul
 
 Provide a summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-dataPrepFit))
 
-<table class="table" style="color: black; margin-left: auto; margin-right: auto;">
+<table class="table" style="margin-left: auto; margin-right: auto;">
 <caption>(\#tab:moduleParams-fireSense-dataPrepFit)(\#tab:moduleParams-fireSense-dataPrepFit)List of (ref:fireSense-dataPrepFit) parameters and their description.</caption>
  <thead>
   <tr>
@@ -290,6 +296,14 @@ Provide a summary of user-visible parameters (Table \@ref(tab:moduleParams-fireS
    <td style="text-align:left;"> Age at and below which pixels are considered 'young' (`young &lt;- age &lt;= cutoffForYoungAge`) </td>
   </tr>
   <tr>
+   <td style="text-align:left;"> dataYears </td>
+   <td style="text-align:left;"> integer </td>
+   <td style="text-align:left;"> 2000, 20.... </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> A numeric vector of 2 or more increasing years indicating which years should be used for standAgeMaps, rstLCCs etc. Each fire year uses the data year at or before it, so no `fireYears` may precede the first. </td>
+  </tr>
+  <tr>
    <td style="text-align:left;"> estimateFuelClasses </td>
    <td style="text-align:left;"> logical </td>
    <td style="text-align:left;"> TRUE </td>
@@ -306,6 +320,14 @@ Provide a summary of user-visible parameters (Table \@ref(tab:moduleParams-fireS
    <td style="text-align:left;"> A numeric vector indicating which years should be extracted from the fire databases to use for fitting. Should not include years prior to 2002, to ensure correct intialization from data. </td>
   </tr>
   <tr>
+   <td style="text-align:left;"> flammabilityThreshold </td>
+   <td style="text-align:left;"> numeric </td>
+   <td style="text-align:left;"> 0.1 </td>
+   <td style="text-align:left;"> 0 </td>
+   <td style="text-align:left;"> 1 </td>
+   <td style="text-align:left;"> Minimum proportion of flammable old pixel needed to define a new pixel as flammable when upscaling the default flammable maps`. </td>
+  </tr>
+  <tr>
    <td style="text-align:left;"> forestedLCC </td>
    <td style="text-align:left;"> numeric </td>
    <td style="text-align:left;"> 81, 210,.... </td>
@@ -316,10 +338,18 @@ Provide a summary of user-visible parameters (Table \@ref(tab:moduleParams-fireS
   <tr>
    <td style="text-align:left;"> igAggFactor </td>
    <td style="text-align:left;"> numeric </td>
-   <td style="text-align:left;"> 40 </td>
+   <td style="text-align:left;"> 4 </td>
    <td style="text-align:left;"> 1 </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> aggregation factor for rasters during ignition prep. </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> igFocalFactor </td>
+   <td style="text-align:left;"> integer </td>
+   <td style="text-align:left;"> 1 </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Use focal statistics at the base resolution as an alternative to aggregating ignition covariates This will occur if `P(sim)$igAggFactor is &lt;= 1, and igFocalFactor is &gt; 1. The parameter is the `w` in the `terra::focal` function, i.e. the number of cells. It must be odd, thus 3 is the minimum </td>
   </tr>
   <tr>
    <td style="text-align:left;"> fuelClassCol </td>
@@ -328,6 +358,14 @@ Provide a summary of user-visible parameters (Table \@ref(tab:moduleParams-fireS
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> the column in `sppEquiv` that defines unique fuel classes. A column named `FuelClass` exists in the `LandR::sppEquivalencies_CA` and will be used by default. To change the `FuelClass` classifications, add a column to that table, or to `sim$sppEquiv` and then modify this `fuelClassCol` parameter </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> modelAlgorithm </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;"> xgboost </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Can be `xgboost`, `glmmtmb`, `glm.nb`, `glmmadaptive`, `glm`; only `xgboost` is supported currentlyShould be the same as modelAlgorithm used in fireSense_IgnitionFit </td>
   </tr>
   <tr>
    <td style="text-align:left;"> minBufferSize </td>
@@ -340,7 +378,7 @@ Provide a summary of user-visible parameters (Table \@ref(tab:moduleParams-fireS
   <tr>
    <td style="text-align:left;"> nonflammableLCC </td>
    <td style="text-align:left;"> numeric </td>
-   <td style="text-align:left;"> 20, 31, .... </td>
+   <td style="text-align:left;"> 0, 20, 3.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> non-flammable LCC in rstLCC layers - defaulting to water, snow/ice, rock, barren land. </td>
@@ -360,6 +398,22 @@ Provide a summary of user-visible parameters (Table \@ref(tab:moduleParams-fireS
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> column name in `sppEquiv` object that defines unique species in `cohortData` </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> spreadFitGoogleDriveFolder </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;"> https://.... </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> A Googledrive folder url where a file with fireSense studyArea exists as an 'sf' class object </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> spreadFitFilename </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;"> fireSens.... </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> A Googledrive folder url where a file with fireSense studyArea exists as an 'sf' class object </td>
   </tr>
   <tr>
    <td style="text-align:left;"> targetFuelClasses </td>
@@ -392,14 +446,6 @@ Provide a summary of user-visible parameters (Table \@ref(tab:moduleParams-fireS
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Which fireSense fit modules to prep? defaults to all 3 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> .plotInitialTime </td>
-   <td style="text-align:left;"> numeric </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Describes the simulation time at which the first plot event should occur. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .plotInterval </td>
@@ -441,6 +487,14 @@ Provide a summary of user-visible parameters (Table \@ref(tab:moduleParams-fireS
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Should this entire module be run with caching activated? This is intended for data-type modules, where stochasticity and time are not relevant </td>
   </tr>
+  <tr>
+   <td style="text-align:left;"> .useCacheArgs </td>
+   <td style="text-align:left;"> list </td>
+   <td style="text-align:left;"> list(.ca.... </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Extra `reproducible::Cache()` arguments, by event. A cached event's digest covers this module's code but not the package functions it calls, so `dataPrepBuild` passes those in `.cacheExtra`: a changed function then re-runs the event. </td>
+  </tr>
 </tbody>
 </table>
 
@@ -448,8 +502,15 @@ Provide a summary of user-visible parameters (Table \@ref(tab:moduleParams-fireS
 
 ##### init
 
+During this event, Google Drive is checked for an existing SpreadFit for this study area; if there is one, its species, fuel classes and climate variables are used.
+This event cannot be cached, because caching would freeze that answer. It schedules `dataPrepBuild`.
+
+##### dataPrepBuild
+
+This event runs straight after `init`, before other modules' `init` events.
 During this event, objects are created and prepared if they are used by all three fire processes, such as the `flammableMap`, `landcoverDT`, and `nonForest_timeSinceDisturbance` for each fire period.
 This is also when fuel class estimation occurs.
+It can be cached: add `"dataPrepBuild"` to `.useCache`.
 
 ##### prepIgnitionFitData
 
@@ -490,7 +551,7 @@ The non-annual components are sorted into a list of two data.tables, one for eac
 
 Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-dataPrepFit)).
 
-<table class="table" style="color: black; margin-left: auto; margin-right: auto;">
+<table class="table" style="margin-left: auto; margin-right: auto;">
 <caption>(\#tab:moduleOutputs-fireSense-dataPrepFit)(\#tab:moduleOutputs-fireSense-dataPrepFit)List of (ref:fireSense-dataPrepFit) outputs and their description.</caption>
  <thead>
   <tr>
@@ -500,6 +561,36 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-dataP
   </tr>
  </thead>
 <tbody>
+  <tr>
+   <td style="text-align:left;"> climateVariablesForFire </td>
+   <td style="text-align:left;"> list </td>
+   <td style="text-align:left;"> A list detailing which climate variables in `sim$historicalClimateRasters` to use for which fire processes (ignition and spread). If the list is length one, both processes will use the same variables. This will be an output if there is an existing studyAreaWithParams </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> spreadFitPreRun </td>
+   <td style="text-align:left;"> data.frame </td>
+   <td style="text-align:left;"> This is a data.frame that has a geometry list column, so it can be converted to a sf or SpatVector (e.g., `terra::vect(sf::st_as_sf(sim$spreadFitPreRun))` , plus other mostly list columns: numIterations, objFunVal (not list), params, sppEquiv, nonForestedLCCGroups, missingLCCgroup, and polygonID. These are from previously fitted SpreadFit. If no pre-existing object exists from CacheGeo, this will be NULL </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> studyAreaWithSpreadParams </td>
+   <td style="text-align:left;"> sf </td>
+   <td style="text-align:left;"> This is the studyArea, but with parameters from a previously fitted SpreadFit. If no pre-existing object exists from CacheGeo, this will be NULL </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> sppColorVect </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;"> named character vector of hex colour codes corresponding to each species. This may be updated if CacheGeo has different values than the inputted version of this object </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> sppNameVector </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;"> a vector of species names pulled from `sppEquiv`. Is sets it to sim$sppEquiv[[Par$sppEquivCol]] </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> climateVariables </td>
+   <td style="text-align:left;"> list </td>
+   <td style="text-align:left;"> a list, named by climate variable using 'projected_' or 'historical_' prefixes, with each list element containing a list of three arguments: vars - the raw variables used to derive the target variable, fun - the quoted function used to derive the target variable, where 'quote(calcAsIs)' denotes target variables that ARE the raw variable, and dots - additional arguments passed to 'fun'. See the .inputObjects for examples of how to build this object and ?climateData::prepClimateLayers for how it is used . The GCM, SSP, and selected years, whether projected or historical, are set by module parameters and must be identical for all variables </td>
+  </tr>
   <tr>
    <td style="text-align:left;"> fireBufferedListDT </td>
    <td style="text-align:left;"> list </td>
@@ -551,19 +642,24 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-dataP
    <td style="text-align:left;"> formula for spread, using climate and vegetation covariates, as character </td>
   </tr>
   <tr>
+   <td style="text-align:left;"> ignitionFirePoints </td>
+   <td style="text-align:left;"> SpatVector </td>
+   <td style="text-align:left;"> Same as object that is an input, but possibly changed CRS </td>
+  </tr>
+  <tr>
    <td style="text-align:left;"> ignitionFitRTM </td>
    <td style="text-align:left;"> SpatRaster </td>
    <td style="text-align:left;"> A (template) raster with information with regards to the spatial resolution and geographical extent of `fireSense_ignitionCovariates`. Used to pass this information onto `fireSense_ignitionFitted` Needs to have number of non-NA cells as attribute (`attributes(ignitionFitRTM)$nonNAs`). </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> landcoverDT2001 </td>
-   <td style="text-align:left;"> data.table </td>
-   <td style="text-align:left;"> data.table with `pixelID` and relevant landcover classes for flammable pixels in 2001 </td>
+   <td style="text-align:left;"> landcoverDTs </td>
+   <td style="text-align:left;"> list </td>
+   <td style="text-align:left;"> List of (2) `data.table`s with `pixelID` and relevant landcover classes for flammable pixels in each layer </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> landcoverDT2011 </td>
-   <td style="text-align:left;"> data.table </td>
-   <td style="text-align:left;"> data.table with `pixelID` and relevant landcover classes for flammable pixels in 2011 </td>
+   <td style="text-align:left;"> lightningMaps </td>
+   <td style="text-align:left;"> SpatRaster </td>
+   <td style="text-align:left;"> A 4-layer SpatRaster of lightning: lightningDays, lightningDensity, positiveCG, positiveCGdensity </td>
   </tr>
   <tr>
    <td style="text-align:left;"> missingLCCgroup </td>
@@ -571,34 +667,69 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-dataP
    <td style="text-align:left;"> if estimating fuel classes, the nonforest class to assign forested pixels absent from `sim$cohortData` </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> nonForestedLCCgroups </td>
+   <td style="text-align:left;"> nonForestedLCCGroups </td>
    <td style="text-align:left;"> list </td>
    <td style="text-align:left;"> a named list of non-forested landcover groups forming distinct fuel classes e.g. list('wetland' = c(19, 23, 32)) </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> nonForest_timeSinceDisturbance2001 </td>
-   <td style="text-align:left;"> SpatRaster </td>
-   <td style="text-align:left;"> time since burn for non-forested pixels in 2001 </td>
+   <td style="text-align:left;"> nonForest_timeSinceDisturbances </td>
+   <td style="text-align:left;"> list </td>
+   <td style="text-align:left;"> List of (2) SpatRaster with time since burn for non-forested pixels in each layer </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> nonForest_timeSinceDisturbance2011 </td>
-   <td style="text-align:left;"> SpatRaster </td>
-   <td style="text-align:left;"> time since burn for non-forested pixels in 2011 </td>
+   <td style="text-align:left;"> rstLCCs </td>
+   <td style="text-align:left;"> list </td>
+   <td style="text-align:left;"> At rasterToMatch geoms. List of (3) SpatRasters of land cover - updated so that pixels above `P(sim)$flammabilityThresholdhave an assigned flammable landcover </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> flammableRTM2001 </td>
-   <td style="text-align:left;"> SpatRaster </td>
-   <td style="text-align:left;"> binary raster of flammable landcover for 2001 </td>
+   <td style="text-align:left;"> flammableRTMs </td>
+   <td style="text-align:left;"> list </td>
+   <td style="text-align:left;"> List of (3 binary SpatRaster of flammable landcover for years given by the list names </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> flammableRTM2011 </td>
-   <td style="text-align:left;"> SpatRaster </td>
-   <td style="text-align:left;"> binary raster of flammable landcover for 2011 </td>
+   <td style="text-align:left;"> sppEquiv </td>
+   <td style="text-align:left;"> data.table </td>
+   <td style="text-align:left;"> sppEquiv table potentially modified with new or overwritten fuel class </td>
   </tr>
   <tr>
    <td style="text-align:left;"> spreadFirePoints </td>
    <td style="text-align:left;"> list </td>
    <td style="text-align:left;"> Named list of `sf` polygon objects representing annual fire centroids. This only includes fires that escaped (e.g. `size &gt; res(flammableRTM)`. </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> propFlammable </td>
+   <td style="text-align:left;"> SpatRaster </td>
+   <td style="text-align:left;"> SpatRaster with proportion of flammable landcover in a pixel - for post-hoc analysis </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> standAgeMap </td>
+   <td style="text-align:left;"> SpatRaster </td>
+   <td style="text-align:left;"> Single layer, which will be taken from the last of standAgeMaps </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> rstLCC_RTM </td>
+   <td style="text-align:left;"> SpatRaster </td>
+   <td style="text-align:left;"> Same as rstLCC, but at rasterToMatch geoms </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> rstLCC </td>
+   <td style="text-align:left;"> SpatRaster </td>
+   <td style="text-align:left;"> At rasterToMatch_biomassParams geoms. Final SpatRaster of land cover, i.e, conditions at start(sim). Taken from last layer of rstLCCs </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> flammableRTM </td>
+   <td style="text-align:left;"> SpatRaster </td>
+   <td style="text-align:left;"> Flammable landcover i.e, conditions at start(sim). Taken from last layer of rstLCCs </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> landcoverDT </td>
+   <td style="text-align:left;"> data.table </td>
+   <td style="text-align:left;"> `pixelID` and relevant landcover classes for flammable pixels in each layer, i.e, conditions at start(sim). Taken from last layer of landcoverDTs </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> nonForest_timeSinceDisturbance </td>
+   <td style="text-align:left;"> SpatRaster </td>
+   <td style="text-align:left;"> raster tracking the time since disturbance (e.g. burn) in each pixel, forested or not. Forested pixels are tracked based on the age in cohortData </td>
   </tr>
 </tbody>
 </table>
