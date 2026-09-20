@@ -1,5 +1,9 @@
 # fireSense_dataPrepFit (development version)
 
+- Dead code removed (`Save()`, `rmMissingPixels()`, and the module copies of `putBackIntoRaster()` and
+  `calcNonForestYoungAge()`, which live in `fireSenseUtils`), every function documented, metadata
+  descriptions and the manual brought up to date. No change in behaviour.
+
 - `dataPrepInit` now always clips `ignitionFirePoints` to the study-area polygon, via the new
   `clipPointsToStudyArea()`. The clip used to run only inside an `if (!same.crs(points, rasterToMatch))`
   branch, and clipped to the `rasterToMatch` rectangle rather than the polygon, so points that arrived
