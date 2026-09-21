@@ -1,6 +1,20 @@
 # fireSense_dataPrepFit (development version)
 
-- `dataPrepInit` now always clips `ignitionFirePoints` to the study-area polygon, via the new
+- The non-xgboost ignition path is removed, as in fireSense_IgnitionFit. `prepare_IgnitionFit()` no longer
+  builds `fireSense_ignitionFormula`; that branch used an object that was never defined, so it could only
+  stop with an error. Removed with it: parameter `modelAlgorithm` and output `fireSense_ignitionFormula`.
+- Removed, because the module declared them but never read them: parameters `igFocalFactor`,
+  `useCentroids`, `.plotInterval`, `.saveInitialTime`, `.saveInterval`, and input `studyAreaReporting`.
+  Stop setting them.
+- Removed `dataPrepInit()`, which has had no caller since its event was removed. A length-one
+  `climateVariablesForFire` is therefore not expanded to `ignition` and `spread`, and its names are not
+  checked against `historicalClimateRasters`: supply both elements. Version 1.2.0.9007.
+
+- Dead code removed (`Save()`, `rmMissingPixels()`, and the module copies of `putBackIntoRaster()` and
+  `calcNonForestYoungAge()`, which live in `fireSenseUtils`), every function documented, metadata
+  descriptions and the manual brought up to date. No change in behaviour.
+
+- `dataPrepBuild` now always clips `ignitionFirePoints` to the study-area polygon, via the new
   `clipPointsToStudyArea()`. The clip used to run only inside an `if (!same.crs(points, rasterToMatch))`
   branch, and clipped to the `rasterToMatch` rectangle rather than the polygon, so points that arrived
   already in the raster's CRS were never clipped at all. `prepare_IgnitionFit()` asserts that every

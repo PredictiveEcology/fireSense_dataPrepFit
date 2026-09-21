@@ -5,21 +5,30 @@
 ## with fireregimetools, which harmonises the YEAR and SIZE_HA columns across releases; fires of every
 ## size are kept (`min_size_ha = 0`).
 
-## The shapefile in the fire-record archive at `url`, downloaded into `destinationPath` if needed.
-## Its name carries the release (e.g. NFDB_point_20260811.shp), so callers key their Cache on it: the
-## NFDB URL stays the same from one release to the next. With `fun = NA`, preProcess() returns every
-## file in the archive, and the CFS archives also carry metadata (schema.ini, a pdf, a spreadsheet).
+#' Path to the shapefile in a fire-record archive, downloading it if needed
+#'
+#' The file name carries the release (e.g. NFDB_point_20260811.shp), so callers key their Cache on
+#' it: the NFDB URL stays the same from one release to the next.
+#'
+#' @param url URL of the zip archive.
+#' @param destinationPath directory to download and extract into.
+#' @param ... passed to `reproducible::preProcess()`, e.g. `archive`.
+#' @return character, path of the `.shp` file.
 fireRecordShapefile <- function(url, destinationPath, ...) {
-  ## reproducible:: by name: caret (a fireSense_IgnitionFit reqdPkg) defines its own preProcess()
-  ## generic, and once caret is attached after reproducible the bare name resolves to caret's, which
-  ## stops with 'argument "x" is missing, with no default' (ELFs 13.1, 5.2.1, 11.3, 2026-09-12)
+  ## reproducible:: by name: caret (a fireSense_IgnitionFit reqdPkg) also has a preProcess(), which
+  ## masks this one when attached later. With `fun = NA`, preProcess() returns every file in the
+  ## archive, and the CFS archives also carry metadata, hence the grep.
   files <- reproducible::preProcess(url = url, destinationPath = destinationPath, fun = NA, ...)$targetFilePath
   grep("\\.shp$", files, value = TRUE)
 }
 
-## NBAC fire perimeters from shapefile `shp` in `studyArea` (in its CRS), as a list with one element
-## per year in `years`, named "year<YYYY>" and NULL where that year has no fires. POLY_HA is the area
-## inside `studyArea`.
+#' NBAC fire perimeters in a study area, by year
+#'
+#' @param shp path of the NBAC shapefile.
+#' @param years integer years to keep.
+#' @param studyArea polygon to crop to; the result is in its CRS.
+#' @return list of `SpatVector` polygons, one element per year, named `year<year>`; `NULL` where a
+#'   year has no fires. `POLY_HA` is the area (ha) inside `studyArea`.
 firePolysByYear <- function(shp, years, studyArea) {
   polys <- fireregimetools::load_nbac_polys(shp, study_area = studyArea, fire_years = years, min_size_ha = 0)
   polys$POLY_HA <- round(terra::expanse(polys, unit = "ha"), 2)
@@ -31,8 +40,12 @@ firePolysByYear <- function(shp, years, studyArea) {
   out
 }
 
-## NFDB fire points of every size and cause from shapefile `shp` in `studyArea` (in its CRS) during
-## `years`.
+#' NFDB fire points in a study area, of every size and cause
+#'
+#' @param shp path of the NFDB point shapefile.
+#' @param years integer years to keep.
+#' @param studyArea polygon to crop to; the result is in its CRS.
+#' @return spatial points, with `YEAR` and `SIZE_HA` harmonized by fireregimetools.
 nfdbFirePoints <- function(shp, years, studyArea) {
   fireregimetools::load_nfdb_points(shp, study_area = studyArea, fire_years = years, min_size_ha = 0)
 }

@@ -44,36 +44,45 @@ download.file(url = "https://img.shields.io/badge/Made%20with-Markdown-1f425f.pn
 
 ## Module Overview
 
-Prepare data required by `fireSense_IginitionFit`, `fireSense_EscapeFit`, and `fireSense_SpreadFit` modules.
+Prepares the data needed to fit `fireSense_IgnitionFit`, `fireSense_EscapeFit` and `fireSense_SpreadFit`.
 
 ### Module summary
 
-This module uses historical fire, vegetation, and climate raster data to generate data used to fit the three processes captured by `fireSense` [@Marchal:2017a; @Marchal:2017b; @Marchal:2019]: fire ignition, fire escape (the probability that an ignition results in a fire greater than the cell resolution), and fire spread.
-The landscape data is collected in two snapshots: 2001 and 2011, and the vegetation composition and biomass in these years is assumed to have influenced fires during two periods, from 2002-2011 and 2012-2021, respectively. 
-Unlike the vegetation data, the climate data is assumed to be seasonal or annual, and is matched to the year each fire occurred. 
-The same climate variable(s) must be used to model fire ignition and escape, but can vary for spread.
+The module combines historical fire records, vegetation, land cover and climate into the covariate tables used to fit the three `fireSense` processes [@Marchal:2017a; @Marchal:2017b; @Marchal:2019]: ignition, escape (an ignition that grows beyond one pixel) and spread.
 
-##### Fuel classes:
+Vegetation, land cover and stand age are snapshots, one per year in `P(sim)$dataYears` (default 2000, 2010, 2020).
+Each year in `P(sim)$fireYears` uses the snapshot at or before it, so no fire year may precede the first data year, and every data year needs at least one fire year.
+Climate is annual and is matched to the year of each fire.
+Ignition and escape share climate variables (`sim$climateVariablesForFire$ignition`); spread can use others (`$spread`).
 
-This module can optionally estimate fuel classes for both forested and non-forested areas.
-The non-forested mechanism is simpler: it combines landcover classes based on having a similar historical propensity to burn as estimated using a GLM, reducing an arbitrary amount of classes to a target amount (by default, two).
-For example, bryoids and non-treed wetland might be combined in one class, with shrubland and grassland in another.
+By default the module builds its own inputs:
 
-The estimation of forested fuel classes is more complex. 
-The module will initially treat each species as a separate fuel class and then attempt to reduce the number of fuel classes to a target amount.
-It uses a GLM to estimate the relationship between the biomass of each species, where present in pixel, to the likelihood of the likelihood of the pixel burning.
-For each species, the model fitting data is subset by removing pixels where the species is not present. 
-Additionally, each species will have an *a priori* fuel class.
-The default fuel classes are an interpretation of the [FBP classes](https://cwfis.cfs.nrcan.gc.ca/background/fueltypes/c1) and can be viewed via `LandR::sppEquivalencies_CA$FuelClass`.
+- land cover (`rstLCCs`) with `fireSenseUtils::makeFireSenseLCC()` and stand age with `LandR::prepInputsStandAgeMap()`, per data year;
+- `cohortDatas` and `pixelGroupMaps`, by running `Biomass_borealDataPrep` (and `Biomass_speciesData`, if it is in the project) in a nested `simInitAndSpades()` per data year. This is cached. Missing modules are downloaded to this module's `submodules` folder;
+- fire polygons from the latest NBAC release, and ignition points (lightning- and natural-caused only) from the current NFDB release.
 
-Individual tree species are grouped into fuel classes according to the following logic: first, the abundance of each species is assessed, calculated as the proportion of the landscape where a given species represents more than 10% of the biomass in a pixel.
-"Rare" species (those with abundance \< 5%) are combined if another species is present with the same fuel class.
-If there are two or more options, they are grouped in order of abundance, from least to most.
-It is possible the resulting number of fuel classes will be fewer than the target amount if multiple species were "rare".
-If the resulting number of unique fuel classes is greater than the target amount, the next least abundant species will be combined.
-However, for non-rare species to be combined, they must also have the same coefficient sign, or a non-significant sign.
-If there are more than one species with a similar fuel class and coefficient sign, they are grouped based on abundance, from least to most.
-By default, the module will aim for five forested fuel classes, two non-forested fuel classes, and `youngAge` (described below), for a total of eight.
+`historicalClimateRasters` has no default and must be supplied, e.g., by `canClimateData`.
+It must cover every fire year; the module stops otherwise.
+
+##### Previous SpreadFit results
+
+At `init`, the module looks in a Google Drive ledger (`P(sim)$spreadFitGoogleDriveFolder`, `P(sim)$spreadFitFilename`) for SpreadFit results that overlap `sim$studyArea`.
+If there are any, `sppEquiv`, the fuel classes, the non-forest groups and the spread climate variables are taken from that fit, and fuel classes are not estimated.
+`sim$climateVariables` must then be supplied.
+
+##### Fuel classes
+
+If `P(sim)$estimateFuelClasses` is `TRUE`, and the user supplied none of `nonForestedLCCGroups`, `fuelClassTable` or a modified `FuelClass` column in `sppEquiv`, fuel classes are estimated with `fireSenseUtils::assessFuelClasses()`.
+
+Non-forest land cover classes are grouped by their historical propensity to burn, estimated with a GLM, into two groups.
+
+For forest, each species starts as its own fuel class with an *a priori* class, by default an interpretation of the [FBP fuel types](https://cwfis.cfs.nrcan.gc.ca/background/fueltypes/c1) (`LandR::sppEquivalencies_CA$FuelClass`).
+A GLM relates the biomass of each species, in pixels where it is present, to whether the pixel burned.
+Species are then merged until `P(sim)$targetFuelClasses` (default 5) remain:
+
+1. Abundance is the proportion of forested pixels where the species is more than 10% of the biomass.
+2. Rare species (abundance < 5%) are merged with another species of the same *a priori* class, least abundant first. This can leave fewer classes than the target.
+3. If there are still too many classes, the next least abundant species are merged, but only with species of the same *a priori* class and the same coefficient sign (or a non-significant one).
 
 ```{example of semi-automated fuel classes, echo = FALSE}
 7 species were initially present on the landscape; 2 must be combined to achieve the target 5
@@ -94,26 +103,39 @@ were not combined as there were no other species with similar FuelClass values
 
 ```
 
-##### Special cases: youngAge, missingLCC, and treed wetland
+##### youngAge, missingLCCgroup and treed wetland
 
-`fireSense` uses a `youngAge` class to distinguish areas that have recently burned (by default within the past 15 years), and updates the landscape snapshots accordingly.
-For example, if a conifer pixel burned in 2009, subsequent observations of the same pixel are converted to `youngAge`, with prior observations unchanged.
-Additionally, the 2011-2011 landscape snapshot is adjusted to ensure areas are correctly classified if they burned prior to 2001 within the period relevant to the `youngAge` class.
-By default, both forested and non-forested classes will convert to `youngAge` following fire, however a user can disable this behaviour in the latter class via the parameter `nonForestCanBeYoungAge`.
+Pixels disturbed within `P(sim)$cutoffForYoungAge` years (default 15) are `youngAge`, a fuel class of its own.
+Time since disturbance comes from the stand age maps and the fire polygons (`firePolysForAge`), per data year.
+Non-forest pixels can also be `youngAge`, unless `P(sim)$nonForestCanBeYoungAge` is `FALSE`.
 
-A related consideration is whether treed wetland (a land cover class in the NTEMS land cover product used by default) should be treated as a variant of forested landcover or non-forest cover.
-This decision determines whether the biomass of the tree species in treed wetland is included as a covariate in the fireSense models, the same as non-wetland forest species, or whether treed wetland is instead considered as a land cover class, similar to shrubland and grassland, for example.
-If wetland tree species are distinct from non-wetland species, then the decision may have less consequence.
-The object `nonForestedLCCGroups` takes precedence when determining fuel classes; if the land cover value for non-treed wetland is included here, then it will be counted as non-forest regardless of whether it appears the parameter `forestedLCCclasses`.
-This approach allows treed wetland to be simulated in forest simulation models (i.e., with LandR) without it being explicitly treated as forest in `fireSense`.
-If treed wetland is absent from both `nonForestedLCCGroups` and `forestedLCCclasses`, then it is considered non-flammable land cover, as with any other land cover class.
+`sim$nonForestedLCCGroups` takes precedence over `P(sim)$forestedLCC`: a land cover class listed in a non-forest group is a categorical fuel even if it is also in `forestedLCC`.
+This lets treed wetland, for example, be simulated as forest by LandR but be a land cover fuel in `fireSense`.
+A flammable class in neither gets no fuel covariate.
 
-If `fireSense_dataPrepFit` is to estimate fuel classes, it will also do so for a special class termed `missingLCC`.
-This class encompasses pixels that have a forested land cover class but are absent in the objects `cohortData2011` and `cohortData2001`.
-The most frequent reason for the exclusion of forest pixels in LandR is that there was no tree species data for the pixel.
-Therefore, with no available species biomass, these pixels are treated as non-forest land cover, and must be assigned to one of the groups in `nonForestedLCCGroups`.
+Pixels with forested land cover but no cohorts (usually because there was no species data) have no biomass, so they are assigned to one of the non-forest groups, `sim$missingLCCgroup`.
+It is estimated along with the fuel classes; otherwise it defaults to the first group.
 
-Finally, for fuel classes that are modelled with biomass instead of presence/absence, the log of biomass is used, after converting all instances of zero biomass for a fuelclass to one log below the minimum observed level (by default, 100 $g/m2).
+### Usage
+
+The module is normally run with `canClimateData` (for `historicalClimateRasters` and `climateVariables`) ahead of the three fit modules.
+`fireSense_SpreadFit` and `fireSense_EscapeFit` preparation both need the ignition preparation, so keep `fireSense_IgnitionFit` in `P(sim)$whichModulesToPrepare`.
+
+```{r usage-fireSense-dataPrepFit, eval = FALSE}
+out <- SpaDES.project::setupProject(
+  paths = list(projectPath = "~/fireSenseFit"),
+  modules = c("PredictiveEcology/canClimateData@development", # needs its own parameters
+              "PredictiveEcology/fireSense_dataPrepFit@development"),
+  times = list(start = 2020, end = 2020),
+  studyArea = mySA, # buffered to limit edge effects
+  params = list(fireSense_dataPrepFit = list(
+    dataYears = c(2000L, 2010L, 2020L),
+    fireYears = 2002:2022,
+    .useCache = c(".inputObjects", "dataPrepBuild", "prepIgnitionFitData",
+                  "prepEscapeFitData", "prepSpreadFitData")))
+)
+sim <- do.call(SpaDES.core::simInitAndSpades, out)
+```
 
 ### Module inputs and parameters
 
@@ -126,7 +148,7 @@ knitr::kable(df_inputs,
   kableExtra::kable_styling(latex_options = "scale_down", full_width = TRUE)
 ```
 
-Provide a summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-dataPrepFit))
+Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
 
 ```{r moduleParams-fireSense-dataPrepFit, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
 df_params <- SpaDES.core::moduleParams("fireSense_dataPrepFit", "..")
@@ -136,52 +158,47 @@ knitr::kable(df_params, caption = "List of (ref:fireSense-dataPrepFit) parameter
 
 ### Events
 
+All events run once, at `start(sim)`.
+
 ##### init
 
-During this event, Google Drive is checked for an existing SpreadFit for this study area; if there is one, its species, fuel classes and climate variables are used.
-This event cannot be cached, because caching would freeze that answer. It schedules `dataPrepBuild`.
+Checks Google Drive for a previous SpreadFit (see above). It cannot be cached, because that would freeze the answer.
 
 ##### dataPrepBuild
 
-This event runs straight after `init`, before other modules' `init` events.
-During this event, objects are created and prepared if they are used by all three fire processes, such as the `flammableMap`, `landcoverDT`, and `nonForest_timeSinceDisturbance` for each fire period.
-This is also when fuel class estimation occurs.
-It can be cached: add `"dataPrepBuild"` to `.useCache`.
+Runs straight after `init`, before other modules' `init`.
+Puts `rstLCCs` on `rasterToMatch`, and builds, per data year, `flammableRTMs`, `landcoverDTs` and `nonForest_timeSinceDisturbances`.
+Fuel classes are estimated here.
+Can be cached: add `"dataPrepBuild"` to `.useCache`.
 
 ##### prepIgnitionFitData
 
-This event prepares ignition data.
-The pixels of the individual landscape snapshots of 2002-2011 and 2012-2020 are converted to voxels by aggregating the fuel class rasters according to the parameter `P(sim)$igAggFactor` and calculating the mean cover or biomass within.
-Ignitions are summed within voxels for every year, such that the data will ultimately contain one row for each voxel and year, with the number of ignitions, the mean annual climate within that voxel, and the mean amount of each fuel class (whether biomass or cover) as additional columns.
-Because the probability estimates of the fitted model can only be interpreted at the resolution of the fitted data, a template form of the aggregated raster is output as `sim$ignitionFitRTM`, and contains the attribute `nonNAs`, the number of pixels in the aggregated raster with non-NA data.  
+Fuel, climate and lightning rasters are aggregated by `P(sim)$igAggFactor`, and ignitions are counted per coarse pixel and year.
+`sim$fireSense_ignitionCovariates` has one row per coarse pixel and year.
+Fitted probabilities only apply at that resolution, so the template `sim$ignitionFitRTM` is also output, with attributes `nonNAs` (the number of rows) and `meanForestB`.
+No ignition formula is built: fireSense_IgnitionFit fits with xgboost, which does not use one.
 
 ##### prepEscapeFitData
 
-This rather simple event adds an "escapes" column to the data table prepared by `prepIgnitionFitData`, where an escape is an ignition that resulted in a fire greater than the resolution of the `flammableMap` raster (which is *not* the area of the voxel).
-It also builds the formula object if it hasn't been supplied, and performs some minor data quality control (e.g., ensuring that fire escapes do not outnumber ignitions in any voxel).
+Adds an `escapes` column to the ignition covariates: the ignitions that grew beyond one `rasterToMatch` pixel (not one coarse pixel).
+Builds `sim$fireSense_escapeFormula` if it was not supplied. Needs `prepIgnitionFitData`.
 
 ##### prepSpreadFitData
 
-The data used to fit the fire spread model differs from that of ignition and escape in several ways.
-First, the Fire Spread data includes fires with anthropogenic origins, whereas by default the Ignition dataset only includes those of natural origin.
-Second, it utilizes a spatial subset of the landscape by buffering the fire polygons and extracting the climate and landscape data within.
-This massively reduces the spread dataset by removing pixels that are of no interest to the model calibration, i.e., due to lack of observed fires.
-The size of the buffer is dependent upon the parameter `P(sim)$areaMultiplier`. 
+Spread uses fires of every cause, where ignition uses lightning- and natural-caused ones only, and only fires larger than one pixel.
+Each fire needs an ignition point in a flammable pixel inside its polygon (`sim$spreadFirePoints`; default the polygon centroid); `fireSenseUtils::harmonizeFireData()` enforces this.
+Each fire polygon is buffered, with the buffer size set by `P(sim)$areaMultiplier` and `P(sim)$minBufferSize`, and only burned and buffer pixels are kept (`sim$fireBufferedListDT`).
+The module stops if buffer pixels are fewer than five times the burned pixels.
 
-Second, each fire must contain a corresponding point of ignition that is located inside the fire polygon in a flammable pixel.
-This object is called `spreadFirePoints` to differentiate it from the similar object used by the Ignition process.
-The latter is different in that it contains fires of all sizes (i.e., smaller than the resolution of `sim$rasterToMatch`), does not have a corresponding polygon object, and is limited to fires of natural origin.
-If `spreadFirePoints` is not supplied, the default behaviour is to calculate it from the centroids of the Fire Spread data and select the nearest flammable pixel inside the fire polygon in the event the centroid does not satisfy both of these criteria.
+To keep the objects small for the optimizer, the covariates are split in two:
+`sim$fireSense_annualSpreadFitCovariates`, one table of climate per fire year, and `sim$fireSense_nonAnnualSpreadFitCovariates`, one table of fuels per data year.
+Fuel columns that are all zero are dropped.
+Builds `sim$fireSense_spreadFormula` if it was not supplied.
+`P(sim)$useRasterizedFireForSpread = TRUE` is not currently supported.
 
-Lastly, the `youngAge` category is calculated for each year individually.
-For example, by default if in 2001 a pixel was estimated as 12 years removed from the last disturbance in 2001, if the same pixel fell inside a fire buffer from 2006, it would no longer be youngAge, as 12 + (2006-2001) would exceed the parameter P(sim)$youngeAgeThreshold.
-Similar adjustments are made for pixels that were initially non-youngAge, burned in an earlier year, and then re-appear in the buffer of later fires.
-By contrast, the Ignition Fire data does not annually resolve the `youngAge class. 
+##### plotAndMessage, cleanUp
 
-As in `prepareIgnitionFit` and `prepareEscapeFit`, the model formula object will be created if it hasn't been supplied by a user.
-Lastly, to reduce object size to a bare minimum for the sake of the lengthy optimization procedure employed in spreadFit, the data is organized into the annually-varying and non-annual components.
-The former include the climate variables and `youngAge` class, and are organized into a list of `data.tables`, named by year, containing the aforementioned covariates, whether the pixel was burned or in the buffer, the fire ID to which it belongs, and the year of the fire.
-The non-annual components are sorted into a list of two data.tables, one for each fire period, the names of which include every year (e.g `sim$nonAnnual_SpreadFitCovariates$Year2001_Year2002_Year2003...`).  
+`plotAndMessage` is a placeholder; `cleanUp` frees memory.
 
 ### Module outputs
 
