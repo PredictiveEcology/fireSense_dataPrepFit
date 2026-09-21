@@ -54,7 +54,6 @@ test_that("outputs are the expected names and classes", {
       fireSense_escapeCovariates             = "data.table",
       fireSense_escapeFormula                = "character",
       fireSense_ignitionCovariates           = "data.table",
-      fireSense_ignitionFormula              = "character",
       fireSense_nonAnnualSpreadFitCovariates = "list",
       fireSense_spreadFormula                = "character",
       flammableRTM                           = "SpatRaster",
@@ -92,7 +91,7 @@ test_that("parameters are the expected names", {
            ".useCache", ".useCacheArgs", "areaMultiplier", "bufferForFireRaster", "cutoffForYoungAge",
            "dataYears", "estimateFuelClasses", "fireYears", "flammabilityThreshold",
            "forestedLCC", "fuelClassCol", "igAggFactor", "igFocalFactor",
-           "minBufferSize", "modelAlgorithm", "nonflammableLCC",
+           "minBufferSize", "nonflammableLCC",
            "nonForestCanBeYoungAge", "sppEquivCol", "spreadFitFilename",
            "spreadFitGoogleDriveFolder", "targetFuelClasses", "useCentroids",
            "useRasterizedFireForSpread", "whichModulesToPrepare"))

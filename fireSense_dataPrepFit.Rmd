@@ -176,7 +176,7 @@ Can be cached: add `"dataPrepBuild"` to `.useCache`.
 Fuel, climate and lightning rasters are aggregated by `P(sim)$igAggFactor`, and ignitions are counted per coarse pixel and year.
 `sim$fireSense_ignitionCovariates` has one row per coarse pixel and year.
 Fitted probabilities only apply at that resolution, so the template `sim$ignitionFitRTM` is also output, with attributes `nonNAs` (the number of rows) and `meanForestB`.
-No formula is built when `P(sim)$modelAlgorithm` is `xgboost`.
+No ignition formula is built: fireSense_IgnitionFit fits with xgboost, which does not use one.
 
 ##### prepEscapeFitData
 

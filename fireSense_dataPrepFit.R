@@ -62,9 +62,6 @@ defineModule(sim, list(
                     "named `FuelClass` exists in the `LandR::sppEquivalencies_CA` and will be used ",
                     "by default. To change the `FuelClass` classifications, add a column to that table, ",
                     "or to `sim$sppEquiv` and then modify this `fuelClassCol` parameter"),
-    defineParameter("modelAlgorithm", "character", "xgboost", NA, NA,
-                    "Can be `xgboost`, `glmmtmb`, `glm.nb`, `glmmadaptive`, `glm`; only `xgboost` is supported currently",
-                    "Should be the same as modelAlgorithm used in fireSense_IgnitionFit"),
     defineParameter("minBufferSize", "numeric", 5000, NA, NA,
                     paste("Minimum number of cells in each fire's burned-plus-buffer sample, applied after `areaMultiplier`.")),
     defineParameter("nonflammableLCC", "numeric", c(0, 20, 31, 32, 33), NA, NA,
@@ -210,8 +207,6 @@ defineModule(sim, list(
                   "formula for escape, using fuel classes and landcover, as character"),
     createsOutput("fireSense_ignitionCovariates", "data.table",
                   "table of aggregated ignition covariates with annual ignitions"),
-    createsOutput("fireSense_ignitionFormula", "character",
-                  "formula for ignition, as character. Not created when `modelAlgorithm` is `xgboost`."),
     createsOutput("fireSense_nonAnnualSpreadFitCovariates", "list",
                   "List of data.tables, one per `dataYears`, of `pixelID` and the fuel covariates in the fire buffers."),
     createsOutput("fireSense_spreadFormula", "character",
@@ -1038,12 +1033,12 @@ prepare_SpreadFitFire_Vector <- function(sim) {
 #' Prepare the covariates for fireSense_IgnitionFit
 #'
 #' Aggregates fuel, climate and lightning covariates by `igAggFactor` and counts the ignitions in
-#' each coarse pixel and year. Sets `mod$allYears`, which the spread preparation uses. The formula is
-#' only built when `modelAlgorithm` is not `xgboost`.
+#' each coarse pixel and year. Sets `mod$allYears`, which the spread preparation uses. No formula is
+#' built: fireSense_IgnitionFit fits with xgboost, which does not use one.
 #'
 #' @param sim a `simList`.
-#' @return the `simList`, invisibly, with `fireSense_ignitionCovariates`, `ignitionFitRTM`,
-#'   `lightningMaps` and possibly `fireSense_ignitionFormula`.
+#' @return the `simList`, invisibly, with `fireSense_ignitionCovariates`, `ignitionFitRTM` and
+#'   `lightningMaps`.
 prepare_IgnitionFit <- function(sim) {
 
   stopifnot(
@@ -1124,30 +1119,6 @@ prepare_IgnitionFit <- function(sim) {
   meanForestB <- mean(bPerPixel$bPerPixel)
   attr(sim$ignitionFitRTM, "meanForestB") <- meanForestB
   rm(tempCD, bPerPixel)
-
-  if (grepl("xgb", Par$modelAlgorithm) %in% FALSE) {
-    ## build formula
-    igCovariates <- names(sim$fireSense_ignitionCovariates)
-    igCovariates <- igCovariates[!igCovariates %in%
-                                   c(names(ignitionClimate),
-                                     fireSenseUtils::yearTxt, "ignitions", "ignitionsNoGT1", "pixelID")]
-    ## this is safer for multiple climate variables
-    interactionsDF <- as.data.table(expand.grid(igCovariates, sim$climateVariablesForFire$ignition))
-    interactionsDF[, interaction := do.call(paste, c(.SD, sep = ":")), .SDcols = names(interactionsDF)]
-    interactions <- interactionsDF$interaction
-
-    ## sanity check for base::abbreviate
-    if (!length(unique(interactions)) == length(igCovariates) * length(sim$climateVariablesForFire$ignition)) {
-      warning("automated ignition formula construction needs review")
-    }
-    if (is.null(sim$fireSense_ignitionFormula)) {
-      sim$fireSense_ignitionFormula <- paste0("ignitions ~ ",
-                                              paste0("(1|", ranEffsLabel, ")"), " + ",
-                                              paste0(interactions, collapse = " + "))
-    }
-  } else {
-    # Won't have sim$fireSense_ignitionFormula for xgboost
-  }
 
   return(invisible(sim))
 }

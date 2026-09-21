@@ -1,5 +1,9 @@
 # fireSense_dataPrepFit (development version)
 
+- The non-xgboost ignition path is removed, as in fireSense_IgnitionFit. `prepare_IgnitionFit()` no longer
+  builds `fireSense_ignitionFormula`; that branch used an object that was never defined, so it could only
+  stop with an error. Removed with it: parameter `modelAlgorithm` and output `fireSense_ignitionFormula`.
+
 - Dead code removed (`Save()`, `rmMissingPixels()`, and the module copies of `putBackIntoRaster()` and
   `calcNonForestYoungAge()`, which live in `fireSenseUtils`), every function documented, metadata
   descriptions and the manual brought up to date. No change in behaviour.
