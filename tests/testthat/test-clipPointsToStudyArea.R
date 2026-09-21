@@ -1,4 +1,4 @@
-## dataPrepInit() only clipped sim$ignitionFirePoints inside an `if (!same.crs(points, rasterToMatch))`
+## dataPrepBuild() only clipped sim$ignitionFirePoints inside an `if (!same.crs(points, rasterToMatch))`
 ## branch, and clipped to the rasterToMatch rectangle. When the points already arrived in the RTM's
 ## CRS -- the normal case -- nothing was clipped at all, so a point outside the studyArea polygon
 ## survived to the `all ignitionFirePoints are not within studyArea` stopifnot() in
@@ -22,7 +22,7 @@ test_that("clipPointsToStudyArea drops points outside the polygon, same CRS or n
   expect_equal(nrow(clippedLL), 2)
   expect_true(terra::same.crs(clippedLL, sa))
 
-  ## an sf study area is accepted too (dataPrepInit() st_union()s an sf studyArea)
+  ## an sf study area is accepted too (dataPrepBuild() st_union()s an sf studyArea)
   clippedSF <- clipPointsToStudyArea(pts, sf::st_as_sf(sa))
   expect_equal(nrow(clippedSF), 2)
 })

@@ -8,7 +8,7 @@ defineModule(sim, list(
     person(c("Alex", "M"), "Chubaty", role = "ctb", email = "achubaty@for-cast.ca")
   ),
   childModules = character(0),
-  version = list(fireSense_dataPrepFit = "1.2.0.9006"),
+  version = list(fireSense_dataPrepFit = "1.2.0.9007"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -55,8 +55,6 @@ defineModule(sim, list(
                           "classes are treated categorically")),
     defineParameter("igAggFactor", "numeric", 4, 1, NA,
                     "Aggregation factor (number of `rasterToMatch` cells per side) for the ignition and escape covariates."),
-    defineParameter("igFocalFactor", "integer", 1L, NA, NA,
-                    "Not used."),
     defineParameter("fuelClassCol", "character", "FuelClass", NA, NA,
                     "the column in `sppEquiv` that defines unique fuel classes. A column ",
                     "named `FuelClass` exists in the `LandR::sppEquivalencies_CA` and will be used ",
@@ -80,20 +78,12 @@ defineModule(sim, list(
                                   "their fitted SpreadFit parameters.")),
     defineParameter("targetFuelClasses", "numeric", 5, 1, 7,
                     "the target number of unique fuel classes when using semi-automated approach"),
-    defineParameter("useCentroids", "logical", TRUE, NA, NA,
-                    "Not used: default `spreadFirePoints` are always the `firePolys` centroids."),
     defineParameter("useRasterizedFireForSpread", "logical", FALSE, NA, NA,
                     paste("Use `historicalFireRaster` in place of fire polygons for spread?",
                           "Not currently supported: `TRUE` stops with an error when preparing SpreadFit.")),
     defineParameter("whichModulesToPrepare", "character",
                     c("fireSense_IgnitionFit", "fireSense_SpreadFit", "fireSense_EscapeFit"),
                     NA, NA, "Which fireSense fit modules to prep? defaults to all 3"),
-    defineParameter(".plotInterval", "numeric", NA, NA, NA,
-                    "Describes the simulation time interval between plot events."),
-    defineParameter(".saveInitialTime", "numeric", NA, NA, NA,
-                    "Describes the simulation time at which the first save event should occur."),
-    defineParameter(".saveInterval", "numeric", NA, NA, NA,
-                    "This describes the simulation time interval between save events."),
     defineParameter(".studyAreaName", "character", NULL, NA, NA,
                     "`studyArea` name used in file names and cache tags; `NULL` derives it from `sim$studyArea`."),
     defineParameter(".useCache", "logical", FALSE, NA, NA,
@@ -169,9 +159,7 @@ defineModule(sim, list(
     expectsInput("studyArea", "SpatVector", sourceURL = NA,
                  "Study area for all data. Should be buffered to limit edge effects on fire spread."),
     expectsInput("studyArea_biomassParam", "SpatVector", sourceURL = NA,
-                 "study area passed to Biomass_borealDataPrep for vegetation calibration"),
-    expectsInput("studyAreaReporting", "sf", sourceURL = NA,
-                 desc = "Not used.")
+                 "study area passed to Biomass_borealDataPrep for vegetation calibration")
   ),
   outputObjects = bindrows(
     createsOutput("climateVariablesForFire", "list",
@@ -649,28 +637,6 @@ dataPrepBuild <- function(sim) {
   return(invisible(sim))
 }
 
-
-#' Check `climateVariablesForFire`
-#'
-#' Expands a length-one list to `ignition` and `spread`, and stops if a variable has no climate
-#' raster. Not currently called: its event was removed from `doEvent`.
-#'
-#' @param sim a `simList`.
-#' @return the `simList`, invisibly.
-dataPrepInit <- function(sim) {
-
-  if (length(sim$climateVariablesForFire) == 1) {
-    sim$climateVariablesForFire <- list(
-      ignition = sim$climateVariablesForFire[[1]],
-      spread = sim$climateVariablesForFire[[1]]
-    )
-  }
-  
-  if (!all(unlist(sim$climateVariablesForFire) %in% names(sim$historicalClimateRasters))) {
-    stop("mismatch between sim$climateVariablesForFire and sim$historicalClimateRasters")
-  }
-  return(invisible(sim)) 
-}
 
 #' Prepare the covariates and formula for fireSense_SpreadFit
 #'

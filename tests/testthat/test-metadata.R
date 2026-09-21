@@ -37,8 +37,7 @@ test_that("inputs are the expected names and classes", {
       spreadFitAdditionalColNames = "character",
       standAgeMaps                = "list",
       studyArea                   = "SpatVector",
-      studyArea_biomassParam      = "SpatVector",
-      studyAreaReporting          = "sf")
+      studyArea_biomassParam      = "SpatVector")
   )
 })
 
@@ -87,13 +86,13 @@ test_that("parameters are the expected names", {
   md <- SpaDES.core::moduleMetadata(module = moduleName, path = modulePath)
   expect_identical(
     sort(md$parameters$paramName),
-    sort(c(".plotInterval", ".saveInitialTime", ".saveInterval", ".studyAreaName",
+    sort(c(".studyAreaName",
            ".useCache", ".useCacheArgs", "areaMultiplier", "bufferForFireRaster", "cutoffForYoungAge",
            "dataYears", "estimateFuelClasses", "fireYears", "flammabilityThreshold",
-           "forestedLCC", "fuelClassCol", "igAggFactor", "igFocalFactor",
+           "forestedLCC", "fuelClassCol", "igAggFactor",
            "minBufferSize", "nonflammableLCC",
            "nonForestCanBeYoungAge", "sppEquivCol", "spreadFitFilename",
-           "spreadFitGoogleDriveFolder", "targetFuelClasses", "useCentroids",
+           "spreadFitGoogleDriveFolder", "targetFuelClasses",
            "useRasterizedFireForSpread", "whichModulesToPrepare"))
   )
 })
