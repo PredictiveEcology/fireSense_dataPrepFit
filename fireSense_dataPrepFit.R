@@ -8,7 +8,7 @@ defineModule(sim, list(
     person(c("Alex", "M"), "Chubaty", role = "ctb", email = "achubaty@for-cast.ca")
   ),
   childModules = character(0),
-  version = list(fireSense_dataPrepFit = "1.2.0.9007"),
+  version = list(fireSense_dataPrepFit = "1.2.0.9008"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -101,8 +101,10 @@ defineModule(sim, list(
   ),
   inputObjects = bindrows(
     expectsInput("climateVariablesForFire", "list", sourceURL = NA,
-                 paste("List with elements `ignition` and `spread`, each a character vector of names in",
-                       "`sim$historicalClimateRasters` to use for that process. The default is 'MDC' for both.")),
+                 paste("List with elements `ignition` and `spread`, each a character vector of climate variable",
+                       "names, with or without underscores (e.g., `CMD_sm` or `CMDsm`). IgnitionFit uses all of",
+                       "`ignition`; SpreadFit uses `spread`. Default: `ignition = c('CMD_sm', 'cumMDC', 'CMD_sp')`,",
+                       "`spread = 'CMD_sm'`. Unless supplied, `climateVariables` is built from these.")),
     expectsInput("cohortDatas", "list", sourceURL = NA,
                  paste("List of `cohortData` data.tables, one per `dataYears`, named `year<year>`.",
                        "If not supplied, built by running Biomass_borealDataPrep for each data year.")),
@@ -178,9 +180,10 @@ defineModule(sim, list(
                  desc = paste("Sorted species names (`sppEquivCol`) from the `sppEquiv` stored with a previous SpreadFit;",
                               "only created if one exists.")),
     createsOutput("climateVariables", "list",
-                  paste("Climate variable definitions, as used by `climateData::prepClimateLayers`. Must be supplied",
-                        "(e.g., by canClimateData) if a previous SpreadFit exists: the variables of that fit are",
-                        "then added to it. Otherwise not touched.")),
+                  paste("Climate variable definitions, as used by `climateData::prepClimateLayers` (canClimateData).",
+                        "Unless supplied, built from `climateVariablesForFire` for `fireYears` (and projected years",
+                        "unless canClimateData's `climateGCM` is 'NRV'). If a previous SpreadFit exists, the",
+                        "variables of that fit are added.")),
     createsOutput("fireBufferedListDT", "list",
                   "list of data.tables with fire id, `pixelID`, and buffer status"),
     createsOutput("fuelClassTable", "data.table",
@@ -1340,9 +1343,20 @@ runBorealDP_forCohortData <- function(sim) {
     }
   }
 
-  if (!suppliedElsewhere("climateVariablesForFire", sim)) {
+  ## Climate variables for the fire models (R/fireClimateVariables.R): the default here, unless supplied.
+  ## `climateVariables` follows from them, so canClimateData prepares exactly these layers.
+  if (!suppliedElsewhere("climateVariablesForFire", sim, where = c("sim", "user"))) {
     sim$climateVariablesForFire <- defaultClimateVariablesForFire
   }
+  if (!suppliedElsewhere("climateVariables", sim, where = c("sim", "user"))) {
+    gcm <- tryCatch(P(sim, module = "canClimateData")$climateGCM, error = function(e) NULL)
+    projYears <- tryCatch(P(sim, module = "canClimateData")$projectedClimateYears, error = function(e) NULL)
+    sim$climateVariables <- fireClimateLayers(sim$climateVariablesForFire, historicalYears = P(sim)$fireYears,
+                                              projected = !identical(gcm, "NRV"),
+                                              projectedYears = if (is.null(projYears)) 2011:2100 else projYears)
+  }
+  ## the rest of the module names climate layers without underscores ("CMDsm")
+  sim$climateVariablesForFire <- lapply(sim$climateVariablesForFire, function(v) gsub("_", "", v))
 
   doRstLCCs <- !suppliedElsewhere("rstLCCs", sim)
   doStandAgeMaps <- !suppliedElsewhere("standAgeMaps", sim)
@@ -1558,9 +1572,6 @@ ranEffsLabel <- fireSenseUtils::yearTxt
 cohDat <- "cohortData"
 pixGM <- "pixelGroupMap"
 saMap <- "standAgeMap"
-
-defaultClimateVariablesForFire <- list("spread" = "MDC",
-                                       "ignition" = "MDC")
 
 #' Group fire years by the data year whose vegetation they use
 #'
