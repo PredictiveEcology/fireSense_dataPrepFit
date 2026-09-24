@@ -8,14 +8,14 @@ defineModule(sim, list(
     person(c("Alex", "M"), "Chubaty", role = "ctb", email = "achubaty@for-cast.ca")
   ),
   childModules = character(0),
-  version = list(fireSense_dataPrepFit = "1.2.0.9007"),
+  version = list(fireSense_dataPrepFit = "1.2.0.9008"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = deparse(list("README.md", "fireSense_dataPrepFit.Rmd")),
   loadOrder = list(before = c("Biomass_speciesData", "Biomass_borealDataPrep", "Biomass_speciesParameters")),
   reqdPkgs = list("data.table", "fastDummies", "reproducible", "Require",
-                  "PredictiveEcology/climateData@development (>= 2.2.3)",
+                  "PredictiveEcology/climateData@development (>= 2.2.3.9006)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9024)",
                   "FOR-CAST/fireregimetools@main (>= 0.1.0.9006)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
@@ -101,8 +101,11 @@ defineModule(sim, list(
   ),
   inputObjects = bindrows(
     expectsInput("climateVariablesForFire", "list", sourceURL = NA,
-                 paste("List with elements `ignition` and `spread`, each a character vector of names in",
-                       "`sim$historicalClimateRasters` to use for that process. The default is 'MDC' for both.")),
+                 paste("List with elements `ignition` and `spread`, each a character vector of climate variable",
+                       "names, with or without underscores (e.g., `CMD_sm` or `CMDsm`). IgnitionFit uses all of",
+                       "`ignition`; SpreadFit uses `spread`. Default: `ignition = c('CMD', 'cumMDC', 'CMD_sm', 'CMD_sp')`,",
+                       "`spread = 'auto'`: the `ignition` variable that best separates the study area's worst fire years",
+                       "(see `spreadClimateSelection`). Unless supplied, `climateVariables` is built from these.")),
     expectsInput("cohortDatas", "list", sourceURL = NA,
                  paste("List of `cohortData` data.tables, one per `dataYears`, named `year<year>`.",
                        "If not supplied, built by running Biomass_borealDataPrep for each data year.")),
@@ -177,10 +180,14 @@ defineModule(sim, list(
     createsOutput("sppNameVector", "character",
                  desc = paste("Sorted species names (`sppEquivCol`) from the `sppEquiv` stored with a previous SpreadFit;",
                               "only created if one exists.")),
+    createsOutput("spreadClimateSelection", "data.table",
+                  paste("With `climateVariablesForFire$spread = 'auto'`: each candidate's AUC for separating the",
+                        "worst quarter of fire years (by area burned), its Spearman correlation, and which was chosen.")),
     createsOutput("climateVariables", "list",
-                  paste("Climate variable definitions, as used by `climateData::prepClimateLayers`. Must be supplied",
-                        "(e.g., by canClimateData) if a previous SpreadFit exists: the variables of that fit are",
-                        "then added to it. Otherwise not touched.")),
+                  paste("Climate variable definitions, as used by `climateData::prepClimateLayers` (canClimateData).",
+                        "Unless supplied, built from `climateVariablesForFire` for `fireYears` (and projected years",
+                        "unless canClimateData's `climateGCM` is 'NRV'). If a previous SpreadFit exists, the",
+                        "variables of that fit are added.")),
     createsOutput("fireBufferedListDT", "list",
                   "list of data.tables with fire id, `pixelID`, and buffer status"),
     createsOutput("fuelClassTable", "data.table",
@@ -400,24 +407,21 @@ Init <- function(sim) {
     sim$nonForestedLCCGroupsList <- Map(x = outs2, function(x) x[["nonForestedLCCGroups"]])
     sim$missingLCCgroupList <- Map(x = outs2, function(x) x[["missingLCCgroup"]])
     
-    climateVariablesList <- Map(x = outs2, function(x) 
-      modifyList(sim$climateVariables,
-                 climateLayers(.climVars = x[["theseClimVars"]])))
-    theseClimVarsNoUnderscore <- Map(x = outs2, function(x) 
-      x[["theseClimVarsNoUnderscore"]])
-    theseClimVarsNoUnderscore <- unique(theseClimVarsNoUnderscore)[[1]]
-    
-    sim$climateVariables <- unique(climateVariablesList)
-    if (length(sim$climateVariables) > 1)
-      stop("Currently, can't have different climate variables by ELF; must all be the same")
-    sim$climateVariables <- sim$climateVariables[[1]]
-
-    # Take exactly the ones in the existing object
-    sim$climateVariablesForFire[["spread"]] <- theseClimVarsNoUnderscore
-
-    # Append the ones in the object as a decent guess. There can be more variables for ignitionfit
+    ## Each ELF's fit names its own spread climate variable(s): with spread = "auto" two ELFs can
+    ## differ. Prepare the union; each ELF's own formula picks its variables from it. Variables already
+    ## being prepared keep their definition (and years); only missing ones are added, like the rest.
+    fitClimVars <- unique(unlist(Map(x = outs2, function(x) x[["theseClimVars"]]), use.names = FALSE))
+    fitClimVarsNoUnderscore <- gsub("_", "", fitClimVars)
+    gcm <- tryCatch(P(sim, module = "canClimateData")$climateGCM, error = function(e) NULL)
+    projYears <- tryCatch(P(sim, module = "canClimateData")$projectedClimateYears, error = function(e) NULL)
+    sim$climateVariables <- addFitClimateVariables(sim$climateVariables, fitClimVars,
+                                                   historicalYears = P(sim)$fireYears,
+                                                   projected = !identical(gcm, "NRV"),
+                                                   projectedYears = if (is.null(projYears)) 2011:2100 else projYears)
+    sim$climateVariablesForFire[["spread"]] <- fitClimVarsNoUnderscore
+    ## ignition (xgboost) can use every one of them
     sim$climateVariablesForFire[["ignition"]] <-
-      sort(unique(c(sim$climateVariablesForFire[["ignition"]], theseClimVarsNoUnderscore)))
+      sort(unique(c(sim$climateVariablesForFire[["ignition"]], fitClimVarsNoUnderscore)))
   
   }
   
@@ -729,6 +733,22 @@ prepare_SpreadFit <- function(sim) {
            "Please create larger buffers around fires in fireBufferedListDT, e.g., via ",
            "fireSenseUtils::bufferToArea(..., areaMultiplier = multiplier)")
     }
+  }
+
+  ## spread = "auto": the climate variable that best separates this study area's bad fire years
+  ## (R/fireClimateVariables.R)
+  if (identical(sim$climateVariablesForFire$spread, "auto")) {
+    fy <- paste0(fireSenseUtils::yearTxt, P(sim)$fireYears)
+    burned <- setNames(numeric(length(fy)), fy)
+    b <- vapply(sim$fireBufferedListDT, function(d) as.numeric(sum(d$buffer == 1)), numeric(1))
+    b <- b[names(b) %in% fy]
+    burned[names(b)] <- b
+    sim$spreadClimateSelection <- selectSpreadClimateVariable(sim$historicalClimateRasters, burned,
+                                                              candidates = sim$climateVariablesForFire$ignition)
+    sim$climateVariablesForFire$spread <- sim$spreadClimateSelection[chosen == TRUE, var]
+    message("Spread climate variable (auto): ", sim$climateVariablesForFire$spread,
+            "; bad-fire-year AUC: ", paste0(sim$spreadClimateSelection$var, " ",
+                                            round(sim$spreadClimateSelection$auc, 2), collapse = ", "))
   }
 
   RHS <- paste(paste0(sim$climateVariablesForFire$spread, collapse = " + "), youngAgeTxt,
@@ -1340,9 +1360,20 @@ runBorealDP_forCohortData <- function(sim) {
     }
   }
 
-  if (!suppliedElsewhere("climateVariablesForFire", sim)) {
+  ## Climate variables for the fire models (R/fireClimateVariables.R): the default here, unless supplied.
+  ## `climateVariables` follows from them, so canClimateData prepares exactly these layers.
+  if (!suppliedElsewhere("climateVariablesForFire", sim, where = c("sim", "user"))) {
     sim$climateVariablesForFire <- defaultClimateVariablesForFire
   }
+  if (!suppliedElsewhere("climateVariables", sim, where = c("sim", "user"))) {
+    gcm <- tryCatch(P(sim, module = "canClimateData")$climateGCM, error = function(e) NULL)
+    projYears <- tryCatch(P(sim, module = "canClimateData")$projectedClimateYears, error = function(e) NULL)
+    sim$climateVariables <- fireClimateLayers(sim$climateVariablesForFire, historicalYears = P(sim)$fireYears,
+                                              projected = !identical(gcm, "NRV"),
+                                              projectedYears = if (is.null(projYears)) 2011:2100 else projYears)
+  }
+  ## the rest of the module names climate layers without underscores ("CMDsm")
+  sim$climateVariablesForFire <- lapply(sim$climateVariablesForFire, function(v) gsub("_", "", v))
 
   doRstLCCs <- !suppliedElsewhere("rstLCCs", sim)
   doStandAgeMaps <- !suppliedElsewhere("standAgeMaps", sim)
@@ -1558,9 +1589,6 @@ ranEffsLabel <- fireSenseUtils::yearTxt
 cohDat <- "cohortData"
 pixGM <- "pixelGroupMap"
 saMap <- "standAgeMap"
-
-defaultClimateVariablesForFire <- list("spread" = "MDC",
-                                       "ignition" = "MDC")
 
 #' Group fire years by the data year whose vegetation they use
 #'

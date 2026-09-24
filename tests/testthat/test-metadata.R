@@ -74,6 +74,7 @@ test_that("outputs are the expected names and classes", {
       sppColorVect                           = "character",
       sppEquiv                               = "data.table",
       sppNameVector                          = "character",
+      spreadClimateSelection                 = "data.table",
       spreadFirePoints                       = "list",
       spreadFirePolys                        = "list",
       spreadFitPreRun                        = "data.frame",
