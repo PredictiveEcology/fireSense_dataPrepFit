@@ -32,7 +32,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fireSense_dataPrepFit</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9007</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9008</span>
       </span>
     </div>
 
@@ -71,9 +71,9 @@
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>fireSense_dataPrepFit Manual</h1>
-            <h3 data-toc-skip class="subtitle">v.1.2.0.9007</h3>
+            <h3 data-toc-skip class="subtitle">v.1.2.0.9008</h3>
             
-            <h4 data-toc-skip class="date">Last updated: 2026-09-21</h4>
+            <h4 data-toc-skip class="date">Last updated: 2026-09-24</h4>
       
 
       <div class="hidden name"><code>fireSense_dataPrepFit.Rmd</code></div>
@@ -282,7 +282,7 @@ climateVariablesForFire
 list
 </td>
 <td style="text-align:left;">
-List with elements <code>ignition</code> and <code>spread</code>, each a character vector of names in <code>sim$historicalClimateRasters</code> to use for that process. The default is ‘MDC’ for both.
+List with elements <code>ignition</code> and <code>spread</code>, each a character vector of climate variable names, with or without underscores (e.g., <code>CMD_sm</code> or <code>CMDsm</code>). IgnitionFit uses all of <code>ignition</code>; SpreadFit uses <code>spread</code>. Default: <code>ignition = c('CMD', 'cumMDC', 'CMD_sm', 'CMD_sp')</code>, <code>spread = 'auto'</code>: the <code>ignition</code> variable that best separates the study area’s worst fire years (see <code>spreadClimateSelection</code>). Unless supplied, <code>climateVariables</code> is built from these.
 </td>
 <td style="text-align:left;">
 NA
@@ -1165,13 +1165,24 @@ Sorted species names (<code>sppEquivCol</code>) from the <code>sppEquiv</code> s
 </tr>
 <tr>
 <td style="text-align:left;">
+spreadClimateSelection
+</td>
+<td style="text-align:left;">
+data.table
+</td>
+<td style="text-align:left;">
+With <code>climateVariablesForFire$spread = 'auto'</code>: each candidate’s AUC for separating the worst quarter of fire years (by area burned), its Spearman correlation, and which was chosen.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
 climateVariables
 </td>
 <td style="text-align:left;">
 list
 </td>
 <td style="text-align:left;">
-Climate variable definitions, as used by <code><a href="https://rdrr.io/pkg/climateData/man/prepClimateLayers.html" class="external-link">climateData::prepClimateLayers</a></code>. Must be supplied (e.g., by canClimateData) if a previous SpreadFit exists: the variables of that fit are then added to it. Otherwise not touched.
+Climate variable definitions, as used by <code><a href="https://rdrr.io/pkg/climateData/man/prepClimateLayers.html" class="external-link">climateData::prepClimateLayers</a></code> (canClimateData). Unless supplied, built from <code>climateVariablesForFire</code> for <code>fireYears</code> (and projected years unless canClimateData’s <code>climateGCM</code> is ‘NRV’). If a previous SpreadFit exists, the variables of that fit are added.
 </td>
 </tr>
 <tr>

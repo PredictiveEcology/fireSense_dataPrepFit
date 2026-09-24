@@ -9,13 +9,17 @@
 <url><loc>/index.html</loc></url>
 <url><loc>/news/index.html</loc></url>
 <url><loc>/reference/Init.html</loc></url>
+<url><loc>/reference/addFitClimateVariables.html</loc></url>
 <url><loc>/reference/checkClimateYears.html</loc></url>
 <url><loc>/reference/cleanUpMod.html</loc></url>
+<url><loc>/reference/climateNAnames.html</loc></url>
 <url><loc>/reference/clipPointsToStudyArea.html</loc></url>
 <url><loc>/reference/correctMissingLCC.html</loc></url>
 <url><loc>/reference/dataPrepBuild.html</loc></url>
+<url><loc>/reference/defaultClimateVariablesForFire.html</loc></url>
 <url><loc>/reference/doEvent.fireSense_dataPrepFit.html</loc></url>
 <url><loc>/reference/dot-inputObjects.html</loc></url>
+<url><loc>/reference/fireClimateLayers.html</loc></url>
 <url><loc>/reference/firePolysByYear.html</loc></url>
 <url><loc>/reference/fireRecordShapefile.html</loc></url>
 <url><loc>/reference/index.html</loc></url>
@@ -31,6 +35,7 @@
 <url><loc>/reference/prepare_SpreadFitFire_Raster.html</loc></url>
 <url><loc>/reference/prepare_SpreadFitFire_Vector.html</loc></url>
 <url><loc>/reference/runBorealDP_forCohortData.html</loc></url>
+<url><loc>/reference/selectSpreadClimateVariable.html</loc></url>
 <url><loc>/reference/yearGroups.html</loc></url>
 </urlset>
 

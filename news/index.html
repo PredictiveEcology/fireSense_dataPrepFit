@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fireSense_dataPrepFit</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9007</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9008</span>
       </span>
     </div>
 
@@ -53,7 +53,12 @@
 
     <div class="section level2">
 <h2 class="page-header" data-toc-text="development version" id="firesense_dataprepfit-development-version">fireSense_dataPrepFit (development version)<a class="anchor" aria-label="anchor" href="#firesense_dataprepfit-development-version"></a></h2>
-<ul><li><p>The non-xgboost ignition path is removed, as in fireSense_IgnitionFit. <code><a href="../reference/prepare_IgnitionFit.html">prepare_IgnitionFit()</a></code> no longer builds <code>fireSense_ignitionFormula</code>; that branch used an object that was never defined, so it could only stop with an error. Removed with it: parameter <code>modelAlgorithm</code> and output <code>fireSense_ignitionFormula</code>.</p></li>
+<div class="section level3">
+<h3 id="climate-variables-development-version">Climate variables<a class="anchor" aria-label="anchor" href="#climate-variables-development-version"></a></h3>
+<ul><li><p><code>climateVariablesForFire</code> now defaults to <code>ignition = c("CMD", "cumMDC", "CMD_sm", "CMD_sp")</code> (IgnitionFit’s xgboost uses them all) and <code>spread = "auto"</code>. Unless supplied, <code>climateVariables</code> (what canClimateData prepares) is built from it, so the two agree and a user need not choose; canClimateData keeps its own default when used alone. Names are accepted with or without underscores.</p></li>
+<li><p><code>spread = "auto"</code> picks, per study area, the candidate that best separates the bad fire years: the AUC of the top quarter of fire years (by area burned) against the rest, the Spearman correlation breaking ties. Below an AUC of 0.6 no variable separates them, and the first candidate is used, with a warning. The scores are the new output <code>spreadClimateSelection</code>.</p></li>
+<li><p>When predicting from existing fits of several ELFs, their spread variables may differ; every one is prepared (the union), instead of stopping.</p></li>
+<li><p>The non-xgboost ignition path is removed, as in fireSense_IgnitionFit. <code><a href="../reference/prepare_IgnitionFit.html">prepare_IgnitionFit()</a></code> no longer builds <code>fireSense_ignitionFormula</code>; that branch used an object that was never defined, so it could only stop with an error. Removed with it: parameter <code>modelAlgorithm</code> and output <code>fireSense_ignitionFormula</code>.</p></li>
 <li><p>Removed, because the module declared them but never read them: parameters <code>igFocalFactor</code>, <code>useCentroids</code>, <code>.plotInterval</code>, <code>.saveInitialTime</code>, <code>.saveInterval</code>, and input <code>studyAreaReporting</code>. Stop setting them.</p></li>
 <li><p>Removed <code>dataPrepInit()</code>, which has had no caller since its event was removed. A length-one <code>climateVariablesForFire</code> is therefore not expanded to <code>ignition</code> and <code>spread</code>, and its names are not checked against <code>historicalClimateRasters</code>: supply both elements. Version 1.2.0.9007.</p></li>
 <li><p>Dead code removed (<code>Save()</code>, <code>rmMissingPixels()</code>, and the module copies of <code>putBackIntoRaster()</code> and <code>calcNonForestYoungAge()</code>, which live in <code>fireSenseUtils</code>), every function documented, metadata descriptions and the manual brought up to date. No change in behaviour.</p></li>
@@ -64,6 +69,7 @@
 <li><p><code><a href="../reference/fireRecordShapefile.html">fireRecordShapefile()</a></code> calls <code><a href="https://reproducible.predictiveecology.org/reference/preProcess.html" class="external-link">reproducible::preProcess()</a></code> by its full name. caret, a fireSense_IgnitionFit dependency, defines its own <code>preProcess()</code> generic; attached after reproducible it masked the bare name, and the fire-record download stopped with ‘argument “x” is missing, with no default’.</p></li>
 <li><p>Fire records are read with <code>fireregimetools</code> and downloaded with <code><a href="https://reproducible.predictiveecology.org/reference/preProcess.html" class="external-link">reproducible::preProcess()</a></code>, so <code><a href="https://reproducible.predictiveecology.org/reference/preProcessCheckURLs.html" class="external-link">reproducible::preProcessCheckURLs()</a></code> can recheck them against the server. NFDB ignition points come from <code>current_version/NFDB_point_shp.zip</code>; the URL used before (<code>NFDB_point.zip</code>) returns HTTP 404, so no NFDB release newer than the local copy could be fetched. NBAC perimeters still come from the newest release, and its URL is now part of the Cache key.</p></li>
 </ul></div>
+</div>
     <div class="section level2">
 <h2 class="page-header" data-toc-text="1.2.0" id="firesense_dataprepfit-120">fireSense_dataPrepFit 1.2.0<a class="anchor" aria-label="anchor" href="#firesense_dataprepfit-120"></a></h2>
 <p>First release from <code>development</code> since <code>main</code> was last updated (2023-02-07). Full history: <a href="https://github.com/PredictiveEcology/fireSense_dataPrepFit/compare/4b4e921" class="external-link uri">https://github.com/PredictiveEcology/fireSense_dataPrepFit/compare/4b4e921</a>…v1.2.0</p>

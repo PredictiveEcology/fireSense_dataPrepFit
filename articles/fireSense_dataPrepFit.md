@@ -1,7 +1,7 @@
 ---
 title: "fireSense_dataPrepFit Manual"
-subtitle: "v.1.2.0.9007"
-date: "Last updated: 2026-09-21"
+subtitle: "v.1.2.0.9008"
+date: "Last updated: 2026-09-24"
 output:
   bookdown::html_document2:
     toc: true
@@ -149,7 +149,7 @@ Table \@ref(tab:moduleInputs-fireSense-dataPrepFit) shows the full list of modul
   <tr>
    <td style="text-align:left;"> climateVariablesForFire </td>
    <td style="text-align:left;"> list </td>
-   <td style="text-align:left;"> List with elements `ignition` and `spread`, each a character vector of names in `sim$historicalClimateRasters` to use for that process. The default is 'MDC' for both. </td>
+   <td style="text-align:left;"> List with elements `ignition` and `spread`, each a character vector of climate variable names, with or without underscores (e.g., `CMD_sm` or `CMDsm`). IgnitionFit uses all of `ignition`; SpreadFit uses `spread`. Default: `ignition = c('CMD', 'cumMDC', 'CMD_sm', 'CMD_sp')`, `spread = 'auto'`: the `ignition` variable that best separates the study area's worst fire years (see `spreadClimateSelection`). Unless supplied, `climateVariables` is built from these. </td>
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
@@ -553,9 +553,14 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-dataP
    <td style="text-align:left;"> Sorted species names (`sppEquivCol`) from the `sppEquiv` stored with a previous SpreadFit; only created if one exists. </td>
   </tr>
   <tr>
+   <td style="text-align:left;"> spreadClimateSelection </td>
+   <td style="text-align:left;"> data.table </td>
+   <td style="text-align:left;"> With `climateVariablesForFire$spread = 'auto'`: each candidate's AUC for separating the worst quarter of fire years (by area burned), its Spearman correlation, and which was chosen. </td>
+  </tr>
+  <tr>
    <td style="text-align:left;"> climateVariables </td>
    <td style="text-align:left;"> list </td>
-   <td style="text-align:left;"> Climate variable definitions, as used by `climateData::prepClimateLayers`. Must be supplied (e.g., by canClimateData) if a previous SpreadFit exists: the variables of that fit are then added to it. Otherwise not touched. </td>
+   <td style="text-align:left;"> Climate variable definitions, as used by `climateData::prepClimateLayers` (canClimateData). Unless supplied, built from `climateVariablesForFire` for `fireYears` (and projected years unless canClimateData's `climateGCM` is 'NRV'). If a previous SpreadFit exists, the variables of that fit are added. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> fireBufferedListDT </td>
