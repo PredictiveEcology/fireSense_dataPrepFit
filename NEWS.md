@@ -1,5 +1,9 @@
 # fireSense_dataPrepFit (development version)
 
+- New parameter `escapeSizeHa` (default 50). A fire counts as escaped when it reached that size, in the
+  escape model's response and in the fires the spread model is fitted to; before, any fire larger than one
+  pixel (about 6 ha) counted. New output `nonEscapedFireSizesHa`: the study area's natural-cause fire sizes
+  below it, for fireSense to size non-escaped ignitions. Version 1.2.0.9011.
 - The default fire years are now 1985 to the latest year with historical climate
   (`climateData::latestHistoricalYear()`, 2024 today), and the default `dataYears` are 1985, 1990, 2000, 2010
   and 2020. The old default, 2002:2025, ran past the climate data, so every project had to set `fireYears`.
