@@ -8,7 +8,7 @@ defineModule(sim, list(
     person(c("Alex", "M"), "Chubaty", role = "ctb", email = "achubaty@for-cast.ca")
   ),
   childModules = character(0),
-  version = list(fireSense_dataPrepFit = "1.2.0.9008"),
+  version = list(fireSense_dataPrepFit = "1.2.0.9009"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -100,6 +100,11 @@ defineModule(sim, list(
                           "passes those in `.cacheExtra`: a changed function then re-runs the event."))
   ),
   inputObjects = bindrows(
+    expectsInput("climateVariables", "list", sourceURL = NA,
+                 paste("Climate variable definitions for `climateData::prepClimateLayers` (canClimateData). Unless",
+                       "supplied, `.inputObjects` builds them from `climateVariablesForFire`. Declared as an input",
+                       "because `.inputObjects` sets it: a cached `.inputObjects` restores only declared inputs,",
+                       "so without this a cache hit returned no `climateVariables` and canClimateData failed.")),
     expectsInput("climateVariablesForFire", "list", sourceURL = NA,
                  paste("List with elements `ignition` and `spread`, each a character vector of climate variable",
                        "names, with or without underscores (e.g., `CMD_sm` or `CMDsm`). IgnitionFit uses all of",
@@ -145,6 +150,10 @@ defineModule(sim, list(
                        "Built with `rstLCCs` when that is not supplied.")),
     expectsInput("rasterToMatch", "SpatRaster", sourceURL = NA,
                  "Template raster for `studyArea`. The default is 240 m, from SCANFI land cover."),
+    expectsInput("rasterToMatchLarge", "SpatRaster", sourceURL = NA,
+                 paste("Optional larger template. If supplied it defines `studyArea_biomassParam`; if not,",
+                       "`.inputObjects` sets it to `rasterToMatch` for Biomass_speciesData. Declared as an input",
+                       "because `.inputObjects` sets it (a cached `.inputObjects` restores only declared inputs).")),
     expectsInput("rasterToMatch_biomassParam", "SpatRaster", sourceURL = NA,
                  "Template raster for `studyArea_biomassParam`, passed to Biomass_borealDataPrep. Expected to ",
                  "cover at least `rasterToMatch` (formerly `rasterToMatchLarge`)."),
