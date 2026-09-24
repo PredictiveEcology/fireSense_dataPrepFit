@@ -35,29 +35,36 @@ yearlyRaster <- function(values, years) {
   s
 }
 
-test_that("auto picks the variable that best tracks annual area burned", {
+test_that("auto picks the variable that separates the bad fire years, not the best overall correlation", {
+  years <- 2001:2012
+  burned <- setNames(c(1:9, 100, 200, 300), paste0(fireSenseUtils::yearTxt, years))   # 3 bad years
+  ordinary <- c(1:9, 5, 5, 5)                     # tracks the quiet years, says nothing about the bad ones
+  badYears <- c(9, 1, 8, 2, 7, 3, 6, 4, 5, 10, 11, 12)   # noisy, but driest in exactly the bad years
+  rasters <- list(ordinary = yearlyRaster(ordinary, years), badYears = yearlyRaster(badYears, years))
+  sel <- selectSpreadClimateVariable(rasters, burned, c("ordinary", "badYears"))
+  expect_gt(sel[var == "ordinary", rho], sel[var == "badYears", rho])  # a correlation would pick "ordinary"
+  expect_equal(sel[var == "badYears", auc], 1)
+  expect_identical(sel[chosen == TRUE, var], "badYears")
+  expect_identical(sel$nBad, c(3L, 3L))
+})
+
+test_that("a variable that runs against fire, or is missing, is not chosen", {
   years <- 2001:2012
   set.seed(3)
   burned <- setNames(c(0, 5, 40, 12, 0, 90, 30, 3, 60, 8, 0, 25), paste0(fireSenseUtils::yearTxt, years))
-  dry <- rank(burned) + stats::rnorm(12, 0, 1)        # tracks area burned
-  wet <- -dry                                         # runs against it
-  noise <- stats::rnorm(12)
-  rasters <- list(dry = yearlyRaster(dry, years), wet = yearlyRaster(wet, years), noise = yearlyRaster(noise, years))
-  sel <- selectSpreadClimateVariable(rasters, burned, c("noise", "wet", "dry"))
+  dry <- rank(burned) + stats::rnorm(12, 0, 1)
+  rasters <- list(dry = yearlyRaster(dry, years), wet = yearlyRaster(-dry, years))
+  sel <- selectSpreadClimateVariable(rasters, burned, c("missing", "wet", "dry"))
   expect_identical(sel[chosen == TRUE, var], "dry")
+  expect_lt(sel[var == "wet", auc], 0.5)
+  expect_true(is.na(sel[var == "missing", auc]))
   expect_equal(sum(sel$chosen), 1L)
-  expect_lt(sel[var == "wet", rho], 0)
-  expect_identical(sel$nYears, rep(12L, 3))
-  ## a candidate with no layers scores NA and cannot be chosen
-  sel2 <- selectSpreadClimateVariable(rasters, burned, c("missing", "dry"))
-  expect_true(is.na(sel2[var == "missing", rho]))
-  expect_identical(sel2[chosen == TRUE, var], "dry")
 })
 
-test_that("auto falls back to the first candidate, with a warning, when none correlates positively", {
-  years <- 2001:2010
-  burned <- setNames(as.numeric(1:10), paste0(fireSenseUtils::yearTxt, years))
-  rasters <- list(a = yearlyRaster(10:1, years), b = yearlyRaster(c(10, 9, 7, 8, 6, 5, 3, 4, 2, 1), years))
+test_that("auto falls back to the first candidate when no variable separates the bad years", {
+  years <- 2001:2012
+  burned <- setNames(c(1:9, 100, 200, 300), paste0(fireSenseUtils::yearTxt, years))
+  rasters <- list(a = yearlyRaster(c(12:4, 3, 2, 1), years), b = yearlyRaster(c(9, 1, 8, 2, 7, 3, 6, 4, 5, 5, 5, 5), years))  # AUC 0.5
   expect_warning(sel <- selectSpreadClimateVariable(rasters, burned, c("a", "b")), "using a")
   expect_identical(sel[chosen == TRUE, var], "a")
 })
