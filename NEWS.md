@@ -1,5 +1,18 @@
 # fireSense_dataPrepFit (development version)
 
+## Climate variables
+
+- `climateVariablesForFire` now defaults to `ignition = c("CMD", "cumMDC", "CMD_sm", "CMD_sp")` (IgnitionFit's xgboost uses
+  them all) and `spread = "auto"`. Unless supplied, `climateVariables` (what canClimateData prepares) is built from
+  it, so the two agree and a user need not choose; canClimateData keeps its own default when used alone. Names
+  are accepted with or without underscores.
+- `spread = "auto"` picks, per study area, the candidate that best separates the bad fire years: the AUC of
+  the top quarter of fire years (by area burned) against the rest, the Spearman correlation breaking ties. Below
+  an AUC of 0.6 no variable separates them, and the first candidate is used, with a warning. The scores are
+  the new output `spreadClimateSelection`.
+- When predicting from existing fits of several ELFs, their spread variables may differ; every one is
+  prepared (the union), instead of stopping.
+
 - The non-xgboost ignition path is removed, as in fireSense_IgnitionFit. `prepare_IgnitionFit()` no longer
   builds `fireSense_ignitionFormula`; that branch used an object that was never defined, so it could only
   stop with an error. Removed with it: parameter `modelAlgorithm` and output `fireSense_ignitionFormula`.

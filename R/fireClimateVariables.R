@@ -102,3 +102,23 @@ selectSpreadClimateVariable <- function(climateRasters, burnedByYear, candidates
   scores[, chosen := var == best]
   scores[]
 }
+
+#' Add the climate variables of existing fits to what is being prepared
+#'
+#' For prediction from existing fits, possibly of several ELFs that chose different spread variables
+#' (`spread = "auto"`): every variable a fit uses must be prepared. Variables already in
+#' `climateVariables` keep their definition (and years); only missing ones are added.
+#'
+#' @param climateVariables The list for `sim$climateVariables` (names like `historical_CMDsm`).
+#' @param fitClimVars Climate variables the fits use, ClimateNA names.
+#' @inheritParams fireClimateLayers
+#' @return `climateVariables`, with any missing variable added.
+#' @keywords internal
+addFitClimateVariables <- function(climateVariables, fitClimVars, historicalYears, projected = TRUE,
+                                   projectedYears = 2011:2100) {
+  prepared <- unique(sub("^[^_]+_", "", names(climateVariables)))
+  toAdd <- fitClimVars[!gsub("_", "", fitClimVars) %in% prepared]
+  if (!length(toAdd)) return(climateVariables)
+  c(climateVariables, fireClimateLayers(list(ignition = toAdd), historicalYears = historicalYears,
+                                        projected = projected, projectedYears = projectedYears))
+}

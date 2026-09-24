@@ -15,7 +15,7 @@ defineModule(sim, list(
   documentation = deparse(list("README.md", "fireSense_dataPrepFit.Rmd")),
   loadOrder = list(before = c("Biomass_speciesData", "Biomass_borealDataPrep", "Biomass_speciesParameters")),
   reqdPkgs = list("data.table", "fastDummies", "reproducible", "Require",
-                  "PredictiveEcology/climateData@development (>= 2.2.3)",
+                  "PredictiveEcology/climateData@development (>= 2.2.3.9006)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9024)",
                   "FOR-CAST/fireregimetools@main (>= 0.1.0.9006)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
@@ -407,24 +407,21 @@ Init <- function(sim) {
     sim$nonForestedLCCGroupsList <- Map(x = outs2, function(x) x[["nonForestedLCCGroups"]])
     sim$missingLCCgroupList <- Map(x = outs2, function(x) x[["missingLCCgroup"]])
     
-    climateVariablesList <- Map(x = outs2, function(x) 
-      modifyList(sim$climateVariables,
-                 climateLayers(.climVars = x[["theseClimVars"]])))
-    theseClimVarsNoUnderscore <- Map(x = outs2, function(x) 
-      x[["theseClimVarsNoUnderscore"]])
-    theseClimVarsNoUnderscore <- unique(theseClimVarsNoUnderscore)[[1]]
-    
-    sim$climateVariables <- unique(climateVariablesList)
-    if (length(sim$climateVariables) > 1)
-      stop("Currently, can't have different climate variables by ELF; must all be the same")
-    sim$climateVariables <- sim$climateVariables[[1]]
-
-    # Take exactly the ones in the existing object
-    sim$climateVariablesForFire[["spread"]] <- theseClimVarsNoUnderscore
-
-    # Append the ones in the object as a decent guess. There can be more variables for ignitionfit
+    ## Each ELF's fit names its own spread climate variable(s): with spread = "auto" two ELFs can
+    ## differ. Prepare the union; each ELF's own formula picks its variables from it. Variables already
+    ## being prepared keep their definition (and years); only missing ones are added, like the rest.
+    fitClimVars <- unique(unlist(Map(x = outs2, function(x) x[["theseClimVars"]]), use.names = FALSE))
+    fitClimVarsNoUnderscore <- gsub("_", "", fitClimVars)
+    gcm <- tryCatch(P(sim, module = "canClimateData")$climateGCM, error = function(e) NULL)
+    projYears <- tryCatch(P(sim, module = "canClimateData")$projectedClimateYears, error = function(e) NULL)
+    sim$climateVariables <- addFitClimateVariables(sim$climateVariables, fitClimVars,
+                                                   historicalYears = P(sim)$fireYears,
+                                                   projected = !identical(gcm, "NRV"),
+                                                   projectedYears = if (is.null(projYears)) 2011:2100 else projYears)
+    sim$climateVariablesForFire[["spread"]] <- fitClimVarsNoUnderscore
+    ## ignition (xgboost) can use every one of them
     sim$climateVariablesForFire[["ignition"]] <-
-      sort(unique(c(sim$climateVariablesForFire[["ignition"]], theseClimVarsNoUnderscore)))
+      sort(unique(c(sim$climateVariablesForFire[["ignition"]], fitClimVarsNoUnderscore)))
   
   }
   

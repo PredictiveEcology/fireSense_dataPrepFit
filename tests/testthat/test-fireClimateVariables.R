@@ -68,3 +68,14 @@ test_that("auto falls back to the first candidate when no variable separates the
   expect_warning(sel <- selectSpreadClimateVariable(rasters, burned, c("a", "b")), "using a")
   expect_identical(sel[chosen == TRUE, var], "a")
 })
+
+test_that("prediction prepares every fit's variables, keeping those already defined", {
+  have <- fireClimateLayers(list(ignition = "CMD_sm"), historicalYears = 1985:2024, projected = FALSE)
+  ## two ELFs whose fits chose CMD_sm and cumMDC
+  out <- addFitClimateVariables(have, c("CMD_sm", "cumMDC"), historicalYears = 1990:2000, projected = FALSE)
+  expect_setequal(names(out), c("historical_CMDsm", "historical_cumMDC"))
+  expect_identical(out$historical_CMDsm, have$historical_CMDsm)            # kept, years untouched
+  expect_identical(out$historical_cumMDC$fun, quote(calcCumMDC))
+  ## nothing to add
+  expect_identical(addFitClimateVariables(have, "CMDsm", 1990:2000, FALSE), have)
+})
