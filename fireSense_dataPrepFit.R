@@ -14,7 +14,8 @@ defineModule(sim, list(
   citation = list("citation.bib"),
   documentation = deparse(list("README.md", "fireSense_dataPrepFit.Rmd")),
   loadOrder = list(before = c("Biomass_speciesData", "Biomass_borealDataPrep", "Biomass_speciesParameters")),
-  reqdPkgs = list("data.table", "fastDummies", "reproducible", "Require",
+  reqdPkgs = list("data.table", "fastDummies", "Require",
+                  "PredictiveEcology/reproducible@development (>= 3.2.1.9042)", # CacheGeo re-reads a changed local file
                   "PredictiveEcology/climateData@development (>= 2.2.3.9006)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9043)",
                   "FOR-CAST/fireregimetools@main (>= 0.1.0.9006)",

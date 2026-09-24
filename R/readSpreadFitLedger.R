@@ -5,10 +5,6 @@
 #' rows, as it does from a named file. The combined rows go to a local file named by their content
 #' (`prepInputs()` would otherwise find its checksum changed and try to download it).
 #'
-#' `CacheGeo()` caches its read of the file whatever its own `useCache` says, keyed only on the
-#' Drive copy's MD5; a local file has none, so the cache would return the first ledger ever read.
-#' That read is therefore run with the option `reproducible.useCache` FALSE: it is small, and must be current.
-#'
 #' @param spreadFitFilename The module's `spreadFitFilename`: a file in `cloudFolderID`, or `"latest"`.
 #' @param cloudFolderID The Google Drive folder holding the ledger files.
 #' @param domain The study area, an `sf` object.
@@ -27,8 +23,6 @@ readSpreadFitLedger <- function(spreadFitFilename, cloudFolderID, domain, destin
     file.copy(tf, file.path(destinationPath, spreadFitFilename), overwrite = TRUE)
     cloudFolderID <- NULL
     purge <- FALSE                                   # local, with nothing to download it from
-    oldOpts <- options("reproducible.useCache" = FALSE)  # quoted, or test-cacheArgs.R takes it for a Cache() argument
-    on.exit(options(oldOpts), add = TRUE)
   }
   CacheGeo(cloudFolderID = cloudFolderID, targetFile = spreadFitFilename, purge = purge,
            domain = domain, action = "nothing", useCache = FALSE,

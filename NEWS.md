@@ -3,7 +3,8 @@
 - `spreadFitFilename` now defaults to `"latest"`: each polygon's fit comes from the most recent ledger file in
   `spreadFitGoogleDriveFolder` that has it (`fireSenseUtils::latestSpreadFits()`, which reads only the
   `fireSenseParams_*_linearFuel.rds` files). So "this ELF has a fit" means some such file has it. A named file is
-  read as before.
+  read as before. Needs reproducible >= 3.2.1.9042, whose `CacheGeo()` re-reads a local ledger file that has
+  changed.
 
 - `climateVariables` and `rasterToMatchLarge` are now declared inputs. `.inputObjects` sets both, and a cached
   `.inputObjects` restores only declared inputs, so on a cache hit they vanished: canClimateData then failed with
