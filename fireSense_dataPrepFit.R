@@ -8,7 +8,7 @@ defineModule(sim, list(
     person(c("Alex", "M"), "Chubaty", role = "ctb", email = "achubaty@for-cast.ca")
   ),
   childModules = character(0),
-  version = list(fireSense_dataPrepFit = "1.2.0.9009"),
+  version = list(fireSense_dataPrepFit = "1.2.0.9010"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -16,7 +16,7 @@ defineModule(sim, list(
   loadOrder = list(before = c("Biomass_speciesData", "Biomass_borealDataPrep", "Biomass_speciesParameters")),
   reqdPkgs = list("data.table", "fastDummies", "reproducible", "Require",
                   "PredictiveEcology/climateData@development (>= 2.2.3.9006)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9024)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9043)",
                   "FOR-CAST/fireregimetools@main (>= 0.1.0.9006)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9015)",
@@ -73,9 +73,10 @@ defineModule(sim, list(
                     "https://drive.google.com/drive/folders/1X9-mRjyLMNpgkP_cfqhbr_AQEPOsVCHf",
                     NA, NA, paste("URL of the Google Drive folder holding the ledger of previous SpreadFit results",
                                   "(`spreadFitFilename`), read with `reproducible::CacheGeo`.")),
-    defineParameter("spreadFitFilename", "character", "fireSenseParams.rds",
+    defineParameter("spreadFitFilename", "character", "latest",
                     NA, NA, paste("Name of the ledger file in `spreadFitGoogleDriveFolder`: study area polygons with",
-                                  "their fitted SpreadFit parameters.")),
+                                  "their fitted SpreadFit parameters. `\"latest\"` (the default) takes each polygon's",
+                                  "fit from the most recent ledger file that has it (`fireSenseUtils::latestSpreadFits()`).")),
     defineParameter("targetFuelClasses", "numeric", 5, 1, 7,
                     "the target number of unique fuel classes when using semi-automated approach"),
     defineParameter("useRasterizedFireForSpread", "logical", FALSE, NA, NA,
@@ -326,10 +327,8 @@ Init <- function(sim) {
   if (inherits(sa, "SpatVector")) sa <- st_as_sf(sa)
   
   prepInputsFSURL <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitGoogleDriveFolder")
-  sim$spreadFitPreRun <- CacheGeo(cloudFolderID = Par$spreadFitGoogleDriveFolder,
-                              targetFile = Par$spreadFitFilename, purge = 7,
-                              domain = sa, action = "nothing", useCache = FALSE,
-                              destinationPath = inputPath(sim), bufferOK = TRUE)
+  sim$spreadFitPreRun <- readSpreadFitLedger(Par$spreadFitFilename, Par$spreadFitGoogleDriveFolder,
+                                             domain = sa, destinationPath = inputPath(sim))
   mod$haveSpreadFit <- is(sim$spreadFitPreRun, "sf") || is(sim$spreadFitPreRun, "data.frame")
   if (mod$haveSpreadFit) {
     sim$studyAreaWithSpreadParams <- sim$spreadFitPreRun

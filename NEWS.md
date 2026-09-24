@@ -1,5 +1,10 @@
 # fireSense_dataPrepFit (development version)
 
+- `spreadFitFilename` now defaults to `"latest"`: each polygon's fit comes from the most recent ledger file in
+  `spreadFitGoogleDriveFolder` that has it (`fireSenseUtils::latestSpreadFits()`, which reads only the
+  `fireSenseParams_*_linearFuel.rds` files). So "this ELF has a fit" means some such file has it. A named file is
+  read as before.
+
 - `climateVariables` and `rasterToMatchLarge` are now declared inputs. `.inputObjects` sets both, and a cached
   `.inputObjects` restores only declared inputs, so on a cache hit they vanished: canClimateData then failed with
   "`.l` must be a list, not NULL" (the Mackenzie relaunch, 2026-09-23), although the first run had worked. A new
