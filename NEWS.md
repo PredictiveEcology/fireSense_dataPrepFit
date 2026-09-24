@@ -1,5 +1,11 @@
 # fireSense_dataPrepFit (development version)
 
+- The default fire years are now 1985 to the latest year with historical climate
+  (`climateData::latestHistoricalYear()`, 2024 today), and the default `dataYears` are 1985, 1990, 2000, 2010
+  and 2020. The old default, 2002:2025, ran past the climate data, so every project had to set `fireYears`.
+  fireregimetools is floored at 0.1.0.9008 (FOR-CAST main), which reads only the study area's part of the fire
+  records. Version 1.2.0.9010.
+
 - `climateVariables` and `rasterToMatchLarge` are now declared inputs. `.inputObjects` sets both, and a cached
   `.inputObjects` restores only declared inputs, so on a cache hit they vanished: canClimateData then failed with
   "`.l` must be a list, not NULL" (the Mackenzie relaunch, 2026-09-23), although the first run had worked. A new
