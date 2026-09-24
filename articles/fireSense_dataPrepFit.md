@@ -1,6 +1,6 @@
 ---
 title: "fireSense_dataPrepFit Manual"
-subtitle: "v.1.2.0.9009"
+subtitle: "v.1.2.0.9010"
 date: "Last updated: 2026-09-24"
 output:
   bookdown::html_document2:
@@ -123,8 +123,6 @@ out <- SpaDES.project::setupProject(
   times = list(start = 2020, end = 2020),
   studyArea = mySA, # buffered to limit edge effects
   params = list(fireSense_dataPrepFit = list(
-    dataYears = c(2000L, 2010L, 2020L),
-    fireYears = 2002:2022,
     .useCache = c(".inputObjects", "dataPrepBuild", "prepIgnitionFitData",
                   "prepEscapeFitData", "prepSpreadFitData")))
 )
@@ -329,7 +327,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
   <tr>
    <td style="text-align:left;"> dataYears </td>
    <td style="text-align:left;"> integer </td>
-   <td style="text-align:left;"> 2000, 20.... </td>
+   <td style="text-align:left;"> 1985, 19.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Two or more increasing years for which vegetation, land cover and stand age are built (`cohortDatas`, `rstLCCs`, `standAgeMaps`, ...). Each fire year uses the data year at or before it, so no `fireYears` may precede the first, and every data year needs at least one fire year before the next data year. </td>
@@ -345,10 +343,10 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
   <tr>
    <td style="text-align:left;"> fireYears </td>
    <td style="text-align:left;"> integer </td>
-   <td style="text-align:left;"> 2002, 20.... </td>
+   <td style="text-align:left;"> 1985, 19.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Years of fire records to use for fitting. None may precede the first of `dataYears`, and `historicalClimateRasters` must cover all of them. </td>
+   <td style="text-align:left;"> Years of fire records to use for fitting. None may precede the first of `dataYears`, and `historicalClimateRasters` must cover all of them. The default runs from 1985, the first SCANFI V2 year, to the latest year with historical climate for every tile (`climateData::latestHistoricalYear()`); climate is the last of the inputs to reach a year. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> flammabilityThreshold </td>

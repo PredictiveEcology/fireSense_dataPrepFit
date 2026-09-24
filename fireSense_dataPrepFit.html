@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">fireSense_dataPrepFit</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9009</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9010</span>
       </span>
     </div>
 
@@ -180,6 +180,18 @@ desc
 sourceURL
 </th>
 </tr></thead><tbody><tr><td style="text-align:left;">
+climateVariables
+</td>
+<td style="text-align:left;">
+list
+</td>
+<td style="text-align:left;">
+Climate variable definitions for <code><a href="https://rdrr.io/pkg/climateData/man/prepClimateLayers.html" class="external-link">climateData::prepClimateLayers</a></code> (canClimateData). Unless supplied, <code>.inputObjects</code> builds them from <code>climateVariablesForFire</code>. Declared as an input because <code>.inputObjects</code> sets it: a cached <code>.inputObjects</code> restores only declared inputs, so without this a cache hit returned no <code>climateVariables</code> and canClimateData failed.
+</td>
+<td style="text-align:left;">
+NA
+</td>
+</tr><tr><td style="text-align:left;">
 climateVariablesForFire
 </td>
 <td style="text-align:left;">
@@ -343,6 +355,18 @@ SpatRaster
 </td>
 <td style="text-align:left;">
 Template raster for <code>studyArea</code>. The default is 240 m, from SCANFI land cover.
+</td>
+<td style="text-align:left;">
+NA
+</td>
+</tr><tr><td style="text-align:left;">
+rasterToMatchLarge
+</td>
+<td style="text-align:left;">
+SpatRaster
+</td>
+<td style="text-align:left;">
+Optional larger template. If supplied it defines <code>studyArea_biomassParam</code>; if not, <code>.inputObjects</code> sets it to <code>rasterToMatch</code> for Biomass_speciesData. Declared as an input because <code>.inputObjects</code> sets it (a cached <code>.inputObjects</code> restores only declared inputs).
 </td>
 <td style="text-align:left;">
 NA
