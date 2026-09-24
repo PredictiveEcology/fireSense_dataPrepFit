@@ -2994,7 +2994,7 @@ border-radius: 0px;
 
 
 <h1 class="title toc-ignore">fireSense_dataPrepFit Manual</h1>
-<h3 class="subtitle">v.1.2.0.9009</h3>
+<h3 class="subtitle">v.1.2.0.9010</h3>
 <h4 class="date">Last updated: 2026-09-24</h4>
 
 </div>
@@ -3154,8 +3154,6 @@ It is estimated along with the fuel classes; otherwise it defaults to the first 
   times = list(start = 2020, end = 2020),
   studyArea = mySA, # buffered to limit edge effects
   params = list(fireSense_dataPrepFit = list(
-    dataYears = c(2000L, 2010L, 2020L),
-    fireYears = 2002:2022,
     .useCache = c(&quot;.inputObjects&quot;, &quot;dataPrepBuild&quot;, &quot;prepIgnitionFitData&quot;,
                   &quot;prepEscapeFitData&quot;, &quot;prepSpreadFitData&quot;)))
 )
@@ -3605,7 +3603,7 @@ dataYears
 integer
 </td>
 <td style="text-align:left;">
-2000, 20….
+1985, 19….
 </td>
 <td style="text-align:left;">
 NA
@@ -3645,7 +3643,7 @@ fireYears
 integer
 </td>
 <td style="text-align:left;">
-2002, 20….
+1985, 19….
 </td>
 <td style="text-align:left;">
 NA
@@ -3654,7 +3652,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Years of fire records to use for fitting. None may precede the first of <code>dataYears</code>, and <code>historicalClimateRasters</code> must cover all of them.
+Years of fire records to use for fitting. None may precede the first of <code>dataYears</code>, and <code>historicalClimateRasters</code> must cover all of them. The default runs from 1985, the first SCANFI V2 year, to the latest year with historical climate for every tile (<code>climateData::latestHistoricalYear()</code>); climate is the last of the inputs to reach a year.
 </td>
 </tr>
 <tr>
