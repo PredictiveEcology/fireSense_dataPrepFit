@@ -129,8 +129,6 @@ out <- SpaDES.project::setupProject(
   times = list(start = 2020, end = 2020),
   studyArea = mySA, # buffered to limit edge effects
   params = list(fireSense_dataPrepFit = list(
-    dataYears = c(2000L, 2010L, 2020L),
-    fireYears = 2002:2022,
     .useCache = c(".inputObjects", "dataPrepBuild", "prepIgnitionFitData",
                   "prepEscapeFitData", "prepSpreadFitData")))
 )
