@@ -1,6 +1,6 @@
 ---
 title: "fireSense_dataPrepFit Manual"
-subtitle: "v.1.2.0.9008"
+subtitle: "v.1.2.0.9009"
 date: "Last updated: 2026-09-24"
 output:
   bookdown::html_document2:
@@ -147,6 +147,12 @@ Table \@ref(tab:moduleInputs-fireSense-dataPrepFit) shows the full list of modul
  </thead>
 <tbody>
   <tr>
+   <td style="text-align:left;"> climateVariables </td>
+   <td style="text-align:left;"> list </td>
+   <td style="text-align:left;"> Climate variable definitions for `climateData::prepClimateLayers` (canClimateData). Unless supplied, `.inputObjects` builds them from `climateVariablesForFire`. Declared as an input because `.inputObjects` sets it: a cached `.inputObjects` restores only declared inputs, so without this a cache hit returned no `climateVariables` and canClimateData failed. </td>
+   <td style="text-align:left;"> NA </td>
+  </tr>
+  <tr>
    <td style="text-align:left;"> climateVariablesForFire </td>
    <td style="text-align:left;"> list </td>
    <td style="text-align:left;"> List with elements `ignition` and `spread`, each a character vector of climate variable names, with or without underscores (e.g., `CMD_sm` or `CMDsm`). IgnitionFit uses all of `ignition`; SpreadFit uses `spread`. Default: `ignition = c('CMD', 'cumMDC', 'CMD_sm', 'CMD_sp')`, `spread = 'auto'`: the `ignition` variable that best separates the study area's worst fire years (see `spreadClimateSelection`). Unless supplied, `climateVariables` is built from these. </td>
@@ -228,6 +234,12 @@ Table \@ref(tab:moduleInputs-fireSense-dataPrepFit) shows the full list of modul
    <td style="text-align:left;"> rasterToMatch </td>
    <td style="text-align:left;"> SpatRaster </td>
    <td style="text-align:left;"> Template raster for `studyArea`. The default is 240 m, from SCANFI land cover. </td>
+   <td style="text-align:left;"> NA </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> rasterToMatchLarge </td>
+   <td style="text-align:left;"> SpatRaster </td>
+   <td style="text-align:left;"> Optional larger template. If supplied it defines `studyArea_biomassParam`; if not, `.inputObjects` sets it to `rasterToMatch` for Biomass_speciesData. Declared as an input because `.inputObjects` sets it (a cached `.inputObjects` restores only declared inputs). </td>
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
