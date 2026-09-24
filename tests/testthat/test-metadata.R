@@ -17,7 +17,8 @@ test_that("inputs are the expected names and classes", {
   inputs <- stats::setNames(md$inputObjects$objectClass, md$inputObjects$objectName)
   expect_identical(
     inputs[order(names(inputs))],
-    c(climateVariablesForFire     = "list",
+    c(climateVariables            = "list",
+      climateVariablesForFire     = "list",
       cohortDatas                 = "list",
       firePolys                   = "list",
       firePolysForAge             = "list",
@@ -30,6 +31,7 @@ test_that("inputs are the expected names and classes", {
       propFlammables              = "list",
       rasterToMatch               = "SpatRaster",
       rasterToMatch_biomassParam  = "SpatRaster",
+      rasterToMatchLarge          = "SpatRaster",
       rstLCCs                     = "list",
       sppEquiv                    = "data.table",
       spreadFirePoints            = "list",
@@ -96,4 +98,26 @@ test_that("parameters are the expected names", {
            "spreadFitGoogleDriveFolder", "targetFuelClasses",
            "useRasterizedFireForSpread", "whichModulesToPrepare"))
   )
+})
+
+test_that("every object .inputObjects() assigns is a declared input", {
+  ## SpaDES restores only a module's declared inputs from a cached `.inputObjects`. An object assigned there
+  ## but declared only as an output vanishes on a cache hit: that is how canClimateData got NULL
+  ## `climateVariables` on the Mackenzie relaunch (2026-09-23), though the first run had worked.
+  md <- SpaDES.core::moduleMetadata(module = moduleName, path = modulePath)
+  src <- parse(file.path(modulePath, moduleName, paste0(moduleName, ".R")), keep.source = FALSE)
+  io <- Filter(function(e) is.call(e) && identical(e[[1]], as.name("<-")) &&
+                 identical(as.character(e[[2]]), ".inputObjects"), as.list(src))[[1]][[3]]
+  assigned <- character(0)
+  walk <- function(e) {
+    if (is.call(e)) {
+      if (identical(e[[1]], as.name("<-")) && is.call(e[[2]]) && identical(e[[2]][[1]], as.name("$")) &&
+          identical(e[[2]][[2]], as.name("sim")))
+        assigned <<- c(assigned, as.character(e[[2]][[3]]))
+      for (a in as.list(e)[-1]) if (!missing(a)) walk(a)
+    }
+  }
+  walk(io)
+  expect_true(length(assigned) > 0)
+  expect_setequal(setdiff(unique(assigned), md$inputObjects$objectName), character(0))
 })

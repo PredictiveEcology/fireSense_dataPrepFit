@@ -1,5 +1,10 @@
 # fireSense_dataPrepFit (development version)
 
+- `climateVariables` and `rasterToMatchLarge` are now declared inputs. `.inputObjects` sets both, and a cached
+  `.inputObjects` restores only declared inputs, so on a cache hit they vanished: canClimateData then failed with
+  "`.l` must be a list, not NULL" (the Mackenzie relaunch, 2026-09-23), although the first run had worked. A new
+  test fails if `.inputObjects` assigns any object that is not a declared input.
+
 ## Climate variables
 
 - `climateVariablesForFire` now defaults to `ignition = c("CMD", "cumMDC", "CMD_sm", "CMD_sp")` (IgnitionFit's xgboost uses
