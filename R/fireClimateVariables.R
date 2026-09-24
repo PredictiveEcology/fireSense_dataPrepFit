@@ -9,10 +9,12 @@
 
 #' Default climate variables for the fire models
 #'
-#' ClimateNA names; `"cumMDC"` is derived by `climateData::calcCumMDC()`.
+#' ClimateNA names; `"cumMDC"` is derived by `climateData::calcCumMDC()`. `spread = "auto"` picks,
+#' per study area, the `ignition` variable that best tracks annual area burned
+#' ([selectSpreadClimateVariable()]).
 #' @keywords internal
-defaultClimateVariablesForFire <- list(ignition = c("CMD_sm", "cumMDC", "CMD_sp"),
-                                       spread = "CMD_sm")
+defaultClimateVariablesForFire <- list(ignition = c("CMD", "cumMDC", "CMD_sm", "CMD_sp"),
+                                       spread = "auto")
 
 #' ClimateNA names of climate variables given with or without underscores
 #'
@@ -41,7 +43,41 @@ climateNAnames <- function(x) {
 #' @keywords internal
 fireClimateLayers <- function(climateVariablesForFire, historicalYears, projected = TRUE,
                               projectedYears = 2011:2100) {
-  vars <- unique(climateNAnames(unlist(climateVariablesForFire[c("ignition", "spread")], use.names = FALSE)))
+  vars <- unlist(climateVariablesForFire[c("ignition", "spread")], use.names = FALSE)
+  vars <- unique(climateNAnames(setdiff(vars, "auto")))    # "auto" chooses among the ignition variables
   climateData::climateLayers(vars, fun = quote(calcAsIs), historicalYears = historicalYears,
                              projected = projected, projectedYears = projectedYears)
+}
+
+#' Pick the spread climate variable that best tracks annual area burned
+#'
+#' For `climateVariablesForFire$spread = "auto"`. Each candidate's study-area mean per year is ranked
+#' against the area burned that year (Spearman); the highest positive correlation wins, so a candidate
+#' must increase with dryness. A year-level correlation need not stay exactly right once the fitted
+#' model predicts, but a variable that ranks first here has no reason to rank worst there.
+#'
+#' @param climateRasters Named list of `SpatRaster`s, one per climate variable, layers `year<YYYY>`.
+#' @param burnedByYear Named numeric: pixels burned per fire year, names `year<YYYY>`; 0 for fire
+#'   years without fires (a dry year with no fire is informative too).
+#' @param candidates Names in `climateRasters` to choose from.
+#' @return `data.table` with `var`, `rho`, `nYears`, and `chosen` (one `TRUE`).
+#' @keywords internal
+selectSpreadClimateVariable <- function(climateRasters, burnedByYear, candidates) {
+  yrs <- names(burnedByYear)
+  scores <- data.table::rbindlist(lapply(candidates, function(v) {
+    r <- climateRasters[[v]]
+    lyr <- if (is.null(r)) character(0) else intersect(yrs, names(r))
+    rho <- if (length(lyr) < 3) NA_real_ else {
+      m <- unlist(terra::global(r[[lyr]], "mean", na.rm = TRUE), use.names = FALSE)
+      suppressWarnings(stats::cor(m, unname(burnedByYear[lyr]), method = "spearman"))
+    }
+    data.table::data.table(var = v, rho = rho, nYears = length(lyr))
+  }))
+  ok <- is.finite(scores$rho) & scores$rho > 0
+  best <- if (any(ok)) scores$var[ok][which.max(scores$rho[ok])] else {
+    warning("No climate variable correlates positively with annual area burned; using ", candidates[1])
+    candidates[1]
+  }
+  scores[, chosen := var == best]
+  scores[]
 }

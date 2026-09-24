@@ -103,8 +103,9 @@ defineModule(sim, list(
     expectsInput("climateVariablesForFire", "list", sourceURL = NA,
                  paste("List with elements `ignition` and `spread`, each a character vector of climate variable",
                        "names, with or without underscores (e.g., `CMD_sm` or `CMDsm`). IgnitionFit uses all of",
-                       "`ignition`; SpreadFit uses `spread`. Default: `ignition = c('CMD_sm', 'cumMDC', 'CMD_sp')`,",
-                       "`spread = 'CMD_sm'`. Unless supplied, `climateVariables` is built from these.")),
+                       "`ignition`; SpreadFit uses `spread`. Default: `ignition = c('CMD', 'cumMDC', 'CMD_sm', 'CMD_sp')`,",
+                       "`spread = 'auto'`: the `ignition` variable whose study-area mean best tracks annual area burned",
+                       "(see `spreadClimateSelection`). Unless supplied, `climateVariables` is built from these.")),
     expectsInput("cohortDatas", "list", sourceURL = NA,
                  paste("List of `cohortData` data.tables, one per `dataYears`, named `year<year>`.",
                        "If not supplied, built by running Biomass_borealDataPrep for each data year.")),
@@ -179,6 +180,9 @@ defineModule(sim, list(
     createsOutput("sppNameVector", "character",
                  desc = paste("Sorted species names (`sppEquivCol`) from the `sppEquiv` stored with a previous SpreadFit;",
                               "only created if one exists.")),
+    createsOutput("spreadClimateSelection", "data.table",
+                  paste("With `climateVariablesForFire$spread = 'auto'`: each candidate's Spearman correlation",
+                        "between its study-area mean and annual area burned, and which was chosen.")),
     createsOutput("climateVariables", "list",
                   paste("Climate variable definitions, as used by `climateData::prepClimateLayers` (canClimateData).",
                         "Unless supplied, built from `climateVariablesForFire` for `fireYears` (and projected years",
@@ -732,6 +736,20 @@ prepare_SpreadFit <- function(sim) {
            "Please create larger buffers around fires in fireBufferedListDT, e.g., via ",
            "fireSenseUtils::bufferToArea(..., areaMultiplier = multiplier)")
     }
+  }
+
+  ## spread = "auto": this study area's best-tracking climate variable (R/fireClimateVariables.R)
+  if (identical(sim$climateVariablesForFire$spread, "auto")) {
+    fy <- paste0(fireSenseUtils::yearTxt, P(sim)$fireYears)
+    burned <- setNames(numeric(length(fy)), fy)
+    b <- vapply(sim$fireBufferedListDT, function(d) as.numeric(sum(d$buffer == 1)), numeric(1))
+    b <- b[names(b) %in% fy]
+    burned[names(b)] <- b
+    sim$spreadClimateSelection <- selectSpreadClimateVariable(sim$historicalClimateRasters, burned,
+                                                              candidates = sim$climateVariablesForFire$ignition)
+    sim$climateVariablesForFire$spread <- sim$spreadClimateSelection[chosen == TRUE, var]
+    message("Spread climate variable (auto): ", sim$climateVariablesForFire$spread, "; Spearman with area burned: ",
+            paste0(sim$spreadClimateSelection$var, " ", round(sim$spreadClimateSelection$rho, 2), collapse = ", "))
   }
 
   RHS <- paste(paste0(sim$climateVariablesForFire$spread, collapse = " + "), youngAgeTxt,
