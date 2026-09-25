@@ -1,7 +1,7 @@
 ---
 title: "fireSense_dataPrepFit Manual"
-subtitle: "v.1.2.0.9010"
-date: "Last updated: 2026-09-24"
+subtitle: "v.1.2.0.9011"
+date: "Last updated: 2026-09-25"
 output:
   bookdown::html_document2:
     toc: true
@@ -371,6 +371,14 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> Aggregation factor (number of `rasterToMatch` cells per side) for the ignition and escape covariates. </td>
   </tr>
   <tr>
+   <td style="text-align:left;"> escapeSizeHa </td>
+   <td style="text-align:left;"> numeric </td>
+   <td style="text-align:left;"> 50 </td>
+   <td style="text-align:left;"> 0 </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Size (ha) a fire must reach to count as escaped: the escape model's response, and the smallest fire the spread model is fitted to. Smaller fires' sizes become `nonEscapedFireSizesHa`. </td>
+  </tr>
+  <tr>
    <td style="text-align:left;"> fuelClassCol </td>
    <td style="text-align:left;"> character </td>
    <td style="text-align:left;"> FuelClass </td>
@@ -594,6 +602,11 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-dataP
    <td style="text-align:left;"> fireSense_escapeCovariates </td>
    <td style="text-align:left;"> data.table </td>
    <td style="text-align:left;"> ignition covariates with added column of escapes </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> nonEscapedFireSizesHa </td>
+   <td style="text-align:left;"> numeric </td>
+   <td style="text-align:left;"> Sizes (ha) of this study area's natural-cause fires (`ignitionFirePoints`) below `escapeSizeHa`, for giving a forecast's non-escaped ignitions a size. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> fireSense_escapeFormula </td>
