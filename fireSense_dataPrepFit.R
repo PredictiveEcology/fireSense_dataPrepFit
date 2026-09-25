@@ -8,7 +8,7 @@ defineModule(sim, list(
     person(c("Alex", "M"), "Chubaty", role = "ctb", email = "achubaty@for-cast.ca")
   ),
   childModules = character(0),
-  version = list(fireSense_dataPrepFit = "1.2.0.9010"),
+  version = list(fireSense_dataPrepFit = "1.2.0.9011"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -57,6 +57,10 @@ defineModule(sim, list(
                           "classes are treated categorically")),
     defineParameter("igAggFactor", "numeric", 4, 1, NA,
                     "Aggregation factor (number of `rasterToMatch` cells per side) for the ignition and escape covariates."),
+    defineParameter("escapeSizeHa", "numeric", 50, 0, NA,
+                    paste("Size (ha) a fire must reach to count as escaped: the escape model's response, and the",
+                          "smallest fire the spread model is fitted to. Smaller fires' sizes become",
+                          "`nonEscapedFireSizesHa`.")),
     defineParameter("fuelClassCol", "character", "FuelClass", NA, NA,
                     "the column in `sppEquiv` that defines unique fuel classes. A column ",
                     "named `FuelClass` exists in the `LandR::sppEquivalencies_CA` and will be used ",
@@ -209,6 +213,9 @@ defineModule(sim, list(
                   "List of data.tables, one per fire year, of `pixelID` and the spread climate covariates in the fire buffers."),
     createsOutput("fireSense_escapeCovariates", "data.table",
                   "ignition covariates with added column of escapes"),
+    createsOutput("nonEscapedFireSizesHa", "numeric",
+                  paste("Sizes (ha) of this study area's natural-cause fires (`ignitionFirePoints`) below",
+                        "`escapeSizeHa`, for giving a forecast's non-escaped ignitions a size.")),
     createsOutput("fireSense_escapeFormula", "character",
                   "formula for escape, using fuel classes and landcover, as character"),
     createsOutput("fireSense_ignitionCovariates", "data.table",
@@ -323,6 +330,8 @@ doEvent.fireSense_dataPrepFit = function(sim, eventTime, eventType) {
 #' @param sim a `simList`.
 #' @return the `simList`, invisibly, with `mod$haveSpreadFit` and `mod$userSuppliedFuelObjs` set.
 Init <- function(sim) {
+
+  sim$nonEscapedFireSizesHa <- nonEscapedFireSizes(sim$ignitionFirePoints, Par$escapeSizeHa)
 
   sa <- sim$studyArea
   if (inherits(sa, "SpatVector")) sa <- st_as_sf(sa)
@@ -952,15 +961,12 @@ prepare_SpreadFitFire_Vector <- function(sim) {
     rm(PointsAndPolys)
   }
 
-  ## drop fires less than 1 px in size
+  ## the spread model is fitted to escaped fires only: at least escapeSizeHa, and more than one pixel
   pixSizeHa <- prod(res(sim$flammableRTMs[[1]])) / 1e4
-  ## using x[x$SIZE_HA] will work with terra or sf, while subset will not (I believe...)
   haColname <- grep("_HA$", names(sim$spreadFirePoints[[1]]), value = TRUE)[1] # has been SIZE_HA, POLY_HA
 
-  sim$spreadFirePoints <- lapply(sim$spreadFirePoints, function(x, minSize = pixSizeHa) {
-    x <- x[x[[haColname]] > minSize,]
-    if (NROW(x) > 0) x else NULL
-    x
+  sim$spreadFirePoints <- lapply(sim$spreadFirePoints, function(x) {
+    escapedFires(x, Par$escapeSizeHa, pixSizeHa, sizeCol = haColname)
   })
 
   sim$spreadFirePoints[sapply(sim$spreadFirePoints, is.null)] <- NULL ## silly R
@@ -1122,8 +1128,8 @@ prepare_IgnitionFit <- function(sim) {
 
 #' Prepare the covariates and formula for fireSense_EscapeFit
 #'
-#' Adds to the ignition covariates the number of escapes: ignitions that grew beyond one
-#' `flammableRTMs` pixel. Needs `prepare_IgnitionFit()` to have run.
+#' Adds to the ignition covariates the number of escapes: ignitions that reached `escapeSizeHa` (and grew
+#' beyond one `flammableRTMs` pixel). Needs `prepare_IgnitionFit()` to have run.
 #'
 #' @param sim a `simList`.
 #' @return the `simList`, invisibly, with `fireSense_escapeCovariates` and `fireSense_escapeFormula`.
@@ -1134,8 +1140,8 @@ prepare_EscapeFit <- function(sim) {
     stop("Please include ignitionFit in parameter 'whichModulesToPrepare' if running EscapeFit")
   }
 
-  escapeThreshHa <- prod(res(sim$flammableRTMs[[1]])) / 10000
-  escapes <- sim$ignitionFirePoints[sim$ignitionFirePoints$SIZE_HA > escapeThreshHa, ]
+  escapes <- escapedFires(sim$ignitionFirePoints, Par$escapeSizeHa,
+                          pixSizeHa = prod(res(sim$flammableRTMs[[1]])) / 10000)
 
   ## make a template aggregated raster - values are irrelevant, only need pixelID
   aggregatedRas <- terra::aggregate(sim$historicalClimateRasters[[1]][[1]],
