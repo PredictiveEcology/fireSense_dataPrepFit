@@ -19,6 +19,7 @@
 <url><loc>/reference/defaultClimateVariablesForFire.html</loc></url>
 <url><loc>/reference/doEvent.fireSense_dataPrepFit.html</loc></url>
 <url><loc>/reference/dot-inputObjects.html</loc></url>
+<url><loc>/reference/escapedFires.html</loc></url>
 <url><loc>/reference/fireClimateLayers.html</loc></url>
 <url><loc>/reference/firePolysByYear.html</loc></url>
 <url><loc>/reference/fireRecordShapefile.html</loc></url>
@@ -27,6 +28,7 @@
 <url><loc>/reference/ledgerColumns.html</loc></url>
 <url><loc>/reference/moduleCodeDigest.html</loc></url>
 <url><loc>/reference/nfdbFirePoints.html</loc></url>
+<url><loc>/reference/nonEscapedFireSizes.html</loc></url>
 <url><loc>/reference/plotAndMessage.html</loc></url>
 <url><loc>/reference/pointCoords.html</loc></url>
 <url><loc>/reference/prepare_EscapeFit.html</loc></url>

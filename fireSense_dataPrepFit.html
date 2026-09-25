@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">fireSense_dataPrepFit</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9010</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9011</span>
       </span>
     </div>
 
@@ -154,8 +154,6 @@
 <span>  times <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>start <span class="op">=</span> <span class="fl">2020</span>, end <span class="op">=</span> <span class="fl">2020</span><span class="op">)</span>,</span>
 <span>  studyArea <span class="op">=</span> <span class="va">mySA</span>, <span class="co"># buffered to limit edge effects</span></span>
 <span>  params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>fireSense_dataPrepFit <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    dataYears <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2000L</span>, <span class="fl">2010L</span>, <span class="fl">2020L</span><span class="op">)</span>,</span>
-<span>    fireYears <span class="op">=</span> <span class="fl">2002</span><span class="op">:</span><span class="fl">2022</span>,</span>
 <span>    .useCache <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">".inputObjects"</span>, <span class="st">"dataPrepBuild"</span>, <span class="st">"prepIgnitionFitData"</span>,</span>
 <span>                  <span class="st">"prepEscapeFitData"</span>, <span class="st">"prepSpreadFitData"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
@@ -538,7 +536,7 @@ dataYears
 integer
 </td>
 <td style="text-align:left;">
-2000, 20….
+1985, 19….
 </td>
 <td style="text-align:left;">
 NA
@@ -574,7 +572,7 @@ fireYears
 integer
 </td>
 <td style="text-align:left;">
-2002, 20….
+1985, 19….
 </td>
 <td style="text-align:left;">
 NA
@@ -583,7 +581,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Years of fire records to use for fitting. None may precede the first of <code>dataYears</code>, and <code>historicalClimateRasters</code> must cover all of them.
+Years of fire records to use for fitting. None may precede the first of <code>dataYears</code>, and <code>historicalClimateRasters</code> must cover all of them. The default runs from 1985, the first SCANFI V2 year, to the latest year with historical climate for every tile (<code><a href="https://rdrr.io/pkg/climateData/man/latestHistoricalYear.html" class="external-link">climateData::latestHistoricalYear()</a></code>); climate is the last of the inputs to reach a year.
 </td>
 </tr><tr><td style="text-align:left;">
 flammabilityThreshold
