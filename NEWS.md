@@ -1,5 +1,10 @@
 # fireSense_dataPrepFit (development version)
 
+- `prepare_SpreadFitFire_Vector()` filtered `spreadFirePolys` by pixel size only, while `spreadFirePoints`
+  was filtered with `escapedFires()` (pixel size and `escapeSizeHa`, PR #44). A fire between one pixel and
+  `escapeSizeHa` then survived in the polygons but not the points, and `fireSenseUtils::harmonizeFireData()`
+  stopped with "spread fire point and poly harmonization error in dataPrepFit". `spreadFirePolys` is now
+  filtered with `escapedFires()` too. Version 1.2.0.9012.
 - New parameter `escapeSizeHa` (default 50). A fire counts as escaped when it reached that size, in the
   escape model's response and in the fires the spread model is fitted to; before, any fire larger than one
   pixel (about 6 ha) counted. New output `nonEscapedFireSizesHa`: the study area's natural-cause fire sizes
