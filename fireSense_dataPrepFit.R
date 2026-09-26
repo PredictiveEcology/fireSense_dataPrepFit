@@ -8,7 +8,7 @@ defineModule(sim, list(
     person(c("Alex", "M"), "Chubaty", role = "ctb", email = "achubaty@for-cast.ca")
   ),
   childModules = character(0),
-  version = list(fireSense_dataPrepFit = "1.2.0.9011"),
+  version = list(fireSense_dataPrepFit = "1.2.0.9012"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -972,7 +972,7 @@ prepare_SpreadFitFire_Vector <- function(sim) {
   sim$spreadFirePoints[sapply(sim$spreadFirePoints, is.null)] <- NULL ## silly R
 
   sim$spreadFirePolys <- lapply(sim$spreadFirePolys, function(x) {
-    x <- x[x[[haColname]] > pixSizeHa,]
+    x <- escapedFires(x, Par$escapeSizeHa, pixSizeHa, sizeCol = haColname)
     if (nrow(x) > 0) x else NULL
   })
   sim$spreadFirePolys[sapply(sim$spreadFirePolys, is.null)] <- NULL
