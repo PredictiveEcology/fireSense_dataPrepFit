@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fireSense_dataPrepFit</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9011</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9012</span>
       </span>
     </div>
 
@@ -53,7 +53,8 @@
 
     <div class="section level2">
 <h2 class="page-header" data-toc-text="development version" id="firesense_dataprepfit-development-version">fireSense_dataPrepFit (development version)<a class="anchor" aria-label="anchor" href="#firesense_dataprepfit-development-version"></a></h2>
-<ul><li><p>New parameter <code>escapeSizeHa</code> (default 50). A fire counts as escaped when it reached that size, in the escape model’s response and in the fires the spread model is fitted to; before, any fire larger than one pixel (about 6 ha) counted. New output <code>nonEscapedFireSizesHa</code>: the study area’s natural-cause fire sizes below it, for fireSense to size non-escaped ignitions. Version 1.2.0.9011.</p></li>
+<ul><li><p><code><a href="../reference/prepare_SpreadFitFire_Vector.html">prepare_SpreadFitFire_Vector()</a></code> filtered <code>spreadFirePolys</code> by pixel size only, while <code>spreadFirePoints</code> was filtered with <code><a href="../reference/escapedFires.html">escapedFires()</a></code> (pixel size and <code>escapeSizeHa</code>, PR #44). A fire between one pixel and <code>escapeSizeHa</code> then survived in the polygons but not the points, and <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/harmonizeFireData.html" class="external-link">fireSenseUtils::harmonizeFireData()</a></code> stopped with “spread fire point and poly harmonization error in dataPrepFit”. <code>spreadFirePolys</code> is now filtered with <code><a href="../reference/escapedFires.html">escapedFires()</a></code> too. Version 1.2.0.9012.</p></li>
+<li><p>New parameter <code>escapeSizeHa</code> (default 50). A fire counts as escaped when it reached that size, in the escape model’s response and in the fires the spread model is fitted to; before, any fire larger than one pixel (about 6 ha) counted. New output <code>nonEscapedFireSizesHa</code>: the study area’s natural-cause fire sizes below it, for fireSense to size non-escaped ignitions. Version 1.2.0.9011.</p></li>
 <li><p>The default fire years are now 1985 to the latest year with historical climate (<code><a href="https://rdrr.io/pkg/climateData/man/latestHistoricalYear.html" class="external-link">climateData::latestHistoricalYear()</a></code>, 2024 today), and the default <code>dataYears</code> are 1985, 1990, 2000, 2010 and 2020. The old default, 2002:2025, ran past the climate data, so every project had to set <code>fireYears</code>. fireregimetools is floored at 0.1.0.9008 (FOR-CAST main), which reads only the study area’s part of the fire records. Version 1.2.0.9010.</p></li>
 <li><p><code>climateVariables</code> and <code>rasterToMatchLarge</code> are now declared inputs. <code>.inputObjects</code> sets both, and a cached <code>.inputObjects</code> restores only declared inputs, so on a cache hit they vanished: canClimateData then failed with “<code>.l</code> must be a list, not NULL” (the Mackenzie relaunch, 2026-09-23), although the first run had worked. A new test fails if <code>.inputObjects</code> assigns any object that is not a declared input.</p></li>
 </ul><div class="section level3">

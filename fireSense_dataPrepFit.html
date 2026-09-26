@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">fireSense_dataPrepFit</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9011</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9012</span>
       </span>
     </div>
 
@@ -638,6 +638,24 @@ NA
 Aggregation factor (number of <code>rasterToMatch</code> cells per side) for the ignition and escape covariates.
 </td>
 </tr><tr><td style="text-align:left;">
+escapeSizeHa
+</td>
+<td style="text-align:left;">
+numeric
+</td>
+<td style="text-align:left;">
+50
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Size (ha) a fire must reach to count as escaped: the escape model’s response, and the smallest fire the spread model is fitted to. Smaller fires’ sizes become <code>nonEscapedFireSizesHa</code>.
+</td>
+</tr><tr><td style="text-align:left;">
 fuelClassCol
 </td>
 <td style="text-align:left;">
@@ -1022,6 +1040,15 @@ data.table
 </td>
 <td style="text-align:left;">
 ignition covariates with added column of escapes
+</td>
+</tr><tr><td style="text-align:left;">
+nonEscapedFireSizesHa
+</td>
+<td style="text-align:left;">
+numeric
+</td>
+<td style="text-align:left;">
+Sizes (ha) of this study area’s natural-cause fires (<code>ignitionFirePoints</code>) below <code>escapeSizeHa</code>, for giving a forecast’s non-escaped ignitions a size.
 </td>
 </tr><tr><td style="text-align:left;">
 fireSense_escapeFormula
