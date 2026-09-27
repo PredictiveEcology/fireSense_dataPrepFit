@@ -1,5 +1,11 @@
 # fireSense_dataPrepFit (development version)
 
+- `prepare_SpreadFit()` built the spread formula's RHS as `climate + youngAgeTxt + vegCols`, but `vegCols`
+  (derived from `fireSenseVegData`) already includes a `youngAge` column whenever
+  `fireSenseUtils::fireSenseCovariatesCreate()` finds young forest or non-forest pixels. The formula then
+  listed `youngAge` twice; `terms()` silently drops the duplicate, leaving one fewer distinct term than the
+  covariates actually used downstream. `youngAgeTxt` and the spread climate variable are now excluded from
+  `vegCols` before building the RHS. Version 1.2.0.9013.
 - `prepare_SpreadFitFire_Vector()` filtered `spreadFirePolys` by pixel size only, while `spreadFirePoints`
   was filtered with `escapedFires()` (pixel size and `escapeSizeHa`, PR #44). A fire between one pixel and
   `escapeSizeHa` then survived in the polygons but not the points, and `fireSenseUtils::harmonizeFireData()`

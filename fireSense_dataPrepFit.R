@@ -8,7 +8,7 @@ defineModule(sim, list(
     person(c("Alex", "M"), "Chubaty", role = "ctb", email = "achubaty@for-cast.ca")
   ),
   childModules = character(0),
-  version = list(fireSense_dataPrepFit = "1.2.0.9012"),
+  version = list(fireSense_dataPrepFit = "1.2.0.9013"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -771,8 +771,13 @@ prepare_SpreadFit <- function(sim) {
                                             round(sim$spreadClimateSelection$auc, 2), collapse = ", "))
   }
 
+  ## vegCols can already contain "youngAge" (added by fireSenseUtils::fireSenseCovariatesCreate()
+  ## when there are young non-forest/forest pixels) and, in principle, the spread climate variable
+  ## name; both are also added explicitly below, so they must be excluded here or the formula lists
+  ## them twice and terms() silently drops the duplicate, leaving one fewer term than parameters.
+  vegColsForRHS <- setdiff(vegCols, c(youngAgeTxt, sim$climateVariablesForFire$spread))
   RHS <- paste(paste0(sim$climateVariablesForFire$spread, collapse = " + "), youngAgeTxt,
-               paste0(vegCols, collapse = " + "), sep =  " + ")
+               paste0(vegColsForRHS, collapse = " + "), sep =  " + ")
 
   ## this is a funny way to get years but avoids years with 0 fires
   allYears <- unname(unlist(mod$allYears))
