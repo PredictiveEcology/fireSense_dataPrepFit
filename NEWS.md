@@ -1,5 +1,13 @@
 # fireSense_dataPrepFit (development version)
 
+- `forestedLCC`, `cutoffForYoungAge`, `nonForestCanBeYoungAge`, `flammabilityThreshold`, `fuelClassCol`
+  and `igAggFactor` now default to `fireSenseUtils::fireSenseForestedLCC`, `fireSenseYoungAgeCutoff`,
+  `fireSenseNonForestCanBeYoungAge`, `fireSenseFlammabilityThreshold`, `fireSenseFuelClassCol` and
+  `fireSenseIgAggFactor`, the same values as before but from the single source of truth also used by
+  `fireSense_dataPrepPredict`. New parameter `scanfiVersion` (default `fireSenseUtils::fireSenseSCANFIVersion`,
+  `"V3"`) is passed to `fireSenseUtils::makeFireSenseLCC()`. `fireSenseUtils:::fireSenseCovariatesCreate` is
+  now called as `fireSenseUtils::fireSenseCovariatesCreate` (it is exported). Needs
+  `fireSenseUtils@development (>= 0.2.3.9062)`. Version 1.2.0.9018.
 - Fixed: `nonflammableLCC`'s default (`c(0, 20, 31, 32, 33)`) missed SCANFI's rock/exposed code
   (`30`), so rock entered fits as flammable non-forest. The default now comes from
   `fireSenseUtils::fireSenseNonflammableLCC`, the single source of truth `makeFireSenseLCC()`
