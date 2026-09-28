@@ -1,5 +1,10 @@
 # fireSense_dataPrepFit (development version)
 
+- `spreadFitFilename` now defaults to `"latest"`: each polygon's fit comes from the most recent ledger file in
+  `spreadFitGoogleDriveFolder` that has it (`fireSenseUtils::latestSpreadFits()`, which reads only the
+  current model's files, `fireSenseParams_*<fireSenseUtils::spreadFitFileTag>.rds`). So "this ELF has a
+  fit" means some such file has it. A named file is read as before. Needs reproducible >= 3.2.1.9042, whose `CacheGeo()` re-reads a local ledger file that has
+  changed. Version 1.2.0.9014.
 - `prepare_SpreadFit()` built the spread formula's RHS as `climate + youngAgeTxt + vegCols`, but `vegCols`
   (derived from `fireSenseVegData`) already includes a `youngAge` column whenever
   `fireSenseUtils::fireSenseCovariatesCreate()` finds young forest or non-forest pixels. The formula then
