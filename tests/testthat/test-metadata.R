@@ -96,7 +96,7 @@ test_that("parameters are the expected names", {
            "dataYears", "escapeSizeHa", "estimateFuelClasses", "fireYears", "flammabilityThreshold",
            "forestedLCC", "fuelClassCol", "fuelCovariates", "igAggFactor",
            "minBufferSize", "nonflammableLCC",
-           "nonForestCanBeYoungAge", "sppEquivCol", "spreadFitFilename",
+           "nonForestCanBeYoungAge", "scanfiVersion", "sppEquivCol", "spreadFitFilename",
            "spreadFitGoogleDriveFolder", "targetFuelClasses",
            "useRasterizedFireForSpread", "whichModulesToPrepare"))
   )
