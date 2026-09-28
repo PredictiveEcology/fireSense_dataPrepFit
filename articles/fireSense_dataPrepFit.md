@@ -1,6 +1,6 @@
 ---
 title: "fireSense_dataPrepFit Manual"
-subtitle: "v.1.2.0.9017"
+subtitle: "v.1.2.0.9018"
 date: "Last updated: 2026-09-28"
 output:
   bookdown::html_document2:
@@ -419,6 +419,14 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> if TRUE, burned non-forest will be treated as `youngAge`. Recommended to be TRUE as burned forest is often classified as non-forest </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> scanfiVersion </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;"> V3 </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> SCANFI land-cover version for non-forest land cover, `"V2"` or `"V3"`. Passed to `fireSenseUtils::makeFireSenseLCC()`. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> sppEquivCol </td>
