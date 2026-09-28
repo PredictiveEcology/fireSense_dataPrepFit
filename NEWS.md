@@ -1,5 +1,9 @@
 # fireSense_dataPrepFit (development version)
 
+- Fixed: `nonflammableLCC`'s default (`c(0, 20, 31, 32, 33)`) missed SCANFI's rock/exposed code
+  (`30`), so rock entered fits as flammable non-forest. The default now comes from
+  `fireSenseUtils::fireSenseNonflammableLCC`, the single source of truth `makeFireSenseLCC()`
+  also uses. Needs `fireSenseUtils@development (>= 0.2.3.9060)`. Version 1.2.0.9017.
 - New parameter `fuelCovariates` (default `"domSecOther"`): `prepare_SpreadFit()` now builds the
   spread covariates as `dom_agb_<class>`/`sec_agb_<class>` (the ELF's two fuel classes with the
   most total treed AGB), `other_agb` and `treedWetland_agb`, chosen once per ELF by the new
