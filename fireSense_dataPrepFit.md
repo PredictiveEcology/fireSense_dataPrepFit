@@ -1,7 +1,7 @@
 ---
 title: "fireSense_dataPrepFit Manual"
-subtitle: "v.1.2.0.9009"
-date: "Last updated: 2026-09-24"
+subtitle: "v.1.2.0.9013"
+date: "Last updated: 2026-09-27"
 output:
   bookdown::html_document2:
     toc: true
@@ -121,8 +121,6 @@ out <- SpaDES.project::setupProject(
   times = list(start = 2020, end = 2020),
   studyArea = mySA, # buffered to limit edge effects
   params = list(fireSense_dataPrepFit = list(
-    dataYears = c(2000L, 2010L, 2020L),
-    fireYears = 2002:2022,
     .useCache = c(".inputObjects", "dataPrepBuild", "prepIgnitionFitData",
                   "prepEscapeFitData", "prepSpreadFitData")))
 )
@@ -327,7 +325,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
   <tr>
    <td style="text-align:left;"> dataYears </td>
    <td style="text-align:left;"> integer </td>
-   <td style="text-align:left;"> 2000, 20.... </td>
+   <td style="text-align:left;"> 1985, 19.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Two or more increasing years for which vegetation, land cover and stand age are built (`cohortDatas`, `rstLCCs`, `standAgeMaps`, ...). Each fire year uses the data year at or before it, so no `fireYears` may precede the first, and every data year needs at least one fire year before the next data year. </td>
@@ -343,10 +341,10 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
   <tr>
    <td style="text-align:left;"> fireYears </td>
    <td style="text-align:left;"> integer </td>
-   <td style="text-align:left;"> 2002, 20.... </td>
+   <td style="text-align:left;"> 1985, 19.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Years of fire records to use for fitting. None may precede the first of `dataYears`, and `historicalClimateRasters` must cover all of them. </td>
+   <td style="text-align:left;"> Years of fire records to use for fitting. None may precede the first of `dataYears`, and `historicalClimateRasters` must cover all of them. The default runs from 1985, the first SCANFI V2 year, to the latest year with historical climate for every tile (`climateData::latestHistoricalYear()`); climate is the last of the inputs to reach a year. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> flammabilityThreshold </td>
@@ -371,6 +369,14 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> 1 </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Aggregation factor (number of `rasterToMatch` cells per side) for the ignition and escape covariates. </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> escapeSizeHa </td>
+   <td style="text-align:left;"> numeric </td>
+   <td style="text-align:left;"> 50 </td>
+   <td style="text-align:left;"> 0 </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Size (ha) a fire must reach to count as escaped: the escape model's response, and the smallest fire the spread model is fitted to. Smaller fires' sizes become `nonEscapedFireSizesHa`. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> fuelClassCol </td>
@@ -596,6 +602,11 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-dataP
    <td style="text-align:left;"> fireSense_escapeCovariates </td>
    <td style="text-align:left;"> data.table </td>
    <td style="text-align:left;"> ignition covariates with added column of escapes </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> nonEscapedFireSizesHa </td>
+   <td style="text-align:left;"> numeric </td>
+   <td style="text-align:left;"> Sizes (ha) of this study area's natural-cause fires (`ignitionFirePoints`) below `escapeSizeHa`, for giving a forecast's non-escaped ignitions a size. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> fireSense_escapeFormula </td>

@@ -8,7 +8,7 @@ defineModule(sim, list(
     person(c("Alex", "M"), "Chubaty", role = "ctb", email = "achubaty@for-cast.ca")
   ),
   childModules = character(0),
-  version = list(fireSense_dataPrepFit = "1.2.0.9010"),
+  version = list(fireSense_dataPrepFit = "1.2.0.9014"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -18,7 +18,7 @@ defineModule(sim, list(
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9042)", # CacheGeo re-reads a changed local file
                   "PredictiveEcology/climateData@development (>= 2.2.3.9006)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9043)",
-                  "FOR-CAST/fireregimetools@main (>= 0.1.0.9006)",
+                  "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9015)",
                   "PredictiveEcology/SpaDES.core@development (>= 2.0.2.9006)",
@@ -35,7 +35,7 @@ defineModule(sim, list(
                           "Only used when `useRasterizedFireForSpread = TRUE`.")),
     defineParameter("cutoffForYoungAge", "numeric", 15, NA, NA,
                     "Age at and below which pixels are considered 'young' (`young <- age <= cutoffForYoungAge`)"),
-    defineParameter("dataYears", "integer", c(2000L, 2010L, 2020L), NA_integer_, NA_integer_,
+    defineParameter("dataYears", "integer", c(1985L, 1990L, 2000L, 2010L, 2020L), NA_integer_, NA_integer_,
                     paste("Two or more increasing years for which vegetation, land cover and stand age are built",
                           "(`cohortDatas`, `rstLCCs`, `standAgeMaps`, ...).",
                           "Each fire year uses the data year at or before it, so no `fireYears` may precede the first,",
@@ -44,9 +44,11 @@ defineModule(sim, list(
                     paste("Estimate fuel classes with `fireSenseUtils::assessFuelClasses`? Skipped if the user supplies",
                           "`nonForestedLCCGroups`, `fuelClassTable` or a `FuelClass` column that differs from LandR's,",
                           "or if a previous SpreadFit exists for the study area.")),
-    defineParameter("fireYears", "integer", 2002:2025, NA, NA,
+    defineParameter("fireYears", "integer", 1985L:climateData::latestHistoricalYear(), NA, NA,
                     paste("Years of fire records to use for fitting. None may precede the first of `dataYears`,",
-                          "and `historicalClimateRasters` must cover all of them.")),
+                          "and `historicalClimateRasters` must cover all of them. The default runs from 1985, the",
+                          "first SCANFI V2 year, to the latest year with historical climate for every tile",
+                          "(`climateData::latestHistoricalYear()`); climate is the last of the inputs to reach a year.")),
     defineParameter("flammabilityThreshold", "numeric", 0.1, 0, 1,
                     paste("Minimum proportion of flammable fine-resolution land cover for a `rasterToMatch`",
                           "pixel to be flammable. Only used when `rstLCCs` is built here.")),
@@ -56,6 +58,10 @@ defineModule(sim, list(
                           "classes are treated categorically")),
     defineParameter("igAggFactor", "numeric", 4, 1, NA,
                     "Aggregation factor (number of `rasterToMatch` cells per side) for the ignition and escape covariates."),
+    defineParameter("escapeSizeHa", "numeric", 50, 0, NA,
+                    paste("Size (ha) a fire must reach to count as escaped: the escape model's response, and the",
+                          "smallest fire the spread model is fitted to. Smaller fires' sizes become",
+                          "`nonEscapedFireSizesHa`.")),
     defineParameter("fuelClassCol", "character", "FuelClass", NA, NA,
                     "the column in `sppEquiv` that defines unique fuel classes. A column ",
                     "named `FuelClass` exists in the `LandR::sppEquivalencies_CA` and will be used ",
@@ -209,6 +215,9 @@ defineModule(sim, list(
                   "List of data.tables, one per fire year, of `pixelID` and the spread climate covariates in the fire buffers."),
     createsOutput("fireSense_escapeCovariates", "data.table",
                   "ignition covariates with added column of escapes"),
+    createsOutput("nonEscapedFireSizesHa", "numeric",
+                  paste("Sizes (ha) of this study area's natural-cause fires (`ignitionFirePoints`) below",
+                        "`escapeSizeHa`, for giving a forecast's non-escaped ignitions a size.")),
     createsOutput("fireSense_escapeFormula", "character",
                   "formula for escape, using fuel classes and landcover, as character"),
     createsOutput("fireSense_ignitionCovariates", "data.table",
@@ -323,6 +332,8 @@ doEvent.fireSense_dataPrepFit = function(sim, eventTime, eventType) {
 #' @param sim a `simList`.
 #' @return the `simList`, invisibly, with `mod$haveSpreadFit` and `mod$userSuppliedFuelObjs` set.
 Init <- function(sim) {
+
+  sim$nonEscapedFireSizesHa <- nonEscapedFireSizes(sim$ignitionFirePoints, Par$escapeSizeHa)
 
   sa <- sim$studyArea
   if (inherits(sa, "SpatVector")) sa <- st_as_sf(sa)
@@ -760,8 +771,13 @@ prepare_SpreadFit <- function(sim) {
                                             round(sim$spreadClimateSelection$auc, 2), collapse = ", "))
   }
 
+  ## vegCols can already contain "youngAge" (added by fireSenseUtils::fireSenseCovariatesCreate()
+  ## when there are young non-forest/forest pixels) and, in principle, the spread climate variable
+  ## name; both are also added explicitly below, so they must be excluded here or the formula lists
+  ## them twice and terms() silently drops the duplicate, leaving one fewer term than parameters.
+  vegColsForRHS <- setdiff(vegCols, c(youngAgeTxt, sim$climateVariablesForFire$spread))
   RHS <- paste(paste0(sim$climateVariablesForFire$spread, collapse = " + "), youngAgeTxt,
-               paste0(vegCols, collapse = " + "), sep =  " + ")
+               paste0(vegColsForRHS, collapse = " + "), sep =  " + ")
 
   ## this is a funny way to get years but avoids years with 0 fires
   allYears <- unname(unlist(mod$allYears))
@@ -950,21 +966,18 @@ prepare_SpreadFitFire_Vector <- function(sim) {
     rm(PointsAndPolys)
   }
 
-  ## drop fires less than 1 px in size
+  ## the spread model is fitted to escaped fires only: at least escapeSizeHa, and more than one pixel
   pixSizeHa <- prod(res(sim$flammableRTMs[[1]])) / 1e4
-  ## using x[x$SIZE_HA] will work with terra or sf, while subset will not (I believe...)
   haColname <- grep("_HA$", names(sim$spreadFirePoints[[1]]), value = TRUE)[1] # has been SIZE_HA, POLY_HA
 
-  sim$spreadFirePoints <- lapply(sim$spreadFirePoints, function(x, minSize = pixSizeHa) {
-    x <- x[x[[haColname]] > minSize,]
-    if (NROW(x) > 0) x else NULL
-    x
+  sim$spreadFirePoints <- lapply(sim$spreadFirePoints, function(x) {
+    escapedFires(x, Par$escapeSizeHa, pixSizeHa, sizeCol = haColname)
   })
 
   sim$spreadFirePoints[sapply(sim$spreadFirePoints, is.null)] <- NULL ## silly R
 
   sim$spreadFirePolys <- lapply(sim$spreadFirePolys, function(x) {
-    x <- x[x[[haColname]] > pixSizeHa,]
+    x <- escapedFires(x, Par$escapeSizeHa, pixSizeHa, sizeCol = haColname)
     if (nrow(x) > 0) x else NULL
   })
   sim$spreadFirePolys[sapply(sim$spreadFirePolys, is.null)] <- NULL
@@ -1120,8 +1133,8 @@ prepare_IgnitionFit <- function(sim) {
 
 #' Prepare the covariates and formula for fireSense_EscapeFit
 #'
-#' Adds to the ignition covariates the number of escapes: ignitions that grew beyond one
-#' `flammableRTMs` pixel. Needs `prepare_IgnitionFit()` to have run.
+#' Adds to the ignition covariates the number of escapes: ignitions that reached `escapeSizeHa` (and grew
+#' beyond one `flammableRTMs` pixel). Needs `prepare_IgnitionFit()` to have run.
 #'
 #' @param sim a `simList`.
 #' @return the `simList`, invisibly, with `fireSense_escapeCovariates` and `fireSense_escapeFormula`.
@@ -1132,8 +1145,8 @@ prepare_EscapeFit <- function(sim) {
     stop("Please include ignitionFit in parameter 'whichModulesToPrepare' if running EscapeFit")
   }
 
-  escapeThreshHa <- prod(res(sim$flammableRTMs[[1]])) / 10000
-  escapes <- sim$ignitionFirePoints[sim$ignitionFirePoints$SIZE_HA > escapeThreshHa, ]
+  escapes <- escapedFires(sim$ignitionFirePoints, Par$escapeSizeHa,
+                          pixSizeHa = prod(res(sim$flammableRTMs[[1]])) / 10000)
 
   ## make a template aggregated raster - values are irrelevant, only need pixelID
   aggregatedRas <- terra::aggregate(sim$historicalClimateRasters[[1]][[1]],

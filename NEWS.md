@@ -2,9 +2,29 @@
 
 - `spreadFitFilename` now defaults to `"latest"`: each polygon's fit comes from the most recent ledger file in
   `spreadFitGoogleDriveFolder` that has it (`fireSenseUtils::latestSpreadFits()`, which reads only the
-  `fireSenseParams_*_linearFuel.rds` files). So "this ELF has a fit" means some such file has it. A named file is
-  read as before. Needs reproducible >= 3.2.1.9042, whose `CacheGeo()` re-reads a local ledger file that has
-  changed.
+  current model's files, `fireSenseParams_*<fireSenseUtils::spreadFitFileTag>.rds`). So "this ELF has a
+  fit" means some such file has it. A named file is read as before. Needs reproducible >= 3.2.1.9042, whose `CacheGeo()` re-reads a local ledger file that has
+  changed. Version 1.2.0.9014.
+- `prepare_SpreadFit()` built the spread formula's RHS as `climate + youngAgeTxt + vegCols`, but `vegCols`
+  (derived from `fireSenseVegData`) already includes a `youngAge` column whenever
+  `fireSenseUtils::fireSenseCovariatesCreate()` finds young forest or non-forest pixels. The formula then
+  listed `youngAge` twice; `terms()` silently drops the duplicate, leaving one fewer distinct term than the
+  covariates actually used downstream. `youngAgeTxt` and the spread climate variable are now excluded from
+  `vegCols` before building the RHS. Version 1.2.0.9013.
+- `prepare_SpreadFitFire_Vector()` filtered `spreadFirePolys` by pixel size only, while `spreadFirePoints`
+  was filtered with `escapedFires()` (pixel size and `escapeSizeHa`, PR #44). A fire between one pixel and
+  `escapeSizeHa` then survived in the polygons but not the points, and `fireSenseUtils::harmonizeFireData()`
+  stopped with "spread fire point and poly harmonization error in dataPrepFit". `spreadFirePolys` is now
+  filtered with `escapedFires()` too. Version 1.2.0.9012.
+- New parameter `escapeSizeHa` (default 50). A fire counts as escaped when it reached that size, in the
+  escape model's response and in the fires the spread model is fitted to; before, any fire larger than one
+  pixel (about 6 ha) counted. New output `nonEscapedFireSizesHa`: the study area's natural-cause fire sizes
+  below it, for fireSense to size non-escaped ignitions. Version 1.2.0.9011.
+- The default fire years are now 1985 to the latest year with historical climate
+  (`climateData::latestHistoricalYear()`, 2024 today), and the default `dataYears` are 1985, 1990, 2000, 2010
+  and 2020. The old default, 2002:2025, ran past the climate data, so every project had to set `fireYears`.
+  fireregimetools is floored at 0.1.0.9008 (FOR-CAST main), which reads only the study area's part of the fire
+  records. Version 1.2.0.9010.
 
 - `climateVariables` and `rasterToMatchLarge` are now declared inputs. `.inputObjects` sets both, and a cached
   `.inputObjects` restores only declared inputs, so on a cache hit they vanished: canClimateData then failed with
