@@ -8,7 +8,7 @@ defineModule(sim, list(
     person(c("Alex", "M"), "Chubaty", role = "ctb", email = "achubaty@for-cast.ca")
   ),
   childModules = character(0),
-  version = list(fireSense_dataPrepFit = "1.2.0.9014"),
+  version = list(fireSense_dataPrepFit = "1.2.0.9015"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -17,7 +17,7 @@ defineModule(sim, list(
   reqdPkgs = list("data.table", "fastDummies", "Require",
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9042)", # CacheGeo re-reads a changed local file
                   "PredictiveEcology/climateData@development (>= 2.2.3.9006)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9043)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9053)",
                   "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9015)",
@@ -101,11 +101,16 @@ defineModule(sim, list(
                     list(dataPrepBuild = list(.cacheExtra = quote(list(
                       LandR::.compareRas, LandR::asInt, LandR::defineFlammable, LandR::isInt,
                       fireSenseUtils::assessFuelClasses, fireSenseUtils::fuelClassPrep,
-                      fireSenseUtils::makeLandcoverDT, fireSenseUtils::makeTSD)))),
+                      fireSenseUtils::makeLandcoverDT, fireSenseUtils::makeTSD))),
+                         prepSpreadFitData = list(.cacheExtra = quote(c(list(
+                      fireSenseUtils::bufferToArea, fireSenseUtils::climateRasterToDataTable,
+                      fireSenseUtils::fireSenseCovariatesCreate, fireSenseUtils::harmonizeFireData,
+                      fireSenseUtils::makeMutuallyExclusive, fireSenseUtils::rasterFireBufferDT,
+                      fireSenseUtils::rasterFireSpreadPoints), fireSenseUtils::harmonizeFireDataDeps())))),
                     NA, NA,
                     paste("Extra `reproducible::Cache()` arguments, by event. A cached event's digest covers",
-                          "this module's code but not the package functions it calls, so `dataPrepBuild`",
-                          "passes those in `.cacheExtra`: a changed function then re-runs the event."))
+                          "this module's code but not the package functions it calls, so `dataPrepBuild` and",
+                          "`prepSpreadFitData` pass those in `.cacheExtra`: a changed function then re-runs the event."))
   ),
   inputObjects = bindrows(
     expectsInput("climateVariables", "list", sourceURL = NA,
@@ -1009,6 +1014,8 @@ prepare_SpreadFitFire_Vector <- function(sim) {
       cores = nCores
     ) |>
       Cache(.functionName = paste0("harmonizedFireData_", yrNam),
+      ## the key covers harmonizeFireData's own code, not the functions it calls
+      .cacheExtra = fireSenseUtils::harmonizeFireDataDeps(),
       userTags = c("harmonizeFireData", P(sim)$.studyAreaName))
   }
   )

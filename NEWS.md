@@ -1,5 +1,6 @@
 # fireSense_dataPrepFit (development version)
 
+- A cached `prepSpreadFitData` event, or cached `harmonizeFireData()` call, now re-runs when a fireSenseUtils function it calls changes: they are keyed on those functions (`.useCacheArgs`, `fireSenseUtils::harmonizeFireDataDeps()`). Requires fireSenseUtils >= 0.2.3.9053.
 - `spreadFitFilename` now defaults to `"latest"`: each polygon's fit comes from the most recent ledger file in
   `spreadFitGoogleDriveFolder` that has it (`fireSenseUtils::latestSpreadFits()`, which reads only the
   current model's files, `fireSenseParams_*<fireSenseUtils::spreadFitFileTag>.rds`). So "this ELF has a
