@@ -1,7 +1,7 @@
 ---
 title: "fireSense_dataPrepFit Manual"
-subtitle: "v.1.2.0.9013"
-date: "Last updated: 2026-09-27"
+subtitle: "v.1.2.0.9014"
+date: "Last updated: 2026-09-28"
 output:
   bookdown::html_document2:
     toc: true
@@ -429,10 +429,10 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
   <tr>
    <td style="text-align:left;"> spreadFitFilename </td>
    <td style="text-align:left;"> character </td>
-   <td style="text-align:left;"> fireSens.... </td>
+   <td style="text-align:left;"> latest </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Name of the ledger file in `spreadFitGoogleDriveFolder`: study area polygons with their fitted SpreadFit parameters. </td>
+   <td style="text-align:left;"> Name of the ledger file in `spreadFitGoogleDriveFolder`: study area polygons with their fitted SpreadFit parameters. `"latest"` (the default) takes each polygon's fit from the most recent ledger file that has it (`fireSenseUtils::latestSpreadFits()`). </td>
   </tr>
   <tr>
    <td style="text-align:left;"> targetFuelClasses </td>
