@@ -33,7 +33,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">fireSense_dataPrepFit</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9015</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9016</span>
       </span>
     </div>
 
@@ -814,6 +814,26 @@ the column in <code>sppEquiv</code> that defines unique fuel classes. A column n
 </tr>
 <tr>
 <td style="text-align:left;">
+fuelCovariates
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+domSecOt….
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+How the spread-fit fuel covariates are represented. <code>"domSecOther"</code> (default): exactly four AGB columns per ELF, <code>dom_agb_&amp;lt;class&amp;gt;</code> and <code>sec_agb_&amp;lt;class&amp;gt;</code> (the two fuel classes with the most total treed AGB over the fit study area), <code>other_agb</code> (the rest, pooled) and <code>treedWetland_agb</code> (all tree AGB on treed-wetland pixels, removed from the other three there); see <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fireSenseCovariatesCreate.html" class="external-link">fireSenseUtils::fireSenseCovariatesCreate()</a></code>. <code>"species"</code>: the previous one column per fuel class. <code>fireSense_dataPrepPredict</code> follows whichever a fit used; this is not a parameter there.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
 minBufferSize
 </td>
 <td style="text-align:left;">
@@ -1295,6 +1315,17 @@ character
 </td>
 <td style="text-align:left;">
 formula for spread, using climate and vegetation covariates, as character
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+fuelClassRoles
+</td>
+<td style="text-align:left;">
+list
+</td>
+<td style="text-align:left;">
+Only when <code>fuelCovariates = "domSecOther"</code>: <code>list(domClass =, secClass =)</code>, the fuel classes chosen once for this ELF by <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/chooseDomSecFuelClasses.html" class="external-link">fireSenseUtils::chooseDomSecFuelClasses()</a></code>. Both <code>NA</code> with <code>fuelCovariates = "species"</code> or when the ELF has no tree fuel class.
 </td>
 </tr>
 <tr>
