@@ -1,6 +1,6 @@
 ---
 title: "fireSense_dataPrepFit Manual"
-subtitle: "v.1.2.0.9014"
+subtitle: "v.1.2.0.9015"
 date: "Last updated: 2026-09-28"
 output:
   bookdown::html_document2:
@@ -482,7 +482,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> list(.ca.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Extra `reproducible::Cache()` arguments, by event. A cached event's digest covers this module's code but not the package functions it calls, so `dataPrepBuild` passes those in `.cacheExtra`: a changed function then re-runs the event. </td>
+   <td style="text-align:left;"> Extra `reproducible::Cache()` arguments, by event. A cached event's digest covers this module's code but not the package functions it calls, so `dataPrepBuild` and `prepSpreadFitData` pass those in `.cacheExtra`: a changed function then re-runs the event. </td>
   </tr>
 </tbody>
 </table>
