@@ -7,8 +7,8 @@
   now passed to `fireSenseCovariatesCreate()` (previously never passed, so `treedWetland` never
   appeared). `fuelCovariates = "species"` keeps the previous one-column-per-fuel-class behaviour.
   `chooseDomSecFuelClasses()` is added to the `prepSpreadFitData` cache key (`.useCacheArgs`).
-  Needs `fireSenseUtils@development (>= 0.2.3.9053)`. Version 1.2.0.9016.
-- A cached `prepSpreadFitData` event, or cached `harmonizeFireData()` call, now re-runs when a fireSenseUtils function it calls changes: they are keyed on those functions (`.useCacheArgs`, `fireSenseUtils::harmonizeFireDataDeps()`). Requires fireSenseUtils >= 0.2.3.9053. Version 1.2.0.9015.
+  Needs `fireSenseUtils@development (>= 0.2.3.9055)`. Version 1.2.0.9016.
+- A cached `prepSpreadFitData` event, or cached `harmonizeFireData()` call, now re-runs when a fireSenseUtils function it calls changes: they are keyed on those functions (`.useCacheArgs`, `fireSenseUtils::harmonizeFireDataDeps()`). Requires fireSenseUtils >= 0.2.3.9055. Version 1.2.0.9015.
 - `spreadFitFilename` now defaults to `"latest"`: each polygon's fit comes from the most recent ledger file in
   `spreadFitGoogleDriveFolder` that has it (`fireSenseUtils::latestSpreadFits()`, which reads only the
   current model's files, `fireSenseParams_*<fireSenseUtils::spreadFitFileTag>.rds`). So "this ELF has a
