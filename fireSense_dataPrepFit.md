@@ -1,6 +1,6 @@
 ---
 title: "fireSense_dataPrepFit Manual"
-subtitle: "v.1.2.0.9015"
+subtitle: "v.1.2.0.9016"
 date: "Last updated: 2026-09-28"
 output:
   bookdown::html_document2:
@@ -387,6 +387,14 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> the column in `sppEquiv` that defines unique fuel classes. A column named `FuelClass` exists in the `LandR::sppEquivalencies_CA` and will be used by default. To change the `FuelClass` classifications, add a column to that table, or to `sim$sppEquiv` and then modify this `fuelClassCol` parameter </td>
   </tr>
   <tr>
+   <td style="text-align:left;"> fuelCovariates </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;"> domSecOt.... </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> How the spread-fit fuel covariates are represented. `"domSecOther"` (default): exactly four AGB columns per ELF, `dom_agb_&lt;class&gt;` and `sec_agb_&lt;class&gt;` (the two fuel classes with the most total treed AGB over the fit study area), `other_agb` (the rest, pooled) and `treedWetland_agb` (all tree AGB on treed-wetland pixels, removed from the other three there); see `fireSenseUtils::fireSenseCovariatesCreate()`. `"species"`: the previous one column per fuel class. `fireSense_dataPrepPredict` follows whichever a fit used; this is not a parameter there. </td>
+  </tr>
+  <tr>
    <td style="text-align:left;"> minBufferSize </td>
    <td style="text-align:left;"> numeric </td>
    <td style="text-align:left;"> 5000 </td>
@@ -480,7 +488,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> list(.ca.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Extra `reproducible::Cache()` arguments, by event. A cached event's digest covers this module's code but not the package functions it calls, so `dataPrepBuild` and `prepSpreadFitData` pass those in `.cacheExtra`: a changed function then re-runs the event. </td>
+   <td style="text-align:left;"> Extra `reproducible::Cache()` arguments, by event. A cached event's digest covers this module's code but not the package functions it calls, so `dataPrepBuild` passes those in `.cacheExtra`: a changed function then re-runs the event. </td>
   </tr>
 </tbody>
 </table>
@@ -627,6 +635,11 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-dataP
    <td style="text-align:left;"> fireSense_spreadFormula </td>
    <td style="text-align:left;"> character </td>
    <td style="text-align:left;"> formula for spread, using climate and vegetation covariates, as character </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> fuelClassRoles </td>
+   <td style="text-align:left;"> list </td>
+   <td style="text-align:left;"> Only when `fuelCovariates = "domSecOther"`: `list(domClass =, secClass =)`, the fuel classes chosen once for this ELF by `fireSenseUtils::chooseDomSecFuelClasses()`. Both `NA` with `fuelCovariates = "species"` or when the ELF has no tree fuel class. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> ignitionFirePoints </td>
