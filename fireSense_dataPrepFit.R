@@ -8,7 +8,7 @@ defineModule(sim, list(
     person(c("Alex", "M"), "Chubaty", role = "ctb", email = "achubaty@for-cast.ca")
   ),
   childModules = character(0),
-  version = list(fireSense_dataPrepFit = "1.2.0.9015"),
+  version = list(fireSense_dataPrepFit = "1.2.0.9016"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -67,6 +67,15 @@ defineModule(sim, list(
                     "named `FuelClass` exists in the `LandR::sppEquivalencies_CA` and will be used ",
                     "by default. To change the `FuelClass` classifications, add a column to that table, ",
                     "or to `sim$sppEquiv` and then modify this `fuelClassCol` parameter"),
+    defineParameter("fuelCovariates", "character", c("domSecOther", "species"), NA, NA,
+                    paste("How the spread-fit fuel covariates are represented. `\"domSecOther\"` (default):",
+                          "exactly four AGB columns per ELF, `dom_agb_<class>` and `sec_agb_<class>` (the",
+                          "two fuel classes with the most total treed AGB over the fit study area),",
+                          "`other_agb` (the rest, pooled) and `treedWetland_agb` (all tree AGB on treed-wetland",
+                          "pixels, removed from the other three there); see",
+                          "`fireSenseUtils::fireSenseCovariatesCreate()`. `\"species\"`: the previous one",
+                          "column per fuel class. `fireSense_dataPrepPredict` follows whichever a fit used;",
+                          "this is not a parameter there.")),
     defineParameter("minBufferSize", "numeric", 5000, NA, NA,
                     paste("Minimum number of cells in each fire's burned-plus-buffer sample, applied after `areaMultiplier`.")),
     defineParameter("nonflammableLCC", "numeric", c(0, 20, 31, 32, 33), NA, NA,
@@ -103,7 +112,8 @@ defineModule(sim, list(
                       fireSenseUtils::assessFuelClasses, fireSenseUtils::fuelClassPrep,
                       fireSenseUtils::makeLandcoverDT, fireSenseUtils::makeTSD))),
                          prepSpreadFitData = list(.cacheExtra = quote(c(list(
-                      fireSenseUtils::bufferToArea, fireSenseUtils::climateRasterToDataTable,
+                      fireSenseUtils::bufferToArea, fireSenseUtils::chooseDomSecFuelClasses,
+                      fireSenseUtils::climateRasterToDataTable,
                       fireSenseUtils::fireSenseCovariatesCreate, fireSenseUtils::harmonizeFireData,
                       fireSenseUtils::makeMutuallyExclusive, fireSenseUtils::rasterFireBufferDT,
                       fireSenseUtils::rasterFireSpreadPoints), fireSenseUtils::harmonizeFireDataDeps())))),
@@ -231,6 +241,10 @@ defineModule(sim, list(
                   "List of data.tables, one per `dataYears`, of `pixelID` and the fuel covariates in the fire buffers."),
     createsOutput("fireSense_spreadFormula", "character",
                   "formula for spread, using climate and vegetation covariates, as character"),
+    createsOutput("fuelClassRoles", "list",
+                  paste("Only when `fuelCovariates = \"domSecOther\"`: `list(domClass =, secClass =)`,",
+                        "the fuel classes chosen once for this ELF by `fireSenseUtils::chooseDomSecFuelClasses()`.",
+                        "Both `NA` with `fuelCovariates = \"species\"` or when the ELF has no tree fuel class.")),
     createsOutput("ignitionFirePoints", "SpatVector",
                   paste("The input, in the CRS of `rasterToMatch` and clipped to `studyArea`.")),
     createsOutput("ignitionFitRTM", "SpatRaster",
@@ -687,10 +701,28 @@ prepare_SpreadFit <- function(sim) {
   ## when landcoverDT is included, as is the case here, non-forest pixels in cohortData are masked out
   ## this is necessary when LandR and fireSense have differing concepts of non-forest
 
-  dig1 <- .robustDigest(list(sim$landcoverDTs, sim$flammableRTMs))
+  dig1 <- .robustDigest(list(sim$landcoverDTs, sim$flammableRTMs, sim$rstLCCs))
   dig1a <- .robustDigest(list(sim$cohortDatas, sim$pixelGroupMaps, sim$nonForest_timeSinceDisturbances))
   dig2 <- append(dig1, dig1a)
-  
+
+  fuelCovariates <- match.arg(P(sim)$fuelCovariates, c("domSecOther", "species"))
+  sim$fuelClassRoles <- list(domClass = NA_character_, secClass = NA_character_)
+  if (identical(fuelCovariates, "domSecOther")) {
+    ## chosen once per ELF (the most recent data year, as with sim$rstLCC/sim$rstLCC_RTM elsewhere
+    ## in this module), not independently for every data year -- a prediction must build the same
+    ## dom_agb_*/sec_agb_* columns whichever year it is predicting
+    sim$fuelClassRoles <- Cache(fireSenseUtils::chooseDomSecFuelClasses,
+                                cohortData = tail(sim$cohortDatas, 1)[[1]],
+                                pixelGroupMap = tail(sim$pixelGroupMaps, 1)[[1]],
+                                flammableRTM = tail(sim$flammableRTMs, 1)[[1]],
+                                landcoverDT = tail(sim$landcoverDTs, 1)[[1]],
+                                sppEquiv = sim$sppEquiv, fuelClassCol = P(sim)$fuelClassCol,
+                                sppEquivCol = P(sim)$sppEquivCol, cutoffForYoungAge = P(sim)$cutoffForYoungAge,
+                                .cacheExtra = dig2, omitArgs = c("cohortData", "pixelGroupMap", "flammableRTM", "landcoverDT"))
+    message("fireSense_dataPrepFit: dominant fuel class = ", sim$fuelClassRoles$domClass,
+            "; secondary = ", sim$fuelClassRoles$secClass)
+  }
+
   # This adds youngAge
   vegData <- Map(f = fireSenseUtils:::fireSenseCovariatesCreate,
                         cohortData = sim$cohortDatas,
@@ -698,18 +730,22 @@ prepare_SpreadFit <- function(sim) {
                         flammableRTM = sim$flammableRTMs,
                         landcoverDT = sim$landcoverDTs,
                         nonForest_timeSinceDisturbance = sim$nonForest_timeSinceDisturbances,
+                        rstLCC = sim$rstLCCs,
                         MoreArgs = list(sppEquiv = sim$sppEquiv,
                                         sppEquivCol = P(sim)$sppEquivCol,
                                         fuelClassCol = P(sim)$fuelClassCol,
                                         cutoffForYoungAge = P(sim)$cutoffForYoungAge,
                                         missingLCCgroup = sim$missingLCCgroup,
                                         nonForestedLCCGroups = sim$nonForestedLCCGroups,
+                                        fuelCovariates = fuelCovariates,
+                                        domClass = sim$fuelClassRoles$domClass,
+                                        secClass = sim$fuelClassRoles$secClass,
                                         nonForestCanBeYoungAge = P(sim)$nonForestCanBeYoungAge,
                                         studyAreaName = P(sim)$.studyAreaName
-                        ) 
+                        )
   ) |>
-    Cache(.cacheExtra = dig2, 
-          omitArgs = c("landcoverDT", "flammableRTM", "cohortData", "pixelGroupMap", "nonForest_timeSinceDisturbance"),
+    Cache(.cacheExtra = dig2,
+          omitArgs = c("landcoverDT", "flammableRTM", "cohortData", "pixelGroupMap", "nonForest_timeSinceDisturbance", "rstLCC"),
           .functionName = "spreadCovariatesCreate")
   # Add "year" column
   vegData <- Map(v = vegData, n = names(vegData), function(v, n) {
