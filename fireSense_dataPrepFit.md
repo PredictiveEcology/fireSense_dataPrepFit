@@ -1,6 +1,6 @@
 ---
 title: "fireSense_dataPrepFit Manual"
-subtitle: "v.1.2.0.9016"
+subtitle: "v.1.2.0.9017"
 date: "Last updated: 2026-09-28"
 output:
   bookdown::html_document2:
@@ -408,7 +408,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> 0, 20, 3.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Non-flammable classes in `rstLCCs`; the default is water, snow/ice, rock and barren land. </td>
+   <td style="text-align:left;"> Non-flammable classes in `rstLCCs`; the default, `fireSenseUtils::fireSenseNonflammableLCC`, is no data, water, rock, snow/ice and barren land. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> nonForestCanBeYoungAge </td>
