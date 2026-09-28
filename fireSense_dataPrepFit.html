@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">fireSense_dataPrepFit</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9016</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9017</span>
       </span>
     </div>
 
@@ -725,7 +725,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Non-flammable classes in <code>rstLCCs</code>; the default is water, snow/ice, rock and barren land.
+Non-flammable classes in <code>rstLCCs</code>; the default, <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fireSenseNonflammableLCC.html" class="external-link">fireSenseUtils::fireSenseNonflammableLCC</a></code>, is no data, water, rock, snow/ice and barren land.
 </td>
 </tr><tr><td style="text-align:left;">
 nonForestCanBeYoungAge
@@ -904,7 +904,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Extra <code><a href="https://reproducible.predictiveecology.org/reference/Cache.html" class="external-link">reproducible::Cache()</a></code> arguments, by event. A cached event’s digest covers this module’s code but not the package functions it calls, so <code>dataPrepBuild</code> passes those in <code>.cacheExtra</code>: a changed function then re-runs the event.
+Extra <code><a href="https://reproducible.predictiveecology.org/reference/Cache.html" class="external-link">reproducible::Cache()</a></code> arguments, by event. A cached event’s digest covers this module’s code but not the package functions it calls, so <code>dataPrepBuild</code> and <code>prepSpreadFitData</code> pass those in <code>.cacheExtra</code>: a changed function then re-runs the event.
 </td>
 </tr></tbody></table></div>
 <div class="section level3">
