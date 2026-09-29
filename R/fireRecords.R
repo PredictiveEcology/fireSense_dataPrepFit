@@ -15,7 +15,7 @@
 #' @param ... passed to `reproducible::preProcess()`, e.g. `archive`.
 #' @return character, path of the `.shp` file.
 fireRecordShapefile <- function(url, destinationPath, ...) {
-  ## reproducible:: by name: caret (a fireSense_IgnitionFit reqdPkg) also has a preProcess(), which
+  ## reproducible:: by name: caret (a fireSense_ignitionFit reqdPkg) also has a preProcess(), which
   ## masks this one when attached later. With `fun = NA`, preProcess() returns every file in the
   ## archive, and the CFS archives also carry metadata, hence the grep.
   files <- reproducible::preProcess(url = url, destinationPath = destinationPath, fun = NA, ...)$targetFilePath

@@ -1,5 +1,13 @@
 # fireSense_dataPrepFit (development version)
 
+- `fireSense_EscapeFit` no longer exists (`fireSense_ignitionFit` fits ignition and escape): it is removed from the `whichModulesToPrepare`
+  default (now `fireSense_ignitionFit` and `fireSense_spreadFit`) and naming it stops with a message. Preparing `fireSense_ignitionFit`
+  schedules `prepEscapeFitData` as well; the event and its caching are unchanged.
+
+- `whichModulesToPrepare` default and comparisons use the renamed `fireSense_ignitionFit` and `fireSense_spreadFit` (formerly
+  `fireSense_IgnitionFit`, `fireSense_SpreadFit`). A project setting `whichModulesToPrepare` must use the new names.
+
+
 - `forestedLCC`, `cutoffForYoungAge`, `nonForestCanBeYoungAge`, `flammabilityThreshold`, `fuelClassCol`
   and `igAggFactor` now default to `fireSenseUtils::fireSenseForestedLCC`, `fireSenseYoungAgeCutoff`,
   `fireSenseNonForestCanBeYoungAge`, `fireSenseFlammabilityThreshold`, `fireSenseFuelClassCol` and

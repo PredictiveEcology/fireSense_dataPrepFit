@@ -35,7 +35,7 @@ Ian Eddy <ian.eddy@nrcan-rncan.gc.ca> [aut, cre], Eliot McIntire <eliot.mcintire
 
 ## Module Overview
 
-Prepares the data needed to fit `fireSense_IgnitionFit`, `fireSense_EscapeFit` and `fireSense_SpreadFit`.
+Prepares the data needed to fit `fireSense_ignitionFit` (ignition and escape) and `fireSense_spreadFit`.
 
 ### Module summary
 
@@ -110,7 +110,7 @@ It is estimated along with the fuel classes; otherwise it defaults to the first 
 ### Usage
 
 The module is normally run with `canClimateData` (for `historicalClimateRasters` and `climateVariables`) ahead of the three fit modules.
-`fireSense_SpreadFit` and `fireSense_EscapeFit` preparation both need the ignition preparation, so keep `fireSense_IgnitionFit` in `P(sim)$whichModulesToPrepare`.
+`fireSense_spreadFit` preparation needs the ignition preparation, so keep `fireSense_ignitionFit` in `P(sim)$whichModulesToPrepare`. Preparing `fireSense_ignitionFit` also prepares the escape data (`prepEscapeFitData`); the module `fireSense_EscapeFit` no longer exists and is rejected.
 
 
 ``` r
@@ -472,7 +472,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> fireSens.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Which fireSense fit modules to prep? defaults to all 3 </td>
+   <td style="text-align:left;"> Which fireSense fit modules to prep? defaults to both. Preparing `fireSense_ignitionFit` prepares its ignition and escape data. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .studyAreaName </td>
@@ -521,7 +521,7 @@ Can be cached: add `"dataPrepBuild"` to `.useCache`.
 Fuel, climate and lightning rasters are aggregated by `P(sim)$igAggFactor`, and ignitions are counted per coarse pixel and year.
 `sim$fireSense_ignitionCovariates` has one row per coarse pixel and year.
 Fitted probabilities only apply at that resolution, so the template `sim$ignitionFitRTM` is also output, with attributes `nonNAs` (the number of rows) and `meanForestB`.
-No ignition formula is built: fireSense_IgnitionFit fits with xgboost, which does not use one.
+No ignition formula is built: fireSense_ignitionFit fits with xgboost, which does not use one.
 
 ##### prepEscapeFitData
 
@@ -744,7 +744,7 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-dataP
 
 ### Links to other modules
 
-This module links to [fireSense_IgnitionFit](https://github.com/PredictiveEcology/fireSense_IgnitionFit), [fireSense_EscapeFit](https://github.com/PredictiveEcology/fireSense_EscapeFit), and [fireSense_SpreadFit](https://github.com/PredictiveEcology/fireSense_SpreadFit)
+This module links to [fireSense_ignitionFit](https://github.com/PredictiveEcology/fireSense_ignitionFit) and [fireSense_spreadFit](https://github.com/PredictiveEcology/fireSense_spreadFit)
 
 ### Getting help
 
