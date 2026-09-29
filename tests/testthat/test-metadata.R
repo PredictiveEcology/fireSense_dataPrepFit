@@ -94,7 +94,7 @@ test_that("parameters are the expected names", {
     sort(c(".studyAreaName",
            ".useCache", ".useCacheArgs", "areaMultiplier", "bufferForFireRaster", "cutoffForYoungAge",
            "dataYears", "escapeSizeHa", "estimateFuelClasses", "fireYears", "flammabilityThreshold",
-           "forestedLCC", "fuelClassCol", "fuelCovariates", "igAggFactor",
+           "forestedLCC", "fuelClassCol", "fuelCovariates", "heldOutFold", "igAggFactor",
            "minBufferSize", "nonflammableLCC",
            "nonForestCanBeYoungAge", "scanfiVersion", "sppEquivCol", "spreadFitFilename",
            "spreadFitGoogleDriveFolder", "targetFuelClasses",

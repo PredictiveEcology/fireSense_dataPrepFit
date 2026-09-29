@@ -8,7 +8,7 @@ defineModule(sim, list(
     person(c("Alex", "M"), "Chubaty", role = "ctb", email = "achubaty@for-cast.ca")
   ),
   childModules = character(0),
-  version = list(fireSense_dataPrepFit = "1.2.0.9021"),
+  version = list(fireSense_dataPrepFit = "1.2.0.9022"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -90,6 +90,13 @@ defineModule(sim, list(
                           "Passed to `fireSenseUtils::makeFireSenseLCC()`.")),
     defineParameter("sppEquivCol", "character", "LandR", NA, NA,
                     "column name in `sppEquiv` object that defines unique species in `cohortData`"),
+    defineParameter("heldOutFold", "integer", default = NA,
+                    desc = paste("NA (default): unchanged. `1` or `2`: a cross-validation fold is being fitted",
+                                 "(the same parameter as in `fireSense_spreadFit`), so the SpreadFit ledger is not relevant",
+                                 "and `Init()` does not read it: `sim$spreadFitPreRun` stays NULL and this module derives",
+                                 "the species, fuel and climate objects itself, as for an unfitted study area.",
+                                 "Set it for every fireSense module at once with `.globals = list(heldOutFold = 1L)`;",
+                                 "`Init()` stops if `fireSense_spreadFit` has a different value. Any other value is an error.")),
     defineParameter("spreadFitGoogleDriveFolder", "character",
                     "https://drive.google.com/drive/folders/1X9-mRjyLMNpgkP_cfqhbr_AQEPOsVCHf",
                     NA, NA, paste("URL of the Google Drive folder holding the ledger of previous SpreadFit results",
@@ -354,8 +361,15 @@ Init <- function(sim) {
   if (inherits(sa, "SpatVector")) sa <- st_as_sf(sa)
   
   prepInputsFSURL <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitGoogleDriveFolder")
-  sim$spreadFitPreRun <- readSpreadFitLedger(Par$spreadFitFilename, Par$spreadFitGoogleDriveFolder,
-                                             domain = sa, destinationPath = inputPath(sim))
+  ## A held-out fold is fitted without the ledger: leave `spreadFitPreRun` NULL (no fit).
+  heldOutFold <- SpaDES.core::paramCheckOtherMods(sim, "heldOutFold")
+  if (!isTRUE(is.na(heldOutFold)) && !(length(heldOutFold) == 1L && heldOutFold %in% 1:2))
+    stop("fireSense_dataPrepFit: parameter 'heldOutFold' must be NA, 1L or 2L; got: ",
+         paste(format(heldOutFold), collapse = ", "))
+  sim$spreadFitPreRun <- if (isTRUE(is.na(heldOutFold))) {
+    readSpreadFitLedger(Par$spreadFitFilename, Par$spreadFitGoogleDriveFolder,
+                        domain = sa, destinationPath = inputPath(sim))
+  }
   mod$haveSpreadFit <- is(sim$spreadFitPreRun, "sf") || is(sim$spreadFitPreRun, "data.frame")
   if (mod$haveSpreadFit) {
     sim$studyAreaWithSpreadParams <- sim$spreadFitPreRun
