@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous">
 <!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- pkgdown --><link href="pkgdown.css" rel="stylesheet">
 <script src="pkgdown.js"></script><meta property="og:title" content="fireSense_dataPrepFit">
-<meta property="og:description" content="Prepare data required by `fireSense_IginitionFit`, `fireSense_EscapeFit`, and `fireSense_SpreadFit`.">
+<meta property="og:description" content="Prepare data required by `fireSense_ignitionFit` (ignition and escape) and `fireSense_spreadFit`.">
 <!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" integrity="sha256-nvJJv9wWKEm88qvoQl9ekL2J+k/RWIsaSScxxlsrv8k=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/config/TeX-AMS-MML_HTMLorMML.js" integrity="sha256-84DKXVJXs0/F8OTMzX4UR909+jtl4G7SPypPavF+GfA=" crossorigin="anonymous"></script><!--[if lt IE 9]>
 <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
 <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
@@ -33,7 +33,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">fireSense_dataPrepFit</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9018</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9020</span>
       </span>
     </div>
 
@@ -85,7 +85,7 @@
 <div class="section level2">
 <h2 id="module-overview">Module Overview<a class="anchor" aria-label="anchor" href="#module-overview"></a>
 </h2>
-<p>Prepares the data needed to fit <code>fireSense_IgnitionFit</code>, <code>fireSense_EscapeFit</code> and <code>fireSense_SpreadFit</code>.</p>
+<p>Prepares the data needed to fit <code>fireSense_ignitionFit</code> (ignition and escape) and <code>fireSense_spreadFit</code>.</p>
 <div class="section level3">
 <h3 id="module-summary">Module summary<a class="anchor" aria-label="anchor" href="#module-summary"></a>
 </h3>
@@ -205,7 +205,7 @@
 <div class="section level3">
 <h3 id="usage">Usage<a class="anchor" aria-label="anchor" href="#usage"></a>
 </h3>
-<p>The module is normally run with <code>canClimateData</code> (for <code>historicalClimateRasters</code> and <code>climateVariables</code>) ahead of the three fit modules. <code>fireSense_SpreadFit</code> and <code>fireSense_EscapeFit</code> preparation both need the ignition preparation, so keep <code>fireSense_IgnitionFit</code> in <code>P(sim)$whichModulesToPrepare</code>.</p>
+<p>The module is normally run with <code>canClimateData</code> (for <code>historicalClimateRasters</code> and <code>climateVariables</code>) ahead of the three fit modules. <code>fireSense_spreadFit</code> preparation needs the ignition preparation, so keep <code>fireSense_ignitionFit</code> in <code>P(sim)$whichModulesToPrepare</code>. Preparing <code>fireSense_ignitionFit</code> also prepares the escape data (<code>prepEscapeFitData</code>); the module <code>fireSense_EscapeFit</code> no longer exists and is rejected.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu">SpaDES.project</span><span class="fu">::</span><span class="fu"><a href="http://spades-project.predictiveecology.org/reference/setupProject.html" class="external-link">setupProject</a></span><span class="op">(</span></span>
 <span>  paths <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>projectPath <span class="op">=</span> <span class="st">"~/fireSenseFit"</span><span class="op">)</span>,</span>
@@ -1029,7 +1029,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Which fireSense fit modules to prep? defaults to all 3
+Which fireSense fit modules to prep? defaults to both. Preparing <code>fireSense_ignitionFit</code> prepares its ignition and escape data.
 </td>
 </tr>
 <tr>
@@ -1111,7 +1111,7 @@ Extra <code><a href="https://reproducible.predictiveecology.org/reference/Cache.
 <div class="section level5">
 <h5 id="prepignitionfitdata">prepIgnitionFitData<a class="anchor" aria-label="anchor" href="#prepignitionfitdata"></a>
 </h5>
-<p>Fuel, climate and lightning rasters are aggregated by <code>P(sim)$igAggFactor</code>, and ignitions are counted per coarse pixel and year. <code>sim$fireSense_ignitionCovariates</code> has one row per coarse pixel and year. Fitted probabilities only apply at that resolution, so the template <code>sim$ignitionFitRTM</code> is also output, with attributes <code>nonNAs</code> (the number of rows) and <code>meanForestB</code>. No ignition formula is built: fireSense_IgnitionFit fits with xgboost, which does not use one.</p>
+<p>Fuel, climate and lightning rasters are aggregated by <code>P(sim)$igAggFactor</code>, and ignitions are counted per coarse pixel and year. <code>sim$fireSense_ignitionCovariates</code> has one row per coarse pixel and year. Fitted probabilities only apply at that resolution, so the template <code>sim$ignitionFitRTM</code> is also output, with attributes <code>nonNAs</code> (the number of rows) and <code>meanForestB</code>. No ignition formula is built: fireSense_ignitionFit fits with xgboost, which does not use one.</p>
 </div>
 <div class="section level5">
 <h5 id="prepescapefitdata">prepEscapeFitData<a class="anchor" aria-label="anchor" href="#prepescapefitdata"></a>
@@ -1552,7 +1552,7 @@ Last element of <code>nonForest_timeSinceDisturbances</code>.
 <div class="section level3">
 <h3 id="links-to-other-modules">Links to other modules<a class="anchor" aria-label="anchor" href="#links-to-other-modules"></a>
 </h3>
-<p>This module links to <a href="https://github.com/PredictiveEcology/fireSense_IgnitionFit" class="external-link">fireSense_IgnitionFit</a>, <a href="https://github.com/PredictiveEcology/fireSense_EscapeFit" class="external-link">fireSense_EscapeFit</a>, and <a href="https://github.com/PredictiveEcology/fireSense_SpreadFit" class="external-link">fireSense_SpreadFit</a></p>
+<p>This module links to <a href="https://github.com/PredictiveEcology/fireSense_ignitionFit" class="external-link">fireSense_ignitionFit</a> and <a href="https://github.com/PredictiveEcology/fireSense_spreadFit" class="external-link">fireSense_spreadFit</a></p>
 </div>
 <div class="section level3">
 <h3 id="getting-help">Getting help<a class="anchor" aria-label="anchor" href="#getting-help"></a>

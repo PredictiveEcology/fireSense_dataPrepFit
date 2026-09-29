@@ -32,7 +32,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fireSense_dataPrepFit</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9018</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9020</span>
       </span>
     </div>
 
@@ -71,9 +71,9 @@
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>fireSense_dataPrepFit Manual</h1>
-            <h3 data-toc-skip class="subtitle">v.1.2.0.9018</h3>
+            <h3 data-toc-skip class="subtitle">v.1.2.0.9020</h3>
             
-            <h4 data-toc-skip class="date">Last updated: 2026-09-28</h4>
+            <h4 data-toc-skip class="date">Last updated: 2026-09-29</h4>
       
 
       <div class="hidden name"><code>fireSense_dataPrepFit.Rmd</code></div>
@@ -97,7 +97,7 @@
 <div class="section level3">
 <h3 id="module-overview">Module Overview<a class="anchor" aria-label="anchor" href="#module-overview"></a>
 </h3>
-<p>Prepares the data needed to fit <code>fireSense_IgnitionFit</code>, <code>fireSense_EscapeFit</code> and <code>fireSense_SpreadFit</code>.</p>
+<p>Prepares the data needed to fit <code>fireSense_ignitionFit</code> (ignition and escape) and <code>fireSense_spreadFit</code>.</p>
 <div class="section level4">
 <h4 id="module-summary">Module summary<a class="anchor" aria-label="anchor" href="#module-summary"></a>
 </h4>
@@ -235,7 +235,7 @@ It is estimated along with the fuel classes; otherwise it defaults to the first 
 <h4 id="usage">Usage<a class="anchor" aria-label="anchor" href="#usage"></a>
 </h4>
 <p>The module is normally run with <code>canClimateData</code> (for <code>historicalClimateRasters</code> and <code>climateVariables</code>) ahead of the three fit modules.
-<code>fireSense_SpreadFit</code> and <code>fireSense_EscapeFit</code> preparation both need the ignition preparation, so keep <code>fireSense_IgnitionFit</code> in <code>P(sim)$whichModulesToPrepare</code>.</p>
+<code>fireSense_spreadFit</code> preparation needs the ignition preparation, so keep <code>fireSense_ignitionFit</code> in <code>P(sim)$whichModulesToPrepare</code>. Preparing <code>fireSense_ignitionFit</code> also prepares the escape data (<code>prepEscapeFitData</code>); the module <code>fireSense_EscapeFit</code> no longer exists and is rejected.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu">SpaDES.project</span><span class="fu">::</span><span class="fu"><a href="http://spades-project.predictiveecology.org/reference/setupProject.html" class="external-link">setupProject</a></span><span class="op">(</span></span>
 <span>  paths <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>projectPath <span class="op">=</span> <span class="st">"~/fireSenseFit"</span><span class="op">)</span>,</span>
@@ -1059,7 +1059,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Which fireSense fit modules to prep? defaults to all 3
+Which fireSense fit modules to prep? defaults to both. Preparing <code>fireSense_ignitionFit</code> prepares its ignition and escape data.
 </td>
 </tr>
 <tr>
@@ -1147,7 +1147,7 @@ Can be cached: add <code>"dataPrepBuild"</code> to <code>.useCache</code>.</p>
 <p>Fuel, climate and lightning rasters are aggregated by <code>P(sim)$igAggFactor</code>, and ignitions are counted per coarse pixel and year.
 <code>sim$fireSense_ignitionCovariates</code> has one row per coarse pixel and year.
 Fitted probabilities only apply at that resolution, so the template <code>sim$ignitionFitRTM</code> is also output, with attributes <code>nonNAs</code> (the number of rows) and <code>meanForestB</code>.
-No ignition formula is built: fireSense_IgnitionFit fits with xgboost, which does not use one.</p>
+No ignition formula is built: fireSense_ignitionFit fits with xgboost, which does not use one.</p>
 </div>
 <div class="section level6">
 <h6 id="prepescapefitdata">prepEscapeFitData<a class="anchor" aria-label="anchor" href="#prepescapefitdata"></a>
@@ -1596,7 +1596,7 @@ Last element of <code>nonForest_timeSinceDisturbances</code>.
 <div class="section level4">
 <h4 id="links-to-other-modules">Links to other modules<a class="anchor" aria-label="anchor" href="#links-to-other-modules"></a>
 </h4>
-<p>This module links to <a href="https://github.com/PredictiveEcology/fireSense_IgnitionFit" class="external-link">fireSense_IgnitionFit</a>, <a href="https://github.com/PredictiveEcology/fireSense_EscapeFit" class="external-link">fireSense_EscapeFit</a>, and <a href="https://github.com/PredictiveEcology/fireSense_SpreadFit" class="external-link">fireSense_SpreadFit</a></p>
+<p>This module links to <a href="https://github.com/PredictiveEcology/fireSense_ignitionFit" class="external-link">fireSense_ignitionFit</a> and <a href="https://github.com/PredictiveEcology/fireSense_spreadFit" class="external-link">fireSense_spreadFit</a></p>
 </div>
 <div class="section level4">
 <h4 id="getting-help">Getting help<a class="anchor" aria-label="anchor" href="#getting-help"></a>
