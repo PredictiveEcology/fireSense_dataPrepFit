@@ -1,6 +1,6 @@
 defineModule(sim, list(
   name = "fireSense_dataPrepFit",
-  description = "Prepare data required by `fireSense_IginitionFit`, `fireSense_EscapeFit`, and `fireSense_SpreadFit`.",
+  description = "Prepare data required by `fireSense_IginitionFit`, `fireSense_EscapeFit`, and `fireSense_spreadFit`.",
   keywords = "fireSense",
   authors = c(
     person("Ian", "Eddy", role = c("aut", "cre"), email = "ian.eddy@nrcan-rncan.gc.ca"),
@@ -8,7 +8,7 @@ defineModule(sim, list(
     person(c("Alex", "M"), "Chubaty", role = "ctb", email = "achubaty@for-cast.ca")
   ),
   childModules = character(0),
-  version = list(fireSense_dataPrepFit = "1.2.0.9018"),
+  version = list(fireSense_dataPrepFit = "1.2.0.9019"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -104,7 +104,7 @@ defineModule(sim, list(
                     paste("Use `historicalFireRaster` in place of fire polygons for spread?",
                           "Not currently supported: `TRUE` stops with an error when preparing SpreadFit.")),
     defineParameter("whichModulesToPrepare", "character",
-                    c("fireSense_IgnitionFit", "fireSense_SpreadFit", "fireSense_EscapeFit"),
+                    c("fireSense_ignitionFit", "fireSense_spreadFit", "fireSense_EscapeFit"),
                     NA, NA, "Which fireSense fit modules to prep? defaults to all 3"),
     defineParameter(".studyAreaName", "character", NULL, NA, NA,
                     "`studyArea` name used in file names and cache tags; `NULL` derives it from `sim$studyArea`."),
@@ -303,16 +303,16 @@ doEvent.fireSense_dataPrepFit = function(sim, eventTime, eventType) {
     eventType,
     init = {
       if (!all(P(sim)$whichModulesToPrepare %in%
-               c("fireSense_SpreadFit", "fireSense_IgnitionFit", "fireSense_EscapeFit"))) {
+               c("fireSense_spreadFit", "fireSense_ignitionFit", "fireSense_EscapeFit"))) {
         stop("unrecognized module to prepare - review parameter whichModulesToPrepare")
       }
 
       ## schedule future event(s)
-      if ("fireSense_IgnitionFit" %in% P(sim)$whichModulesToPrepare)
+      if ("fireSense_ignitionFit" %in% P(sim)$whichModulesToPrepare)
         sim <- scheduleEvent(sim, start(sim), "fireSense_dataPrepFit", "prepIgnitionFitData", eventPriority = 1)
       if ("fireSense_EscapeFit" %in% P(sim)$whichModulesToPrepare)
         sim <- scheduleEvent(sim, start(sim), "fireSense_dataPrepFit", "prepEscapeFitData", eventPriority = 1)
-      if ("fireSense_SpreadFit" %in% P(sim)$whichModulesToPrepare) {
+      if ("fireSense_spreadFit" %in% P(sim)$whichModulesToPrepare) {
         sim <- scheduleEvent(sim, start(sim), "fireSense_dataPrepFit", "prepSpreadFitData", eventPriority = 1)
       }
 
@@ -686,7 +686,7 @@ dataPrepBuild <- function(sim) {
 }
 
 
-#' Prepare the covariates and formula for fireSense_SpreadFit
+#' Prepare the covariates and formula for fireSense_spreadFit
 #'
 #' Buffers each fire, joins the buffers to the fuel covariates of their data year and to annual
 #' climate, and splits the result into annual and non-annual tables.
@@ -1086,11 +1086,11 @@ prepare_SpreadFitFire_Vector <- function(sim) {
 
 }
 
-#' Prepare the covariates for fireSense_IgnitionFit
+#' Prepare the covariates for fireSense_ignitionFit
 #'
 #' Aggregates fuel, climate and lightning covariates by `igAggFactor` and counts the ignitions in
 #' each coarse pixel and year. Sets `mod$allYears`, which the spread preparation uses. No formula is
-#' built: fireSense_IgnitionFit fits with xgboost, which does not use one.
+#' built: fireSense_ignitionFit fits with xgboost, which does not use one.
 #'
 #' @param sim a `simList`.
 #' @return the `simList`, invisibly, with `fireSense_ignitionCovariates`, `ignitionFitRTM` and

@@ -44,7 +44,7 @@ download.file(url = "https://img.shields.io/badge/Made%20with-Markdown-1f425f.pn
 
 ## Module Overview
 
-Prepares the data needed to fit `fireSense_IgnitionFit`, `fireSense_EscapeFit` and `fireSense_SpreadFit`.
+Prepares the data needed to fit `fireSense_ignitionFit`, `fireSense_EscapeFit` and `fireSense_spreadFit`.
 
 ### Module summary
 
@@ -119,7 +119,7 @@ It is estimated along with the fuel classes; otherwise it defaults to the first 
 ### Usage
 
 The module is normally run with `canClimateData` (for `historicalClimateRasters` and `climateVariables`) ahead of the three fit modules.
-`fireSense_SpreadFit` and `fireSense_EscapeFit` preparation both need the ignition preparation, so keep `fireSense_IgnitionFit` in `P(sim)$whichModulesToPrepare`.
+`fireSense_spreadFit` and `fireSense_EscapeFit` preparation both need the ignition preparation, so keep `fireSense_ignitionFit` in `P(sim)$whichModulesToPrepare`.
 
 ```{r usage-fireSense-dataPrepFit, eval = FALSE}
 out <- SpaDES.project::setupProject(
@@ -174,7 +174,7 @@ Can be cached: add `"dataPrepBuild"` to `.useCache`.
 Fuel, climate and lightning rasters are aggregated by `P(sim)$igAggFactor`, and ignitions are counted per coarse pixel and year.
 `sim$fireSense_ignitionCovariates` has one row per coarse pixel and year.
 Fitted probabilities only apply at that resolution, so the template `sim$ignitionFitRTM` is also output, with attributes `nonNAs` (the number of rows) and `meanForestB`.
-No ignition formula is built: fireSense_IgnitionFit fits with xgboost, which does not use one.
+No ignition formula is built: fireSense_ignitionFit fits with xgboost, which does not use one.
 
 ##### prepEscapeFitData
 
@@ -210,7 +210,7 @@ knitr::kable(df_outputs, caption = "List of (ref:fireSense-dataPrepFit) outputs 
 
 ### Links to other modules
 
-This module links to [fireSense_IgnitionFit](https://github.com/PredictiveEcology/fireSense_IgnitionFit), [fireSense_EscapeFit](https://github.com/PredictiveEcology/fireSense_EscapeFit), and [fireSense_SpreadFit](https://github.com/PredictiveEcology/fireSense_SpreadFit)
+This module links to [fireSense_ignitionFit](https://github.com/PredictiveEcology/fireSense_ignitionFit), [fireSense_EscapeFit](https://github.com/PredictiveEcology/fireSense_EscapeFit), and [fireSense_spreadFit](https://github.com/PredictiveEcology/fireSense_spreadFit)
 
 ### Getting help
 

@@ -4,7 +4,7 @@ square <- function(x0, crs = 3978) {
   sf::st_sfc(sf::st_polygon(list(rbind(c(x0, 0), c(x0 + 1e4, 0), c(x0 + 1e4, 1e4), c(x0, 1e4), c(x0, 0)))),
              crs = crs)
 }
-## a ledger as fireSense_SpreadFit writes it: one row per polygon, geometry, crs, parameters
+## a ledger as fireSense_spreadFit writes it: one row per polygon, geometry, crs, parameters
 ledger <- function(ids, value) {
   geoms <- do.call(c, lapply(seq_along(ids), function(i) square(i * 2e4)))
   df <- data.frame(polygonID = ids, objFunVal = value, crs = I(rep(sf::st_crs(3978)$wkt, length(ids))))

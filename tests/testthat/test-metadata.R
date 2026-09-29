@@ -123,3 +123,9 @@ test_that("every object .inputObjects() assigns is a declared input", {
   expect_true(length(assigned) > 0)
   expect_setequal(setdiff(unique(assigned), md$inputObjects$objectName), character(0))
 })
+
+test_that("the default whichModulesToPrepare names the renamed fit modules", {
+  md <- SpaDES.core::moduleMetadata(module = moduleName, path = modulePath)
+  default <- md$parameters$default[[which(md$parameters$paramName == "whichModulesToPrepare")]]
+  expect_setequal(default, c("fireSense_ignitionFit", "fireSense_spreadFit", "fireSense_EscapeFit"))
+})

@@ -32,7 +32,7 @@ test_that("fireRecordShapefile returns the archive's shapefile, named as in the 
   expect_true(file.exists(shp))
 })
 
-## caret, a fireSense_IgnitionFit reqdPkg, defines its own preProcess() generic. Attached after
+## caret, a fireSense_ignitionFit reqdPkg, defines its own preProcess() generic. Attached after
 ## reproducible it masked reproducible::preProcess(), and fireRecordShapefile() stopped with
 ## 'argument "x" is missing, with no default' (ELFs 13.1, 5.2.1, 11.3, 2026-09-12).
 test_that("fireRecordShapefile still works when an attached package masks preProcess", {
