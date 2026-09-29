@@ -2994,8 +2994,8 @@ border-radius: 0px;
 
 
 <h1 class="title toc-ignore">fireSense_dataPrepFit Manual</h1>
-<h3 class="subtitle">v.1.2.0.9018</h3>
-<h4 class="date">Last updated: 2026-09-28</h4>
+<h3 class="subtitle">v.1.2.0.9020</h3>
+<h4 class="date">Last updated: 2026-09-29</h4>
 
 </div>
 
@@ -3012,7 +3012,7 @@ border-radius: 0px;
 </div>
 <div id="module-overview" class="section level2">
 <h2>Module Overview</h2>
-<p>Prepares the data needed to fit <code>fireSense_IgnitionFit</code>, <code>fireSense_EscapeFit</code> and <code>fireSense_SpreadFit</code>.</p>
+<p>Prepares the data needed to fit <code>fireSense_ignitionFit</code> (ignition and escape) and <code>fireSense_spreadFit</code>.</p>
 <div id="module-summary" class="section level3">
 <h3>Module summary</h3>
 <p>The module combines historical fire records, vegetation, land cover and climate into the covariate tables used to fit the three <code>fireSense</code> processes <span class="citation">(<a href="#ref-Marchal:2017a">Marchal, Steve G. Cumming, et al. 2017b</a>; <a href="#ref-Marchal:2017b">Marchal, Steve G. Cumming, et al. 2017a</a>; <a href="#ref-Marchal:2019">Marchal et al. 2019</a>)</span>: ignition, escape (an ignition that grows beyond one pixel) and spread.</p>
@@ -3146,7 +3146,7 @@ It is estimated along with the fuel classes; otherwise it defaults to the first 
 <div id="usage" class="section level3">
 <h3>Usage</h3>
 <p>The module is normally run with <code>canClimateData</code> (for <code>historicalClimateRasters</code> and <code>climateVariables</code>) ahead of the three fit modules.
-<code>fireSense_SpreadFit</code> and <code>fireSense_EscapeFit</code> preparation both need the ignition preparation, so keep <code>fireSense_IgnitionFit</code> in <code>P(sim)$whichModulesToPrepare</code>.</p>
+<code>fireSense_spreadFit</code> preparation needs the ignition preparation, so keep <code>fireSense_ignitionFit</code> in <code>P(sim)$whichModulesToPrepare</code>. Preparing <code>fireSense_ignitionFit</code> also prepares the escape data (<code>prepEscapeFitData</code>); the module <code>fireSense_EscapeFit</code> no longer exists and is rejected.</p>
 <pre class="r"><code>out &lt;- SpaDES.project::setupProject(
   paths = list(projectPath = &quot;~/fireSenseFit&quot;),
   modules = c(&quot;PredictiveEcology/canClimateData@development&quot;, # needs its own parameters
@@ -3972,7 +3972,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Which fireSense fit modules to prep? defaults to all 3
+Which fireSense fit modules to prep? defaults to both. Preparing <code>fireSense_ignitionFit</code> prepares its ignition and escape data.
 </td>
 </tr>
 <tr>
@@ -4056,7 +4056,7 @@ Can be cached: add <code>&quot;dataPrepBuild&quot;</code> to <code>.useCache</co
 <p>Fuel, climate and lightning rasters are aggregated by <code>P(sim)$igAggFactor</code>, and ignitions are counted per coarse pixel and year.
 <code>sim$fireSense_ignitionCovariates</code> has one row per coarse pixel and year.
 Fitted probabilities only apply at that resolution, so the template <code>sim$ignitionFitRTM</code> is also output, with attributes <code>nonNAs</code> (the number of rows) and <code>meanForestB</code>.
-No ignition formula is built: fireSense_IgnitionFit fits with xgboost, which does not use one.</p>
+No ignition formula is built: fireSense_ignitionFit fits with xgboost, which does not use one.</p>
 </div>
 <div id="prepescapefitdata" class="section level5">
 <h5>prepEscapeFitData</h5>
@@ -4502,7 +4502,7 @@ Last element of <code>nonForest_timeSinceDisturbances</code>.
 </div>
 <div id="links-to-other-modules" class="section level3">
 <h3>Links to other modules</h3>
-<p>This module links to <a href="https://github.com/PredictiveEcology/fireSense_IgnitionFit">fireSense_IgnitionFit</a>, <a href="https://github.com/PredictiveEcology/fireSense_EscapeFit">fireSense_EscapeFit</a>, and <a href="https://github.com/PredictiveEcology/fireSense_SpreadFit">fireSense_SpreadFit</a></p>
+<p>This module links to <a href="https://github.com/PredictiveEcology/fireSense_ignitionFit">fireSense_ignitionFit</a> and <a href="https://github.com/PredictiveEcology/fireSense_spreadFit">fireSense_spreadFit</a></p>
 </div>
 <div id="getting-help" class="section level3">
 <h3>Getting help</h3>
