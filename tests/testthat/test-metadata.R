@@ -143,3 +143,14 @@ test_that("the retired fireSense_EscapeFit stops with a message naming fireSense
                "no longer exists.*fireSense_ignitionFit")
   expect_error(prepEventsToSchedule("nonsense"), "unrecognized module to prepare")
 })
+
+## `snow` was listed but never used. SpaDES attaches every reqdPkg, and loading snow runs its .onLoad(),
+## whose setDefaultClusterOptions()/addClusterOptions() call seq(along = ...): with the
+## warnPartialMatchArgs = TRUE that FireSense projects set, every run printed two
+## "partial argument match of 'along' to 'along.with'" warnings. On the search path it also masked
+## parallel's cluster functions for unqualified calls.
+test_that("reqdPkgs does not attach the unused snow package", {
+  md <- SpaDES.core::moduleMetadata(module = moduleName, path = modulePath)
+  pkgs <- unlist(md$reqdPkgs)
+  expect_false(any(sub("[ (@].*$", "", basename(pkgs)) == "snow"))
+})

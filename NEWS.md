@@ -1,5 +1,6 @@
 # fireSense_dataPrepFit (development version)
 
+- `snow` is no longer a `reqdPkgs`: nothing used it, and attaching it printed two "partial argument match of 'along'" warnings per run (from snow's `.onLoad()`) under `warnPartialMatchArgs = TRUE`.
 - `fireSense_EscapeFit` no longer exists (`fireSense_ignitionFit` fits ignition and escape): it is removed from the `whichModulesToPrepare`
   default (now `fireSense_ignitionFit` and `fireSense_spreadFit`) and naming it stops with a message. Preparing `fireSense_ignitionFit`
   schedules `prepEscapeFitData` as well; the event and its caching are unchanged.

@@ -8,7 +8,7 @@ defineModule(sim, list(
     person(c("Alex", "M"), "Chubaty", role = "ctb", email = "achubaty@for-cast.ca")
   ),
   childModules = character(0),
-  version = list(fireSense_dataPrepFit = "1.2.0.9020"),
+  version = list(fireSense_dataPrepFit = "1.2.0.9021"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -24,7 +24,7 @@ defineModule(sim, list(
                   "PredictiveEcology/SpaDES.core@development (>= 2.0.2.9006)",
                   "PredictiveEcology/SpaDES.project@development",
                   "PredictiveEcology/SpaDES.tools@development (>= 2.1.1.9000)",
-                  "snow", "terra"),
+                  "terra"),
   parameters = bindrows(
     defineParameter("areaMultiplier", c("numeric", "name"), quote(fireSenseUtils::multiplier), NA, NA,
                     paste("Size of the unburned buffer sampled around each fire: a scalar (buffer area is",
