@@ -1,6 +1,6 @@
 ---
 title: "fireSense_dataPrepFit Manual"
-subtitle: "v.1.2.0.9021"
+subtitle: "v.1.2.0.9022"
 date: "Last updated: 2026-09-29"
 output:
   bookdown::html_document2:
@@ -433,6 +433,14 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> column name in `sppEquiv` object that defines unique species in `cohortData` </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> heldOutFold </td>
+   <td style="text-align:left;"> integer </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA (default): unchanged. `1` or `2`: a cross-validation fold is being fitted (the same parameter as in `fireSense_spreadFit`), so the SpreadFit ledger is not relevant and `Init()` does not read it: `sim$spreadFitPreRun` stays NULL and this module derives the species, fuel and climate objects itself, as for an unfitted study area. Set it for every fireSense module at once with `.globals = list(heldOutFold = 1L)`; `Init()` stops if `fireSense_spreadFit` has a different value. Any other value is an error. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> spreadFitGoogleDriveFolder </td>
