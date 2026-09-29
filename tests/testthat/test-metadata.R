@@ -124,8 +124,22 @@ test_that("every object .inputObjects() assigns is a declared input", {
   expect_setequal(setdiff(unique(assigned), md$inputObjects$objectName), character(0))
 })
 
-test_that("the default whichModulesToPrepare names the renamed fit modules", {
+test_that("the default whichModulesToPrepare is the two fit modules", {
   md <- SpaDES.core::moduleMetadata(module = moduleName, path = modulePath)
   default <- md$parameters$default[[which(md$parameters$paramName == "whichModulesToPrepare")]]
-  expect_setequal(default, c("fireSense_ignitionFit", "fireSense_spreadFit", "fireSense_EscapeFit"))
+  expect_setequal(default, c("fireSense_ignitionFit", "fireSense_spreadFit"))
+})
+
+test_that("preparing fireSense_ignitionFit schedules the escape event too", {
+  expect_identical(prepEventsToSchedule("fireSense_ignitionFit"),
+                   c("prepIgnitionFitData", "prepEscapeFitData"))
+  expect_identical(prepEventsToSchedule(c("fireSense_ignitionFit", "fireSense_spreadFit")),
+                   c("prepIgnitionFitData", "prepEscapeFitData", "prepSpreadFitData"))
+  expect_identical(prepEventsToSchedule("fireSense_spreadFit"), "prepSpreadFitData")
+})
+
+test_that("the retired fireSense_EscapeFit stops with a message naming fireSense_ignitionFit", {
+  expect_error(prepEventsToSchedule(c("fireSense_ignitionFit", "fireSense_EscapeFit")),
+               "no longer exists.*fireSense_ignitionFit")
+  expect_error(prepEventsToSchedule("nonsense"), "unrecognized module to prepare")
 })

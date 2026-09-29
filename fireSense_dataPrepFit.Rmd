@@ -44,7 +44,7 @@ download.file(url = "https://img.shields.io/badge/Made%20with-Markdown-1f425f.pn
 
 ## Module Overview
 
-Prepares the data needed to fit `fireSense_ignitionFit`, `fireSense_EscapeFit` and `fireSense_spreadFit`.
+Prepares the data needed to fit `fireSense_ignitionFit` (ignition and escape) and `fireSense_spreadFit`.
 
 ### Module summary
 
@@ -119,7 +119,7 @@ It is estimated along with the fuel classes; otherwise it defaults to the first 
 ### Usage
 
 The module is normally run with `canClimateData` (for `historicalClimateRasters` and `climateVariables`) ahead of the three fit modules.
-`fireSense_spreadFit` and `fireSense_EscapeFit` preparation both need the ignition preparation, so keep `fireSense_ignitionFit` in `P(sim)$whichModulesToPrepare`.
+`fireSense_spreadFit` preparation needs the ignition preparation, so keep `fireSense_ignitionFit` in `P(sim)$whichModulesToPrepare`. Preparing `fireSense_ignitionFit` also prepares the escape data (`prepEscapeFitData`); the module `fireSense_EscapeFit` no longer exists and is rejected.
 
 ```{r usage-fireSense-dataPrepFit, eval = FALSE}
 out <- SpaDES.project::setupProject(
@@ -210,7 +210,7 @@ knitr::kable(df_outputs, caption = "List of (ref:fireSense-dataPrepFit) outputs 
 
 ### Links to other modules
 
-This module links to [fireSense_ignitionFit](https://github.com/PredictiveEcology/fireSense_ignitionFit), [fireSense_EscapeFit](https://github.com/PredictiveEcology/fireSense_EscapeFit), and [fireSense_spreadFit](https://github.com/PredictiveEcology/fireSense_spreadFit)
+This module links to [fireSense_ignitionFit](https://github.com/PredictiveEcology/fireSense_ignitionFit) and [fireSense_spreadFit](https://github.com/PredictiveEcology/fireSense_spreadFit)
 
 ### Getting help
 

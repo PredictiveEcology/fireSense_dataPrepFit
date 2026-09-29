@@ -1,6 +1,6 @@
 defineModule(sim, list(
   name = "fireSense_dataPrepFit",
-  description = "Prepare data required by `fireSense_IginitionFit`, `fireSense_EscapeFit`, and `fireSense_spreadFit`.",
+  description = "Prepare data required by `fireSense_ignitionFit` (ignition and escape) and `fireSense_spreadFit`.",
   keywords = "fireSense",
   authors = c(
     person("Ian", "Eddy", role = c("aut", "cre"), email = "ian.eddy@nrcan-rncan.gc.ca"),
@@ -8,7 +8,7 @@ defineModule(sim, list(
     person(c("Alex", "M"), "Chubaty", role = "ctb", email = "achubaty@for-cast.ca")
   ),
   childModules = character(0),
-  version = list(fireSense_dataPrepFit = "1.2.0.9019"),
+  version = list(fireSense_dataPrepFit = "1.2.0.9020"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -104,8 +104,9 @@ defineModule(sim, list(
                     paste("Use `historicalFireRaster` in place of fire polygons for spread?",
                           "Not currently supported: `TRUE` stops with an error when preparing SpreadFit.")),
     defineParameter("whichModulesToPrepare", "character",
-                    c("fireSense_ignitionFit", "fireSense_spreadFit", "fireSense_EscapeFit"),
-                    NA, NA, "Which fireSense fit modules to prep? defaults to all 3"),
+                    c("fireSense_ignitionFit", "fireSense_spreadFit"),
+                    NA, NA, paste("Which fireSense fit modules to prep? defaults to both. Preparing",
+                                  "`fireSense_ignitionFit` prepares its ignition and escape data.")),
     defineParameter(".studyAreaName", "character", NULL, NA, NA,
                     "`studyArea` name used in file names and cache tags; `NULL` derives it from `sim$studyArea`."),
     defineParameter(".useCache", "logical", FALSE, NA, NA,
@@ -302,19 +303,9 @@ doEvent.fireSense_dataPrepFit = function(sim, eventTime, eventType) {
   switch(
     eventType,
     init = {
-      if (!all(P(sim)$whichModulesToPrepare %in%
-               c("fireSense_spreadFit", "fireSense_ignitionFit", "fireSense_EscapeFit"))) {
-        stop("unrecognized module to prepare - review parameter whichModulesToPrepare")
-      }
-
       ## schedule future event(s)
-      if ("fireSense_ignitionFit" %in% P(sim)$whichModulesToPrepare)
-        sim <- scheduleEvent(sim, start(sim), "fireSense_dataPrepFit", "prepIgnitionFitData", eventPriority = 1)
-      if ("fireSense_EscapeFit" %in% P(sim)$whichModulesToPrepare)
-        sim <- scheduleEvent(sim, start(sim), "fireSense_dataPrepFit", "prepEscapeFitData", eventPriority = 1)
-      if ("fireSense_spreadFit" %in% P(sim)$whichModulesToPrepare) {
-        sim <- scheduleEvent(sim, start(sim), "fireSense_dataPrepFit", "prepSpreadFitData", eventPriority = 1)
-      }
+      for (ev in prepEventsToSchedule(P(sim)$whichModulesToPrepare))
+        sim <- scheduleEvent(sim, start(sim), "fireSense_dataPrepFit", ev, eventPriority = 1)
 
       sim <- Init(sim)
       ## Priority 0 runs dataPrepBuild straight after this event and ahead of every other module's
@@ -1179,7 +1170,25 @@ prepare_IgnitionFit <- function(sim) {
   return(invisible(sim))
 }
 
-#' Prepare the covariates and formula for fireSense_EscapeFit
+#' The prep events to schedule for `whichModulesToPrepare`
+#'
+#' Preparing `fireSense_ignitionFit` schedules `prepIgnitionFitData` and `prepEscapeFitData`: that module
+#' fits ignition and escape, and the escape data need the ignition prep. `fireSense_EscapeFit` no longer
+#' exists, so a project still naming it stops.
+#'
+#' @param which character, `P(sim)$whichModulesToPrepare`.
+#' @return character, event names in the order to schedule them.
+prepEventsToSchedule <- function(which) {
+  if ("fireSense_EscapeFit" %in% which)
+    stop("fireSense_EscapeFit no longer exists as a module; escape data are prepared with ",
+         "fireSense_ignitionFit. Remove it from parameter whichModulesToPrepare.")
+  if (!all(which %in% c("fireSense_spreadFit", "fireSense_ignitionFit")))
+    stop("unrecognized module to prepare - review parameter whichModulesToPrepare")
+  c(if ("fireSense_ignitionFit" %in% which) c("prepIgnitionFitData", "prepEscapeFitData"),
+    if ("fireSense_spreadFit" %in% which) "prepSpreadFitData")
+}
+
+#' Prepare the covariates and formula for the escape part of fireSense_ignitionFit
 #'
 #' Adds to the ignition covariates the number of escapes: ignitions that reached `escapeSizeHa` (and grew
 #' beyond one `flammableRTMs` pixel). Needs `prepare_IgnitionFit()` to have run.
@@ -1190,7 +1199,7 @@ prepare_EscapeFit <- function(sim) {
 
   if (is.null(sim$fireSense_ignitionCovariates)) {
     ## the datasets are essentially the same, with one column difference
-    stop("Please include ignitionFit in parameter 'whichModulesToPrepare' if running EscapeFit")
+    stop("Please include ignitionFit in parameter 'whichModulesToPrepare' if preparing escape data")
   }
 
   escapes <- escapedFires(sim$ignitionFirePoints, Par$escapeSizeHa,
