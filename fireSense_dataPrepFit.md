@@ -1,7 +1,7 @@
 ---
 title: "fireSense_dataPrepFit Manual"
 subtitle: "v.1.2.0.9022"
-date: "Last updated: 2026-09-29"
+date: "Last updated: 2026-09-30"
 output:
   bookdown::html_document2:
     toc: true
@@ -389,10 +389,10 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
   <tr>
    <td style="text-align:left;"> fuelCovariates </td>
    <td style="text-align:left;"> character </td>
-   <td style="text-align:left;"> domSecOt.... </td>
+   <td style="text-align:left;"> domSecWe.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> How the spread-fit fuel covariates are represented. `"domSecOther"` (default): exactly four AGB columns per ELF, `dom_agb_&lt;class&gt;` and `sec_agb_&lt;class&gt;` (the two fuel classes with the most total treed AGB over the fit study area), `other_agb` (the rest, pooled) and `treedWetland_agb` (all tree AGB on treed-wetland pixels, removed from the other three there); see `fireSenseUtils::fireSenseCovariatesCreate()`. `"species"`: the previous one column per fuel class. `fireSense_dataPrepPredict` follows whichever a fit used; this is not a parameter there. </td>
+   <td style="text-align:left;"> How the spread-fit fuel covariates are represented. `"domSecWetland"` (default): `dom_agb_&lt;class&gt;` and `sec_agb_&lt;class&gt;` (the two fuel classes with the most total treed AGB over the fit study area) and `treedWetland_agb` (all tree AGB on treed-wetland pixels, removed from dom/sec there); other classes are not covariates; see `fireSenseUtils::fireSenseCovariatesCreate()`. `"species"`: the previous one column per fuel class. `fireSense_dataPrepPredict` follows whichever a fit used; this is not a parameter there. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> minBufferSize </td>
@@ -655,7 +655,7 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-dataP
   <tr>
    <td style="text-align:left;"> fuelClassRoles </td>
    <td style="text-align:left;"> list </td>
-   <td style="text-align:left;"> Only when `fuelCovariates = "domSecOther"`: `list(domClass =, secClass =)`, the fuel classes chosen once for this ELF by `fireSenseUtils::chooseDomSecFuelClasses()`. Both `NA` with `fuelCovariates = "species"` or when the ELF has no tree fuel class. </td>
+   <td style="text-align:left;"> Only when `fuelCovariates = "domSecWetland"`: `list(domClass =, secClass =)`, the fuel classes chosen once for this ELF by `fireSenseUtils::chooseDomSecFuelClasses()`. Both `NA` with `fuelCovariates = "species"` or when the ELF has no tree fuel class. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> ignitionFirePoints </td>
