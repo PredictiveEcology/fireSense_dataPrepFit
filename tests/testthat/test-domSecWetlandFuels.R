@@ -24,7 +24,8 @@ test_that("reqdPkgs floors fireSenseUtils at >= 0.2.3.9070 (domSecWetland fuels)
   md <- SpaDES.core::moduleMetadata(module = moduleName, path = modulePath)
   fsu <- grep("fireSenseUtils", md$reqdPkgs, value = TRUE)
   expect_length(fsu, 1L)
-  expect_match(fsu, "0\\.2\\.3\\.9070")
+  floorVer <- sub(".*>= *([0-9.]+)\\).*", "\\1", fsu)
+  expect_true(package_version(floorVer) >= "0.2.3.9070")
 })
 
 test_that("prepare_SpreadFit() picks fuelClassRoles once per ELF via chooseDomSecFuelClasses()", {
