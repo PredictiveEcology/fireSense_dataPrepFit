@@ -17,7 +17,7 @@ defineModule(sim, list(
   reqdPkgs = list("data.table", "fastDummies", "Require",
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9042)", # CacheGeo re-reads a changed local file
                   "PredictiveEcology/climateData@development (>= 2.2.3.9006)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9062)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9070)",
                   "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9015)",
@@ -67,12 +67,11 @@ defineModule(sim, list(
                     "named `FuelClass` exists in the `LandR::sppEquivalencies_CA` and will be used ",
                     "by default. To change the `FuelClass` classifications, add a column to that table, ",
                     "or to `sim$sppEquiv` and then modify this `fuelClassCol` parameter"),
-    defineParameter("fuelCovariates", "character", c("domSecOther", "species"), NA, NA,
-                    paste("How the spread-fit fuel covariates are represented. `\"domSecOther\"` (default):",
-                          "exactly four AGB columns per ELF, `dom_agb_<class>` and `sec_agb_<class>` (the",
-                          "two fuel classes with the most total treed AGB over the fit study area),",
-                          "`other_agb` (the rest, pooled) and `treedWetland_agb` (all tree AGB on treed-wetland",
-                          "pixels, removed from the other three there); see",
+    defineParameter("fuelCovariates", "character", c("domSecWetland", "species"), NA, NA,
+                    paste("How the spread-fit fuel covariates are represented. `\"domSecWetland\"` (default):",
+                          "`dom_agb_<class>` and `sec_agb_<class>` (the two fuel classes with the most",
+                          "total treed AGB over the fit study area) and `treedWetland_agb` (all tree AGB on",
+                          "treed-wetland pixels, removed from dom/sec there); other classes are not covariates; see",
                           "`fireSenseUtils::fireSenseCovariatesCreate()`. `\"species\"`: the previous one",
                           "column per fuel class. `fireSense_dataPrepPredict` follows whichever a fit used;",
                           "this is not a parameter there.")),
@@ -255,7 +254,7 @@ defineModule(sim, list(
     createsOutput("fireSense_spreadFormula", "character",
                   "formula for spread, using climate and vegetation covariates, as character"),
     createsOutput("fuelClassRoles", "list",
-                  paste("Only when `fuelCovariates = \"domSecOther\"`: `list(domClass =, secClass =)`,",
+                  paste("Only when `fuelCovariates = \"domSecWetland\"`: `list(domClass =, secClass =)`,",
                         "the fuel classes chosen once for this ELF by `fireSenseUtils::chooseDomSecFuelClasses()`.",
                         "Both `NA` with `fuelCovariates = \"species\"` or when the ELF has no tree fuel class.")),
     createsOutput("ignitionFirePoints", "SpatVector",
@@ -715,9 +714,9 @@ prepare_SpreadFit <- function(sim) {
   dig1a <- .robustDigest(list(sim$cohortDatas, sim$pixelGroupMaps, sim$nonForest_timeSinceDisturbances))
   dig2 <- append(dig1, dig1a)
 
-  fuelCovariates <- match.arg(P(sim)$fuelCovariates, c("domSecOther", "species"))
+  fuelCovariates <- match.arg(P(sim)$fuelCovariates, c("domSecWetland", "species"))
   sim$fuelClassRoles <- list(domClass = NA_character_, secClass = NA_character_)
-  if (identical(fuelCovariates, "domSecOther")) {
+  if (identical(fuelCovariates, "domSecWetland")) {
     ## chosen once per ELF (the most recent data year, as with sim$rstLCC/sim$rstLCC_RTM elsewhere
     ## in this module), not independently for every data year -- a prediction must build the same
     ## dom_agb_*/sec_agb_* columns whichever year it is predicting
