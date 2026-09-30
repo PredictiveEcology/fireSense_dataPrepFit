@@ -73,7 +73,7 @@
       <h1 data-toc-skip>fireSense_dataPrepFit Manual</h1>
             <h3 data-toc-skip class="subtitle">v.1.2.0.9022</h3>
             
-            <h4 data-toc-skip class="date">Last updated: 2026-09-29</h4>
+            <h4 data-toc-skip class="date">Last updated: 2026-09-30</h4>
       
 
       <div class="hidden name"><code>fireSense_dataPrepFit.Rmd</code></div>
@@ -850,7 +850,7 @@ fuelCovariates
 character
 </td>
 <td style="text-align:left;">
-domSecOt….
+domSecWe….
 </td>
 <td style="text-align:left;">
 NA
@@ -859,7 +859,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-How the spread-fit fuel covariates are represented. <code>"domSecOther"</code> (default): exactly four AGB columns per ELF, <code>dom_agb_&amp;lt;class&amp;gt;</code> and <code>sec_agb_&amp;lt;class&amp;gt;</code> (the two fuel classes with the most total treed AGB over the fit study area), <code>other_agb</code> (the rest, pooled) and <code>treedWetland_agb</code> (all tree AGB on treed-wetland pixels, removed from the other three there); see <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fireSenseCovariatesCreate.html" class="external-link">fireSenseUtils::fireSenseCovariatesCreate()</a></code>. <code>"species"</code>: the previous one column per fuel class. <code>fireSense_dataPrepPredict</code> follows whichever a fit used; this is not a parameter there.
+How the spread-fit fuel covariates are represented. <code>"domSecWetland"</code> (default): <code>dom_agb_&amp;lt;class&amp;gt;</code> and <code>sec_agb_&amp;lt;class&amp;gt;</code> (the two fuel classes with the most total treed AGB over the fit study area) and <code>treedWetland_agb</code> (all tree AGB on treed-wetland pixels, removed from dom/sec there); other classes are not covariates; see <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fireSenseCovariatesCreate.html" class="external-link">fireSenseUtils::fireSenseCovariatesCreate()</a></code>. <code>"species"</code>: the previous one column per fuel class. <code>fireSense_dataPrepPredict</code> follows whichever a fit used; this is not a parameter there.
 </td>
 </tr>
 <tr>
@@ -1409,7 +1409,7 @@ fuelClassRoles
 list
 </td>
 <td style="text-align:left;">
-Only when <code>fuelCovariates = "domSecOther"</code>: <code>list(domClass =, secClass =)</code>, the fuel classes chosen once for this ELF by <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/chooseDomSecFuelClasses.html" class="external-link">fireSenseUtils::chooseDomSecFuelClasses()</a></code>. Both <code>NA</code> with <code>fuelCovariates = "species"</code> or when the ELF has no tree fuel class.
+Only when <code>fuelCovariates = "domSecWetland"</code>: <code>list(domClass =, secClass =)</code>, the fuel classes chosen once for this ELF by <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/chooseDomSecFuelClasses.html" class="external-link">fireSenseUtils::chooseDomSecFuelClasses()</a></code>. Both <code>NA</code> with <code>fuelCovariates = "species"</code> or when the ELF has no tree fuel class.
 </td>
 </tr>
 <tr>

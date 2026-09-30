@@ -934,6 +934,26 @@ column name in <code>sppEquiv</code> object that defines unique species in <code
 </tr>
 <tr>
 <td style="text-align:left;">
+heldOutFold
+</td>
+<td style="text-align:left;">
+integer
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA (default): unchanged. <code>1</code> or <code>2</code>: a cross-validation fold is being fitted (the same parameter as in <code>fireSense_spreadFit</code>), so the SpreadFit ledger is not relevant and <code><a href="reference/Init.html">Init()</a></code> does not read it: <code>sim$spreadFitPreRun</code> stays NULL and this module derives the species, fuel and climate objects itself, as for an unfitted study area. Set it for every fireSense module at once with <code>.globals = list(heldOutFold = 1L)</code>; <code><a href="reference/Init.html">Init()</a></code> stops if <code>fireSense_spreadFit</code> has a different value. Any other value is an error.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
 spreadFitGoogleDriveFolder
 </td>
 <td style="text-align:left;">
