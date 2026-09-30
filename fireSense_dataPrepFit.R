@@ -455,6 +455,13 @@ Init <- function(sim) {
     
     sim$nonForestedLCCGroupsList <- Map(x = outs2, function(x) x[["nonForestedLCCGroups"]])
     sim$missingLCCgroupList <- Map(x = outs2, function(x) x[["missingLCCgroup"]])
+    ## This run still builds the ignition and escape covariates (dataPrepBuild) from nonForestedLCCGroups
+    ## and missingLCCgroup, and fireSense_dataPrepPredict builds the prediction covariates from the ELF's
+    ## groups in the lists above. With one ELF, fit with those groups too, not the module default (`nf`).
+    if (length(outs2) == 1L && length(sim$nonForestedLCCGroupsList[[1]])) {
+      sim$nonForestedLCCGroups <- sim$nonForestedLCCGroupsList[[1]]
+      sim$missingLCCgroup <- sim$missingLCCgroupList[[1]]
+    }
     
     ## Each ELF's fit names its own spread climate variable(s): with spread = "auto" two ELFs can
     ## differ. Prepare the union; each ELF's own formula picks its variables from it. Variables already

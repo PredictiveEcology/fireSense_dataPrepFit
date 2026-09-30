@@ -1,5 +1,10 @@
 # fireSense_dataPrepFit (development version)
 
+- Fixed: with one fitted ELF in the SpreadFit ledger, `Init()` now sets `nonForestedLCCGroups` and `missingLCCgroup` to that
+  ELF's groups, so this run's ignition and escape fits use the same non-forest columns (`nfLCC_*`) that
+  `fireSense_dataPrepPredict` builds for prediction. Before, they kept the module default (`nf`), and
+  `fireSense_ignitionPredict` stopped with "column not found: [nf]".
+
 - New parameter `heldOutFold` (`NA`, `1` or `2`; the same parameter as in `fireSense_spreadFit`). With `1` or `2`, `Init()` does not read the SpreadFit ledger: `sim$spreadFitPreRun` stays NULL and `mod$haveSpreadFit` is FALSE, so the fold derives its own species, fuel and climate objects. `paramCheckOtherMods()` stops if `fireSense_spreadFit` has a different value; set all three modules with `.globals = list(heldOutFold = ...)`.
 
 - `snow` is no longer a `reqdPkgs`: nothing used it, and attaching it printed two "partial argument match of 'along'" warnings per run (from snow's `.onLoad()`) under `warnPartialMatchArgs = TRUE`.
