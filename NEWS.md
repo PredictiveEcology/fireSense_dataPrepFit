@@ -1,5 +1,7 @@
 # fireSense_dataPrepFit (development version)
 
+- The pooled `other_agb` spread covariate is gone and `fuelCovariates = "domSecOther"` is renamed `"domSecWetland"` (now the default): spread fuels are `dom_agb_<class>`, `sec_agb_<class>` and `treedWetland_agb`. Needs the `fireSenseUtils` change that renames the value (PredictiveEcology/fireSenseUtils#116). Spread fits made with `other_agb` need refitting, and cached `prepSpreadFitData` results change.
+
 - New parameter `heldOutFold` (`NA`, `1` or `2`; the same parameter as in `fireSense_spreadFit`). With `1` or `2`, `Init()` does not read the SpreadFit ledger: `sim$spreadFitPreRun` stays NULL and `mod$haveSpreadFit` is FALSE, so the fold derives its own species, fuel and climate objects. `paramCheckOtherMods()` stops if `fireSense_spreadFit` has a different value; set all three modules with `.globals = list(heldOutFold = ...)`.
 
 - `snow` is no longer a `reqdPkgs`: nothing used it, and attaching it printed two "partial argument match of 'along'" warnings per run (from snow's `.onLoad()`) under `warnPartialMatchArgs = TRUE`.
