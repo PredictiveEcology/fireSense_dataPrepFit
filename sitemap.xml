@@ -9,7 +9,9 @@
 <url><loc>/index.html</loc></url>
 <url><loc>/news/index.html</loc></url>
 <url><loc>/reference/Init.html</loc></url>
+<url><loc>/reference/addAnnualYoungAge.html</loc></url>
 <url><loc>/reference/addFitClimateVariables.html</loc></url>
+<url><loc>/reference/allFirePixelsByYear.html</loc></url>
 <url><loc>/reference/checkClimateYears.html</loc></url>
 <url><loc>/reference/cleanUpMod.html</loc></url>
 <url><loc>/reference/climateNAnames.html</loc></url>
@@ -40,6 +42,7 @@
 <url><loc>/reference/readSpreadFitLedger.html</loc></url>
 <url><loc>/reference/runBorealDP_forCohortData.html</loc></url>
 <url><loc>/reference/selectSpreadClimateVariable.html</loc></url>
+<url><loc>/reference/stopIfNonForestCannotBeYoung.html</loc></url>
 <url><loc>/reference/yearGroups.html</loc></url>
 </urlset>
 
