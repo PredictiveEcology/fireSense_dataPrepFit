@@ -416,7 +416,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> TRUE </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> if TRUE, burned non-forest will be treated as `youngAge`. Recommended to be TRUE as burned forest is often classified as non-forest </td>
+   <td style="text-align:left;"> if TRUE, burned non-forest will be treated as `youngAge`. Recommended to be TRUE as burned forest is often classified as non-forest. `youngAge` is resolved for each fire year from the data year's time since disturbance, which covers forest and non-forest alike, so `FALSE` is not supported and stops the spread and ignition preparation. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> scanfiVersion </td>
