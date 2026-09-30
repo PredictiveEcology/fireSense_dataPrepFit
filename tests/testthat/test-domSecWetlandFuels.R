@@ -20,11 +20,11 @@ test_that("fuelCovariates defaults to domSecWetland, with species as the only ot
   expect_identical(def$fuelCovariates, c("domSecWetland", "species"))
 })
 
-test_that("reqdPkgs floors fireSenseUtils at >= 0.2.3.9062 (chooseDomSecFuelClasses, fireSenseSharedDefaults etc.)", {
+test_that("reqdPkgs floors fireSenseUtils at >= 0.2.3.9070 (domSecWetland fuels)", {
   md <- SpaDES.core::moduleMetadata(module = moduleName, path = modulePath)
   fsu <- grep("fireSenseUtils", md$reqdPkgs, value = TRUE)
   expect_length(fsu, 1L)
-  expect_match(fsu, "0\\.2\\.3\\.9062")
+  expect_match(fsu, "0\\.2\\.3\\.9070")
 })
 
 test_that("prepare_SpreadFit() picks fuelClassRoles once per ELF via chooseDomSecFuelClasses()", {
