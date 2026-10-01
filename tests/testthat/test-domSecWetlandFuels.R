@@ -1,6 +1,6 @@
 ## fireSense_dataPrepFit.R ~690 (prepare_SpreadFit()): fireSenseCovariatesCreate() was never given
 ## `rstLCC`, so `treedWetland` never appeared, and there was no way to ask for the new
-## dom/sec/other AGB fuel representation. `fuelCovariates` (default "domSecOther") now picks the
+## dom/sec AGB (plus treedWetland_agb) fuel representation. `fuelCovariates` (default "domSecWetland") now picks the
 ## representation, and the dominant/secondary classes are chosen once per ELF (not once per data
 ## year, or every prediction would build a different pair of columns) via
 ## fireSenseUtils::chooseDomSecFuelClasses(), stored in sim$fuelClassRoles.
@@ -14,17 +14,18 @@ walkCalls <- function(expr, f) {
   invisible(NULL)
 }
 
-test_that("fuelCovariates defaults to domSecOther, with species as the only other choice", {
+test_that("fuelCovariates defaults to domSecWetland, with species as the only other choice", {
   md <- SpaDES.core::moduleMetadata(module = moduleName, path = modulePath)
   def <- stats::setNames(md$parameters$default, md$parameters$paramName)
-  expect_identical(def$fuelCovariates, c("domSecOther", "species"))
+  expect_identical(def$fuelCovariates, c("domSecWetland", "species"))
 })
 
-test_that("reqdPkgs floors fireSenseUtils at >= 0.2.3.9062 (chooseDomSecFuelClasses, fireSenseSharedDefaults etc.)", {
+test_that("reqdPkgs floors fireSenseUtils at >= 0.2.3.9070 (domSecWetland fuels)", {
   md <- SpaDES.core::moduleMetadata(module = moduleName, path = modulePath)
   fsu <- grep("fireSenseUtils", md$reqdPkgs, value = TRUE)
   expect_length(fsu, 1L)
-  expect_match(fsu, "0\\.2\\.3\\.9062")
+  floorVer <- sub(".*>= *([0-9.]+)\\).*", "\\1", fsu)
+  expect_true(package_version(floorVer) >= "0.2.3.9070")
 })
 
 test_that("prepare_SpreadFit() picks fuelClassRoles once per ELF via chooseDomSecFuelClasses()", {
@@ -71,4 +72,12 @@ test_that("the fireSenseCovariatesCreate() Map() call passes rstLCC, fuelCovaria
   expect_match(moreArgsTxt, "fuelCovariates = fuelCovariates", fixed = TRUE)
   expect_match(moreArgsTxt, "domClass = sim$fuelClassRoles$domClass", fixed = TRUE)
   expect_match(moreArgsTxt, "secClass = sim$fuelClassRoles$secClass", fixed = TRUE)
+})
+
+test_that("the module no longer mentions the pooled other_agb covariate", {
+  md <- SpaDES.core::moduleMetadata(module = moduleName, path = modulePath)
+  expect_false(any(grepl("other_agb", unlist(md$parameters$paramDesc), fixed = TRUE)))
+  expect_false(any(grepl("other_agb", unlist(md$outputObjects$desc), fixed = TRUE)))
+  expect_false(any(grepl("domSecOther", readLines(file.path(modulePath, moduleName, paste0(moduleName, ".R"))),
+                         fixed = TRUE)))
 })

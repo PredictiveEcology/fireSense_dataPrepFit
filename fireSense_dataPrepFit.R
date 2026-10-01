@@ -17,7 +17,7 @@ defineModule(sim, list(
   reqdPkgs = list("data.table", "fastDummies", "Require",
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9042)", # CacheGeo re-reads a changed local file
                   "PredictiveEcology/climateData@development (>= 2.2.3.9006)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9062)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9071)",
                   "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9015)",
@@ -67,12 +67,11 @@ defineModule(sim, list(
                     "named `FuelClass` exists in the `LandR::sppEquivalencies_CA` and will be used ",
                     "by default. To change the `FuelClass` classifications, add a column to that table, ",
                     "or to `sim$sppEquiv` and then modify this `fuelClassCol` parameter"),
-    defineParameter("fuelCovariates", "character", c("domSecOther", "species"), NA, NA,
-                    paste("How the spread-fit fuel covariates are represented. `\"domSecOther\"` (default):",
-                          "exactly four AGB columns per ELF, `dom_agb_<class>` and `sec_agb_<class>` (the",
-                          "two fuel classes with the most total treed AGB over the fit study area),",
-                          "`other_agb` (the rest, pooled) and `treedWetland_agb` (all tree AGB on treed-wetland",
-                          "pixels, removed from the other three there); see",
+    defineParameter("fuelCovariates", "character", c("domSecWetland", "species"), NA, NA,
+                    paste("How the spread-fit fuel covariates are represented. `\"domSecWetland\"` (default):",
+                          "`dom_agb_<class>` and `sec_agb_<class>` (the two fuel classes with the most",
+                          "total treed AGB over the fit study area) and `treedWetland_agb` (all tree AGB on",
+                          "treed-wetland pixels, removed from dom/sec there); other classes are not covariates; see",
                           "`fireSenseUtils::fireSenseCovariatesCreate()`. `\"species\"`: the previous one",
                           "column per fuel class. `fireSense_dataPrepPredict` follows whichever a fit used;",
                           "this is not a parameter there.")),
@@ -84,7 +83,9 @@ defineModule(sim, list(
                           "snow/ice and barren land.")),
     defineParameter("nonForestCanBeYoungAge", "logical", fireSenseUtils::fireSenseNonForestCanBeYoungAge, NA, NA,
                     paste("if TRUE, burned non-forest will be treated as `youngAge`. Recommended to be TRUE",
-                          "as burned forest is often classified as non-forest")),
+                          "as burned forest is often classified as non-forest. `youngAge` is resolved for each fire",
+                          "year from the data year's time since disturbance, which covers forest and non-forest",
+                          "alike, so `FALSE` is not supported and stops the spread and ignition preparation.")),
     defineParameter("scanfiVersion", "character", fireSenseUtils::fireSenseSCANFIVersion, NA, NA,
                     paste("SCANFI land-cover version for non-forest land cover, `\"V2\"` or `\"V3\"`.",
                           "Passed to `fireSenseUtils::makeFireSenseLCC()`.")),
@@ -127,9 +128,11 @@ defineModule(sim, list(
                          prepSpreadFitData = list(.cacheExtra = quote(c(list(
                       fireSenseUtils::bufferToArea, fireSenseUtils::chooseDomSecFuelClasses,
                       fireSenseUtils::climateRasterToDataTable,
-                      fireSenseUtils::fireSenseCovariatesCreate, fireSenseUtils::harmonizeFireData,
+                      fireSenseUtils::fireSenseCovariatesCreate, fireSenseUtils::firePixelsByYear,
+                      fireSenseUtils::harmonizeFireData,
                       fireSenseUtils::makeMutuallyExclusive, fireSenseUtils::rasterFireBufferDT,
-                      fireSenseUtils::rasterFireSpreadPoints), fireSenseUtils::harmonizeFireDataDeps())))),
+                      fireSenseUtils::rasterFireSpreadPoints, fireSenseUtils::youngAgeAtYear),
+                      fireSenseUtils::harmonizeFireDataDeps())))),
                     NA, NA,
                     paste("Extra `reproducible::Cache()` arguments, by event. A cached event's digest covers",
                           "this module's code but not the package functions it calls, so `dataPrepBuild` and",
@@ -255,7 +258,7 @@ defineModule(sim, list(
     createsOutput("fireSense_spreadFormula", "character",
                   "formula for spread, using climate and vegetation covariates, as character"),
     createsOutput("fuelClassRoles", "list",
-                  paste("Only when `fuelCovariates = \"domSecOther\"`: `list(domClass =, secClass =)`,",
+                  paste("Only when `fuelCovariates = \"domSecWetland\"`: `list(domClass =, secClass =)`,",
                         "the fuel classes chosen once for this ELF by `fireSenseUtils::chooseDomSecFuelClasses()`.",
                         "Both `NA` with `fuelCovariates = \"species\"` or when the ELF has no tree fuel class.")),
     createsOutput("ignitionFirePoints", "SpatVector",
@@ -685,10 +688,9 @@ dataPrepBuild <- function(sim) {
     tsd
   })
 
-  ## Until youngAge treatment is identical between spread and ignition, no point in prepping veg here
-  ## Currently youngAge is resolved annually in spread, but only once in ignition
-  ## e.g. if a pixel ignited in 2008, its youngAge status in ignition is still determined by whether it was 15 in 2010,
-  ## but its youngAge status for spread is deterimined by whether standAge < 15 in 2008
+  ## The fuel covariates are not prepared here: they need each fire year's youngAge, which
+  ## prepare_SpreadFit() and prepare_IgnitionFit() resolve from these data-year time-since-disturbance
+  ## maps (fireSenseUtils::youngAgeAtYear()) and the fires since.
 
   # Create the "objects for prediction cases
   sim$flammableRTM <- tail(sim$flammableRTMs, 1)[[1]]
@@ -711,6 +713,7 @@ prepare_SpreadFit <- function(sim) {
 
   ## prep veg data ---------------------------------------------------------------------------------
   doAssertion <- getOption("fireSenseUtils.assertions", TRUE)
+  stopIfNonForestCannotBeYoung(P(sim)$nonForestCanBeYoungAge)
 
   ## sanity check the inputs
   lapply(sim$historicalClimateRasters, compareGeom, x = sim$rasterToMatch)
@@ -722,9 +725,9 @@ prepare_SpreadFit <- function(sim) {
   dig1a <- .robustDigest(list(sim$cohortDatas, sim$pixelGroupMaps, sim$nonForest_timeSinceDisturbances))
   dig2 <- append(dig1, dig1a)
 
-  fuelCovariates <- match.arg(P(sim)$fuelCovariates, c("domSecOther", "species"))
+  fuelCovariates <- match.arg(P(sim)$fuelCovariates, c("domSecWetland", "species"))
   sim$fuelClassRoles <- list(domClass = NA_character_, secClass = NA_character_)
-  if (identical(fuelCovariates, "domSecOther")) {
+  if (identical(fuelCovariates, "domSecWetland")) {
     ## chosen once per ELF (the most recent data year, as with sim$rstLCC/sim$rstLCC_RTM elsewhere
     ## in this module), not independently for every data year -- a prediction must build the same
     ## dom_agb_*/sec_agb_* columns whichever year it is predicting
@@ -740,7 +743,8 @@ prepare_SpreadFit <- function(sim) {
             "; secondary = ", sim$fuelClassRoles$secClass)
   }
 
-  # This adds youngAge
+  # fuels are not zeroed and there is no youngAge column: youngAge is added to each fire year's
+  # annual table below
   vegData <- Map(f = fireSenseUtils::fireSenseCovariatesCreate,
                         cohortData = sim$cohortDatas,
                         pixelGroupMap = sim$pixelGroupMaps,
@@ -758,7 +762,8 @@ prepare_SpreadFit <- function(sim) {
                                         domClass = sim$fuelClassRoles$domClass,
                                         secClass = sim$fuelClassRoles$secClass,
                                         nonForestCanBeYoungAge = P(sim)$nonForestCanBeYoungAge,
-                                        studyAreaName = P(sim)$.studyAreaName
+                                        studyAreaName = P(sim)$.studyAreaName,
+                                        youngAge = FALSE
                         )
   ) |>
     Cache(.cacheExtra = dig2,
@@ -829,10 +834,10 @@ prepare_SpreadFit <- function(sim) {
                                             round(sim$spreadClimateSelection$auc, 2), collapse = ", "))
   }
 
-  ## vegCols can already contain "youngAge" (added by fireSenseUtils::fireSenseCovariatesCreate()
-  ## when there are young non-forest/forest pixels) and, in principle, the spread climate variable
-  ## name; both are also added explicitly below, so they must be excluded here or the formula lists
-  ## them twice and terms() silently drops the duplicate, leaving one fewer term than parameters.
+  ## vegCols has no "youngAge" (it is in the annual tables) but, in principle, it could hold the
+  ## spread climate variable name; both are added explicitly below, so they must be excluded here or
+  ## the formula lists them twice and terms() silently drops the duplicate, leaving one fewer term
+  ## than parameters.
   vegColsForRHS <- setdiff(vegCols, c(youngAgeTxt, sim$climateVariablesForFire$spread))
   RHS <- paste(paste0(sim$climateVariablesForFire$spread, collapse = " + "), youngAgeTxt,
                paste0(vegColsForRHS, collapse = " + "), sep =  " + ")
@@ -859,8 +864,7 @@ prepare_SpreadFit <- function(sim) {
 
   fireSense_annualSpreadFitCovariates <- split(fbl, by = fireSenseUtils::yearTxt, keep.by = FALSE)
 
-  ## prepare non-annual spread fit covariates by getting the youngAge
-  # have to remove years that have no fires and so no climate data needed
+  # keep an (empty) annual table for years that have no fires, so the colnames stay
   missingYears <- setdiff(unlist(mod$allYears), names(fireSense_annualSpreadFitCovariates))
   for (my in missingYears) # keep the colnames even though NROW is 0
     fireSense_annualSpreadFitCovariates[[my]] <-  fireSense_annualSpreadFitCovariates[[1]][0]
@@ -873,10 +877,7 @@ prepare_SpreadFit <- function(sim) {
     fireSense_annualSpreadFitCovariates[yrsChar]
   })
 
-  ## youngAge is deliberately NOT added to annualCovariates: it is a non-annual covariate
-
-  ## get rid of nonflammable pixels (here because the calcYoungAge function assigns ages to NA values,
-  ## due to inconsistent treatment of non-forest age pixels  in kNN years and other products (0 vs NA)
+  ## get rid of nonflammable pixels (their time since disturbance is NA, which is never young)
   annualCovariates <- Map(ac = annualCovariates, yrNum = names(annualCovariates),
       function(ac,
                yrNum) {
@@ -886,32 +887,28 @@ prepare_SpreadFit <- function(sim) {
     })
   })
 
+  ## youngAge of each fire year's pixels: the data year's time since disturbance aged to that year,
+  ## reset by every fire since (all fires, not only those fitted). spreadFit clears fuel, non-forest
+  ## land cover and treed wetland where it is 1, after joining these annual tables to the fuels.
+  annualCovariates <- addAnnualYoungAge(annualCovariates,
+                                        tsds = sim$nonForest_timeSinceDisturbances,
+                                        firePixelsByYear = allFirePixelsByYear(sim),
+                                        cutoffForYoungAge = P(sim)$cutoffForYoungAge)
+
   # Confirm that YoungAge is the right amount. If there are "normal" amount of fires,
   #  then it should be < 0.2
   propYoungAge <- unlist(unlist(unname(
-    lapply(annualCovariates, function(ac) 
-      lapply(ac, function(x) if (!is.null(x$youngAge)) mean(x$youngAge)))), recursive = FALSE))
+    lapply(annualCovariates, function(ac)
+      lapply(ac, function(x) if (NROW(x)) mean(x$youngAge)))), recursive = FALSE))
   lotsOfYA <- propYoungAge > 0.2
   if (any(lotsOfYA, na.rm = TRUE))
     warning("There are individual years with >20% of the pixels in YoungAge; confirm this is ",
             "expected... ", paste(names(propYoungAge)[lotsOfYA %in% TRUE], collapse = ", ")
             )
 
-
-  if (!P(sim)$nonForestCanBeYoungAge) {
-    ## TODO: test this inversion of makeMutuallyExclusive's regular use
-    args <- as.list(rep(youngAgeTxt, length = length(sim$nonForestedLCCGroups)))
-    names(args) <- names(sim$nonForestedLCCGroups)
-  } else {
-    ## this is done later in spreadFit - but done here for accuracy of outputs
-    args <- list(names(sim$nonForestedLCCGroups)) |> setNames(youngAgeTxt)
-  }
-
-  annualCovariates <- lapply(annualCovariates, makeMutuallyExclusive, mutuallyExclusiveCols = args)
-
   sim$fireSense_annualSpreadFitCovariates <- do.call(c, unname(annualCovariates))
 
-  # nonAnnuals are all the fuels; fire occurrence; youngAge and climate are annual (as of Jan 23, 2026)
+  # nonAnnuals are the fuels (per data year) and fire occurrence; youngAge and climate are in the annual tables
   nonAnnuals <- Map(yrsChar = mod$allYears, yrGroup = names(mod$allYears), function(yrsChar, yrGroup) {
     yrsNum <- gsub("[^0-9]", "", yrsChar) |> as.integer()
     fireSenseVegData[year < max(yrsNum) & year >= as.integer(yrGroup), .SD, .SDcols = colsToExtract] %>%
@@ -1116,20 +1113,34 @@ prepare_IgnitionFit <- function(sim) {
     )
   )
 
+  stopIfNonForestCannotBeYoung(P(sim)$nonForestCanBeYoungAge)
+
   dig1 <- .robustDigest(list(sim$landcoverDTs, sim$flammableRTMs))
   dig1a <- .robustDigest(list(sim$cohortDatas, sim$pixelGroupMaps, sim$nonForest_timeSinceDisturbances))
   dig2 <- append(dig1, dig1a)
 
-  #  Makes youngAge, amongst other things
+  ## ignition won't have same years as spread so we do not use names of init objects
+  ## The reason is some years may have ignitions but no fires, e.g. 2010 in RIA
+  years <- yearGroups(Par$dataYears, Par$fireYears, FALSE)
+  years <- Map(y = years, function(y) paste0(fireSenseUtils::yearTxt, y))
+  mod$allYears <- years
+  allYearsVect <- unlist(mod$allYears)
+
+  ## youngAge is resolved for every fire year (fireSenseUtils::youngAgeAtYear()), over all pixels and
+  ## all fires, then aggregated with the fuels: one coarse raster stack per fire year, not per data year
+  firePixels <- allFirePixelsByYear(sim)
   fuelCovsCoarse <- Map(
     f = function(..., fact = P(sim)$igAggFactor, rasTemplate = sim$flammableRTM) {
-      prepare_FuelCovsCoarse(..., rasTemplate = rasTemplate, fact = fact)
-    }, 
+      fireSenseUtils::prepare_FuelCovsCoarseByYear(..., rasTemplate = rasTemplate, fact = fact,
+                                                   firePixelsByYear = firePixels)
+    },
     cohortData = sim$cohortDatas,
     pixelGroupMap = sim$pixelGroupMaps,
     flammableRTM = sim$flammableRTMs,
     landcoverDT = sim$landcoverDTs,
     nonForest_timeSinceDisturbance = sim$nonForest_timeSinceDisturbances,
+    years = years,
+    dataYear = as.integer(names(years)),
     MoreArgs = list(sppEquiv = sim$sppEquiv,
                     sppEquivCol = P(sim)$sppEquivCol,
                     fuelClassCol = P(sim)$fuelClassCol,
@@ -1139,8 +1150,12 @@ prepare_IgnitionFit <- function(sim) {
                     nonForestCanBeYoungAge = P(sim)$nonForestCanBeYoungAge,
                     studyAreaName = P(sim)$.studyAreaName
     ))  |>
-    Cache(.cacheExtra = list(prepare_FuelCovsCoarse = prepare_FuelCovsCoarse, dig2, fireSenseCovariatesCreate = fireSenseCovariatesCreate), # add the inner function
-          omitArgs = c("landcoverDT", "flammableRTM", "cohortData", "pixelGroupMap", "nonForest_timeSinceDisturbance"),
+    Cache(.cacheExtra = list(prepare_FuelCovsCoarseByYear = fireSenseUtils::prepare_FuelCovsCoarseByYear,
+                             fireSenseCovariatesCreate = fireSenseUtils::fireSenseCovariatesCreate,
+                             youngAgeAtYear = fireSenseUtils::youngAgeAtYear, dig2,
+                             firePixels = .robustDigest(firePixels)),
+          omitArgs = c("landcoverDT", "flammableRTM", "cohortData", "pixelGroupMap",
+                       "nonForest_timeSinceDisturbance"),
           .functionName = "ignitionCovariatesCreate")
 
 
@@ -1153,14 +1168,9 @@ prepare_IgnitionFit <- function(sim) {
   sim$lightningMaps <- prepare_LightningData(sim$rasterToMatch, P(sim)$igAggFactor,
                                              dPath = inputPath(sim))
 
-  do.call(compareGeom, unname(Reduce(append, list(sim$lightningMaps, ignitionClimateCoarse, fuelCovsCoarse))))
+  do.call(compareGeom, unname(Reduce(append, list(sim$lightningMaps, ignitionClimateCoarse,
+                                                             unlist(fuelCovsCoarse, recursive = FALSE)))))
 
-  ## ignition won't have same years as spread so we do not use names of init objects
-  ## The reason is some years may have ignitions but no fires, e.g. 2010 in RIA
-  years <- yearGroups(Par$dataYears, Par$fireYears, FALSE)
-  years <- Map(y = years, function(y) paste0(fireSenseUtils::yearTxt, y))
-  mod$allYears <- years
-  allYearsVect <- unlist(mod$allYears)
   #assume that if multiple climate variables are present, they are of equal length
   #else bigger problems exist
   whAvailable <- allYearsVect %in% names(ignitionClimateCoarse[[1]])
@@ -1177,7 +1187,7 @@ prepare_IgnitionFit <- function(sim) {
                       digest = append(dig2, list(P(sim)$igAggFactor)))
 
   ## make new ignition object, ignitionFitRTM
-  sim$ignitionFitRTM <- rast(fuelCovsCoarse[[1]][[1]])
+  sim$ignitionFitRTM <- rast(fuelCovsCoarse[[1]][[1]][[1]])
   sim$ignitionFitRTM <- setValues(sim$ignitionFitRTM, 1) ## avoids a warning
   attributes(sim$ignitionFitRTM)$nonNAs <- nrow(sim$fireSense_ignitionCovariates)
 

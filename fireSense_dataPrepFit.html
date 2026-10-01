@@ -2995,7 +2995,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">fireSense_dataPrepFit Manual</h1>
 <h3 class="subtitle">v.1.2.0.9022</h3>
-<h4 class="date">Last updated: 2026-09-29</h4>
+<h4 class="date">Last updated: 2026-09-30</h4>
 
 </div>
 
@@ -3763,7 +3763,7 @@ fuelCovariates
 character
 </td>
 <td style="text-align:left;">
-domSecOt….
+domSecWe….
 </td>
 <td style="text-align:left;">
 NA
@@ -3772,7 +3772,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-How the spread-fit fuel covariates are represented. <code>&quot;domSecOther&quot;</code> (default): exactly four AGB columns per ELF, <code>dom_agb_&amp;lt;class&amp;gt;</code> and <code>sec_agb_&amp;lt;class&amp;gt;</code> (the two fuel classes with the most total treed AGB over the fit study area), <code>other_agb</code> (the rest, pooled) and <code>treedWetland_agb</code> (all tree AGB on treed-wetland pixels, removed from the other three there); see <code>fireSenseUtils::fireSenseCovariatesCreate()</code>. <code>&quot;species&quot;</code>: the previous one column per fuel class. <code>fireSense_dataPrepPredict</code> follows whichever a fit used; this is not a parameter there.
+How the spread-fit fuel covariates are represented. <code>&quot;domSecWetland&quot;</code> (default): <code>dom_agb_&amp;lt;class&amp;gt;</code> and <code>sec_agb_&amp;lt;class&amp;gt;</code> (the two fuel classes with the most total treed AGB over the fit study area) and <code>treedWetland_agb</code> (all tree AGB on treed-wetland pixels, removed from dom/sec there); other classes are not covariates; see <code>fireSenseUtils::fireSenseCovariatesCreate()</code>. <code>&quot;species&quot;</code>: the previous one column per fuel class. <code>fireSense_dataPrepPredict</code> follows whichever a fit used; this is not a parameter there.
 </td>
 </tr>
 <tr>
@@ -3832,7 +3832,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-if TRUE, burned non-forest will be treated as <code>youngAge</code>. Recommended to be TRUE as burned forest is often classified as non-forest
+if TRUE, burned non-forest will be treated as <code>youngAge</code>. Recommended to be TRUE as burned forest is often classified as non-forest. <code>youngAge</code> is resolved for each fire year from the data year’s time since disturbance, which covers forest and non-forest alike, so <code>FALSE</code> is not supported and stops the spread and ignition preparation.
 </td>
 </tr>
 <tr>
@@ -4316,7 +4316,7 @@ fuelClassRoles
 list
 </td>
 <td style="text-align:left;">
-Only when <code>fuelCovariates = &quot;domSecOther&quot;</code>: <code>list(domClass =, secClass =)</code>, the fuel classes chosen once for this ELF by <code>fireSenseUtils::chooseDomSecFuelClasses()</code>. Both <code>NA</code> with <code>fuelCovariates = &quot;species&quot;</code> or when the ELF has no tree fuel class.
+Only when <code>fuelCovariates = &quot;domSecWetland&quot;</code>: <code>list(domClass =, secClass =)</code>, the fuel classes chosen once for this ELF by <code>fireSenseUtils::chooseDomSecFuelClasses()</code>. Both <code>NA</code> with <code>fuelCovariates = &quot;species&quot;</code> or when the ELF has no tree fuel class.
 </td>
 </tr>
 <tr>
