@@ -1,5 +1,9 @@
 # fireSense_dataPrepFit (development version)
 
+- Fixed: with one fitted ELF in the SpreadFit ledger, `Init()` now sets `nonForestedLCCGroups` and `missingLCCgroup` to that
+  ELF's groups, so this run's ignition and escape fits use the same non-forest columns (`nfLCC_*`) that
+  `fireSense_dataPrepPredict` builds for prediction. Before, they kept the module default (`nf`), and
+  `fireSense_ignitionPredict` stopped with "column not found: [nf]".
 - `youngAge` is resolved for each fire year, as it was before February 2026, instead of once per data year. `prepare_SpreadFit()` builds the fuels with `fireSenseCovariatesCreate(youngAge = FALSE)` (no `youngAge`, nothing zeroed at the data year) and puts `youngAge` in each fire year's annual table from `fireSenseUtils::youngAgeAtYear()`: the data year's time since disturbance aged to that year, reset by every fire since (all of `firePolysForAge`, not only the fitted buffers); `NA` time since disturbance is not young. `prepare_IgnitionFit()` does the same for the ignition (and escape) covariates with `fireSenseUtils::prepare_FuelCovsCoarseByYear()`, aggregating the per-year values to the `igAggFactor` grid. `nonForestCanBeYoungAge = FALSE` now stops in both. Needs the `fireSenseUtils` change in PredictiveEcology/fireSenseUtils#119 (floor to be set once it has a version). Spread and ignition fits made with the data-year `youngAge`, and cached `prepSpreadFitData` and ignition covariates, are invalid.
 
 # fireSense_dataPrepFit (development version)
