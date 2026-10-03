@@ -77,6 +77,13 @@ defineModule(sim, list(
                           "this is not a parameter there.")),
     defineParameter("minBufferSize", "numeric", 5000, NA, NA,
                     paste("Minimum number of cells in each fire's burned-plus-buffer sample, applied after `areaMultiplier`.")),
+    defineParameter("minCovariateProp", "numeric", 0.05, 0, 1,
+                    paste("A land-cover class covering less than this proportion of the ELF's flammable pixels",
+                          "(most recent data year) is too rare to estimate a spread coefficient for. A non-forest class",
+                          "joins the non-forest group nearest its burn rate instead of being clustered on its own",
+                          "(`fireSenseUtils::assessFuelClasses()`); with less treed wetland than this there is no",
+                          "`treedWetland_agb` and its tree AGB stays in `dom_agb_*`/`sec_agb_*`",
+                          "(`fireSenseUtils::fireSenseCovariatesCreate()`). `0` keeps every class.")),
     defineParameter("nonflammableLCC", "numeric", fireSenseUtils::fireSenseNonflammableLCC, NA, NA,
                     paste("Non-flammable classes in `rstLCCs`; the default,",
                           "`fireSenseUtils::fireSenseNonflammableLCC`, is no data, water, rock,",
@@ -124,12 +131,13 @@ defineModule(sim, list(
                     list(dataPrepBuild = list(.cacheExtra = quote(list(
                       LandR::.compareRas, LandR::asInt, LandR::defineFlammable, LandR::isInt,
                       fireSenseUtils::assessFuelClasses, fireSenseUtils::fuelClassPrep,
-                      fireSenseUtils::makeLandcoverDT, fireSenseUtils::makeTSD))),
+                      fireSenseUtils::lccFlammableShare, fireSenseUtils::makeLandcoverDT,
+                      fireSenseUtils::makeTSD))),
                          prepSpreadFitData = list(.cacheExtra = quote(c(list(
                       fireSenseUtils::bufferToArea, fireSenseUtils::chooseDomSecFuelClasses,
                       fireSenseUtils::climateRasterToDataTable,
                       fireSenseUtils::fireSenseCovariatesCreate, fireSenseUtils::firePixelsByYear,
-                      fireSenseUtils::harmonizeFireData,
+                      fireSenseUtils::harmonizeFireData, fireSenseUtils::lccFlammableShare,
                       fireSenseUtils::makeMutuallyExclusive, fireSenseUtils::rasterFireBufferDT,
                       fireSenseUtils::rasterFireSpreadPoints, fireSenseUtils::youngAgeAtYear),
                       fireSenseUtils::harmonizeFireDataDeps())))),
@@ -619,7 +627,9 @@ dataPrepBuild <- function(sim) {
                                             sppEquiv = sim$sppEquiv,
                                             sppEquivCol = P(sim)$sppEquivCol,
                                             targetFuelClasses = P(sim)$targetFuelClasses,
-                                            nonforestLCC = nonforestLCC) |>
+                                            nonforestLCC = nonforestLCC,
+                                            lccShare = fireSenseUtils::lccFlammableShare(sim$rstLCC_RTM, sim$flammableRTM),
+                                            minCovariateProp = P(sim)$minCovariateProp) |>
         Cache(userTags = c("assessFuelClasses", P(sim)$fuelClassCol))
 
       # sppEquiv
@@ -743,6 +753,15 @@ prepare_SpreadFit <- function(sim) {
             "; secondary = ", sim$fuelClassRoles$secClass)
   }
 
+  ## treed wetland is a covariate only where there is enough of it to estimate (minCovariateProp), decided
+  ## once per ELF on the most recent data year like the dom/sec classes; a prediction follows the fit's terms
+  lccShare <- fireSenseUtils::lccFlammableShare(sim$rstLCC_RTM, sim$flammableRTM)
+  treedWetlandLCC <- eval(formals(fireSenseUtils::fireSenseCovariatesCreate)$treedWetlandLCC)
+  treedWetlandShare <- sum(lccShare[as.character(treedWetlandLCC)], na.rm = TRUE)
+  useTreedWetland <- treedWetlandShare >= P(sim)$minCovariateProp
+  message("fireSense_dataPrepFit: treed wetland is ", round(100 * treedWetlandShare, 1),
+          "% of flammable pixels; ", if (useTreedWetland) "a" else "not a", " spread covariate")
+
   # fuels are not zeroed and there is no youngAge column: youngAge is added to each fire year's
   # annual table below
   vegData <- Map(f = fireSenseUtils::fireSenseCovariatesCreate,
@@ -761,6 +780,7 @@ prepare_SpreadFit <- function(sim) {
                                         fuelCovariates = fuelCovariates,
                                         domClass = sim$fuelClassRoles$domClass,
                                         secClass = sim$fuelClassRoles$secClass,
+                                        treedWetland = useTreedWetland,
                                         nonForestCanBeYoungAge = P(sim)$nonForestCanBeYoungAge,
                                         studyAreaName = P(sim)$.studyAreaName,
                                         youngAge = FALSE
