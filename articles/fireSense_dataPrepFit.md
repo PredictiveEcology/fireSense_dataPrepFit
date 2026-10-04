@@ -1,7 +1,7 @@
 ---
 title: "fireSense_dataPrepFit Manual"
 subtitle: "v.1.2.0.9022"
-date: "Last updated: 2026-10-01"
+date: "Last updated: 2026-10-04"
 output:
   bookdown::html_document2:
     toc: true
@@ -403,6 +403,14 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Minimum number of cells in each fire's burned-plus-buffer sample, applied after `areaMultiplier`. </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> minCovariateProp </td>
+   <td style="text-align:left;"> numeric </td>
+   <td style="text-align:left;"> 0.05 </td>
+   <td style="text-align:left;"> 0 </td>
+   <td style="text-align:left;"> 1 </td>
+   <td style="text-align:left;"> A land-cover class covering less than this proportion of the ELF's flammable pixels (most recent data year) is too rare to estimate a spread coefficient for. A non-forest class joins the non-forest group nearest its burn rate instead of being clustered on its own (`fireSenseUtils::assessFuelClasses()`); with less treed wetland than this there is no `treedWetland_agb` and its tree AGB stays in `dom_agb_ `/`sec_agb_ ` (`fireSenseUtils::fireSenseCovariatesCreate()`). `0` keeps every class. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> nonflammableLCC </td>
