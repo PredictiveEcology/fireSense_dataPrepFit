@@ -1,5 +1,6 @@
 # fireSense_dataPrepFit (development version)
 
+- New parameter `minCovariateProp` (default `0.05`): a land-cover class covering less than this share of the ELF's flammable pixels (most recent data year) gets no spread coefficient of its own. A rare non-forest class joins the non-forest group nearest its burn rate; with less treed wetland than this there is no `treedWetland_agb` and its tree AGB stays in `dom_agb_*`/`sec_agb_*`. Treed wetland is under 5% in 7 of the 10 fitted ELFs. Needs fireSenseUtils >= 0.2.3.9081 (PredictiveEcology/fireSenseUtils#129). Fits and cached `dataPrepBuild`/`prepSpreadFitData` results of ELFs whose covariates change are invalid.
 - Fixed: with one fitted ELF in the SpreadFit ledger, `Init()` now sets `nonForestedLCCGroups` and `missingLCCgroup` to that
   ELF's groups, so this run's ignition and escape fits use the same non-forest columns (`nfLCC_*`) that
   `fireSense_dataPrepPredict` builds for prediction. Before, they kept the module default (`nf`), and
