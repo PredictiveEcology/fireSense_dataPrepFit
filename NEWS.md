@@ -1,4 +1,4 @@
-# fireSense_dataPrepFit (development version)
+# fireSense_dataPrepFit 1.2.0.9024
 
 - A spread covariate that is empty is dropped (`fireSenseUtils::emptySpreadCovariates()`): all zero, or, for a fuel class, all on the `logMinB()` floor, which a column sum never saw (a fuel class with no biomass in the buffers is 3.6 everywhere). Spread climate is no longer rounded to whole numbers by `fireSenseUtils::climateRasterToDataTable()`: the x1000 integer storage is the only rounding, as in `fireSense_dataPrepPredict`. Fits change and cached fits re-key (`emptySpreadCovariates` is in `prepSpreadFitData`'s `.cacheExtra`). Needs the `fireSenseUtils` change in PredictiveEcology/fireSenseUtils (floor to be set once it has a version).
 
