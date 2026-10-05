@@ -2995,7 +2995,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">fireSense_dataPrepFit Manual</h1>
 <h3 class="subtitle">v.1.2.0.9022</h3>
-<h4 class="date">Last updated: 2026-10-04</h4>
+<h4 class="date">Last updated: 2026-10-05</h4>
 
 </div>
 
@@ -3953,6 +3953,26 @@ NA
 </td>
 <td style="text-align:left;">
 Name of the ledger file in <code>spreadFitGoogleDriveFolder</code>: study area polygons with their fitted SpreadFit parameters. <code>&quot;latest&quot;</code> (the default) takes each polygon’s fit from the most recent ledger file that has it (<code>fireSenseUtils::latestSpreadFits()</code>).
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+spreadIntercept
+</td>
+<td style="text-align:left;">
+logical
+</td>
+<td style="text-align:left;">
+FALSE
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+If <code>TRUE</code>, the spread formula has an intercept (<code>~ 1 + ...</code>) and <code>fireSense_spreadFit</code> fits it, with the covariates centred, so the coefficients describe variation and the intercept the level. Covariates are rescaled to 0-1 and so are all &gt;= 0: without an intercept the level of the linear predictor is set by the coefficients alone, and a climate coefficient trades off against the fuel and non-forest ones (ELF 13.1). <code>FALSE</code> (default) keeps <code>~ 0 + ...</code>. Ignored if <code>sim$fireSense_spreadFormula</code> is supplied. Needs a <code>fireSense_spreadFit</code> and a <code>fireSense_spreadPredict</code> that know the intercept.
 </td>
 </tr>
 <tr>
