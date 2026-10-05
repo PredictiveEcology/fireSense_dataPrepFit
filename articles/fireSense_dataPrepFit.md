@@ -1,7 +1,7 @@
 ---
 title: "fireSense_dataPrepFit Manual"
 subtitle: "v.1.2.0.9022"
-date: "Last updated: 2026-10-04"
+date: "Last updated: 2026-10-05"
 output:
   bookdown::html_document2:
     toc: true
@@ -467,6 +467,14 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Name of the ledger file in `spreadFitGoogleDriveFolder`: study area polygons with their fitted SpreadFit parameters. `"latest"` (the default) takes each polygon's fit from the most recent ledger file that has it (`fireSenseUtils::latestSpreadFits()`). </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> spreadIntercept </td>
+   <td style="text-align:left;"> logical </td>
+   <td style="text-align:left;"> FALSE </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> If `TRUE`, the spread formula has an intercept (`~ 1 + ...`) and `fireSense_spreadFit` fits it, with the covariates centred, so the coefficients describe variation and the intercept the level. Covariates are rescaled to 0-1 and so are all &gt;= 0: without an intercept the level of the linear predictor is set by the coefficients alone, and a climate coefficient trades off against the fuel and non-forest ones (ELF 13.1). `FALSE` (default) keeps `~ 0 + ...`. Ignored if `sim$fireSense_spreadFormula` is supplied. Needs a `fireSense_spreadFit` and a `fireSense_spreadPredict` that know the intercept. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> targetFuelClasses </td>
