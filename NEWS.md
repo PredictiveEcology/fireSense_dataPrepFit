@@ -1,3 +1,7 @@
+# fireSense_dataPrepFit (development version)
+
+- A spread covariate that is empty is dropped (`fireSenseUtils::emptySpreadCovariates()`): all zero, or, for a fuel class, all on the `logMinB()` floor, which a column sum never saw (a fuel class with no biomass in the buffers is 3.6 everywhere). Spread climate is no longer rounded to whole numbers by `fireSenseUtils::climateRasterToDataTable()`: the x1000 integer storage is the only rounding, as in `fireSense_dataPrepPredict`. Fits change and cached fits re-key (`emptySpreadCovariates` is in `prepSpreadFitData`'s `.cacheExtra`). Needs the `fireSenseUtils` change in PredictiveEcology/fireSenseUtils (floor to be set once it has a version).
+
 # fireSense_dataPrepFit 1.2.0.9023
 
 - New parameter `spreadIntercept` (default `FALSE`): with `TRUE` the spread formula is `~ 1 + ...`, so `fireSense_spreadFit` fits a free intercept with centred covariates (`fireSenseUtils::spreadInterceptTxt`) and the coefficients describe variation about the centre. Covariates are rescaled to 0-1, so without an intercept the level of the linear predictor is set by the coefficients alone and the climate coefficient trades off against the fuel and non-forest ones (ELF 13.1: the other coefficients explain a median 73% of CMD's variance in a final population). `FALSE` keeps the formula string `~ 0 + ...` byte for byte. Needs fireSenseUtils >= 0.2.3.9083 (PredictiveEcology/fireSenseUtils#131).
