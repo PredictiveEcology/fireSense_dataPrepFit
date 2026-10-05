@@ -28,7 +28,8 @@ test_that("the spread formula lists a veg-table youngAge column once, not twice"
   ## "burned"): a youngAge column that is not all-zero, as in ELFs 14.3/14.4
   env$fireSenseVegData <- data.table::data.table(
     pixelID = 1:10, ids = 1L, burned = rep(0:1, 5), year = 2010L,
-    fuelA = c(rep(0, 5), rep(1, 5)), youngAge = c(rep(1, 3), rep(0, 7))
+    fuelA = fireSenseUtils::logMinB(c(rep(0, 5), rep(500, 5))), # fuel arrives as log biomass, floored
+    youngAge = c(rep(1, 3), rep(0, 7))
   )
 
   for (i in idx) eval(stmts[[i]], env)

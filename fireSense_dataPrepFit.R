@@ -143,7 +143,7 @@ defineModule(sim, list(
                       fireSenseUtils::makeTSD))),
                          prepSpreadFitData = list(.cacheExtra = quote(c(list(
                       fireSenseUtils::bufferToArea, fireSenseUtils::chooseDomSecFuelClasses,
-                      fireSenseUtils::climateRasterToDataTable,
+                      fireSenseUtils::climateRasterToDataTable, fireSenseUtils::emptySpreadCovariates,
                       fireSenseUtils::fireSenseCovariatesCreate, fireSenseUtils::firePixelsByYear,
                       fireSenseUtils::harmonizeFireData, fireSenseUtils::lccFlammableShare,
                       fireSenseUtils::makeMutuallyExclusive, fireSenseUtils::rasterFireBufferDT,
@@ -826,7 +826,8 @@ prepare_SpreadFit <- function(sim) {
   nonVegColnames <- c("pixelID", "burned", "ids", grep(fireSenseUtils::yearTxt, ignore.case = TRUE, colnames(fireSenseVegData), value = TRUE))
   vegCols <- setdiff(names(fireSenseVegData),
                      nonVegColnames)
-  dropCols <- names(which(colSums(fireSenseVegData[, ..vegCols], na.rm = TRUE) == 0))
+  ## empty: all zero, or, for fuel (stored as log biomass), all on the logMinB floor
+  dropCols <- fireSenseUtils::emptySpreadCovariates(fireSenseVegData, vegCols)
 
   ## spreadFit will fail if there are empty (all zero) columns
   if (length(dropCols) > 0) {
