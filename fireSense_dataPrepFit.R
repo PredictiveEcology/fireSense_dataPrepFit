@@ -113,6 +113,14 @@ defineModule(sim, list(
                     NA, NA, paste("Name of the ledger file in `spreadFitGoogleDriveFolder`: study area polygons with",
                                   "their fitted SpreadFit parameters. `\"latest\"` (the default) takes each polygon's",
                                   "fit from the most recent ledger file that has it (`fireSenseUtils::latestSpreadFits()`).")),
+    defineParameter("spreadIntercept", "logical", FALSE, NA, NA,
+                    paste("If `TRUE`, the spread formula has an intercept (`~ 1 + ...`) and `fireSense_spreadFit` fits",
+                          "it, with the covariates centred, so the coefficients describe variation and the intercept",
+                          "the level. Covariates are rescaled to 0-1 and so are all >= 0: without an intercept the",
+                          "level of the linear predictor is set by the coefficients alone, and a climate coefficient trades off",
+                          "against the fuel and non-forest ones (ELF 13.1). `FALSE` (default) keeps `~ 0 + ...`.",
+                          "Ignored if `sim$fireSense_spreadFormula` is supplied. Needs a `fireSense_spreadFit` and a",
+                          "`fireSense_spreadPredict` that know the intercept.")),
     defineParameter("targetFuelClasses", "numeric", 5, 1, 7,
                     "the target number of unique fuel classes when using semi-automated approach"),
     defineParameter("useRasterizedFireForSpread", "logical", FALSE, NA, NA,
@@ -939,7 +947,7 @@ prepare_SpreadFit <- function(sim) {
   sim$fireSense_nonAnnualSpreadFitCovariates <- nonAnnuals
 
   if (is.null(sim$fireSense_spreadFormula)) {
-    sim$fireSense_spreadFormula <- paste0("~ 0 + ", RHS)
+    sim$fireSense_spreadFormula <- spreadFormula(RHS, Par$spreadIntercept)
   }
 
   return(invisible(sim))

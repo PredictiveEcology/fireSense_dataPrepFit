@@ -23,6 +23,7 @@ test_that("the spread formula lists a veg-table youngAge column once, not twice"
   env$sim <- new.env()
   env$sim$climateVariablesForFire <- list(spread = "CMD")
   env$sim$fireSense_spreadFormula <- NULL
+  env$Par <- list(spreadIntercept = FALSE) # the module's `Par`, as it is with the default
   ## the shape fireSenseVegData has after joinFireBuffersToVeg() and setnames(..., "buffer",
   ## "burned"): a youngAge column that is not all-zero, as in ELFs 14.3/14.4
   env$fireSenseVegData <- data.table::data.table(
