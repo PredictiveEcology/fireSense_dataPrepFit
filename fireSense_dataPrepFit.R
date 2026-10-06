@@ -215,6 +215,9 @@ defineModule(sim, list(
     expectsInput("rstLCCs", "list", sourceURL = NA,
                  paste("List of land cover SpatRasters, one per `dataYears`, named `year<year>`, on",
                        "`rasterToMatch_biomassParam`. The default is from `fireSenseUtils::makeFireSenseLCC`.")),
+    expectsInput(".ELFind", "character", sourceURL = NA,
+                 "The ELF this run is for (`fireSenseUtils::polygonIDTxt` in the SpreadFit ledger), set by `fireSense_ELFs`;",
+                 " its row's species colours win when ledger rows disagree. Optional."),
     expectsInput("sppEquiv", "data.table", sourceURL = NA,
                  "Table of LandR species equivalencies. The default is from `LandR::speciesInStudyArea`."),
     expectsInput("standAgeMaps", "list", sourceURL = NA,
@@ -459,18 +462,9 @@ Init <- function(sim) {
       unique() |> 
       sort()
     
-    # sppColourVector
-    scv <- sort(lapply(seq_along(outs2), function(x) outs2[[x]][["sppColorVect"]]) |> unlist())
-    scvUnique <- data.frame(scv = scv, scn = names(scv)) |> unique() 
-    scvUnique <- scvUnique[order(scvUnique$scn),]
-    whMixed <- which(scvUnique$scn %in% "Mixed")
-    scvUnique1 <- scvUnique[-whMixed,]
-    scvUnique <- rbind(scvUnique1, scvUnique[whMixed,])
-    dups <- duplicated(scvUnique$scn)
-    if (any(dups)) {
-      stop("sppColVect has unique colour values for a single species; this needs to be reworked and rethought")
-    }
-    sim$sppColorVect <- scvUnique$scv |> setNames(scvUnique$scn)
+    # sppColourVector: one colour per species, the own ELF's row first
+    sim$sppColorVect <- mergeSppColorVects(sim$sppColorVects, sim$.ELFind,
+                                           sim$spreadFitPreRun[[fireSenseUtils::polygonIDTxt]])
     
     sim$nonForestedLCCGroupsList <- Map(x = outs2, function(x) x[["nonForestedLCCGroups"]])
     sim$missingLCCgroupList <- Map(x = outs2, function(x) x[["missingLCCgroup"]])

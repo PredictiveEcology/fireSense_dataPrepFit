@@ -14,7 +14,7 @@ test_that("every declared parameter and input is read, and every declared output
   expect_identical(notRead, character(0))
 
   inputs <- md$inputObjects$objectName
-  expect_identical(inputs[!used(paste0("\\b", inputs, "\\b"))], character(0))
+  expect_identical(inputs[!used(paste0("(?<![[:alnum:]_.])", gsub(".", "\\.", inputs, fixed = TRUE), "\\b"))], character(0))
 
   outputs <- md$outputObjects$objectName
   expect_identical(outputs[!used(paste0("sim\\$", outputs, "(\\[.*\\])? *<-"))], character(0))

@@ -17,7 +17,8 @@ test_that("inputs are the expected names and classes", {
   inputs <- stats::setNames(md$inputObjects$objectClass, md$inputObjects$objectName)
   expect_identical(
     inputs[order(names(inputs))],
-    c(climateVariables            = "list",
+    c(.ELFind                     = "character",
+      climateVariables            = "list",
       climateVariablesForFire     = "list",
       cohortDatas                 = "list",
       firePolys                   = "list",
