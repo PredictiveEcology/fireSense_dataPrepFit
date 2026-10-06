@@ -1,7 +1,7 @@
 ---
 title: "fireSense_dataPrepFit Manual"
-subtitle: "v.1.2.0.9023"
-date: "Last updated: 2026-10-05"
+subtitle: "v.1.2.0.9025"
+date: "Last updated: 2026-10-06"
 output:
   bookdown::html_document2:
     toc: true
@@ -248,6 +248,12 @@ Table \@ref(tab:moduleInputs-fireSense-dataPrepFit) shows the full list of modul
    <td style="text-align:left;"> rstLCCs </td>
    <td style="text-align:left;"> list </td>
    <td style="text-align:left;"> List of land cover SpatRasters, one per `dataYears`, named `year&lt;year&gt;`, on `rasterToMatch_biomassParam`. The default is from `fireSenseUtils::makeFireSenseLCC`. </td>
+   <td style="text-align:left;"> NA </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> .ELFind </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;"> The ELF this run is for (`fireSenseUtils::polygonIDTxt` in the SpreadFit ledger), set by `fireSense_ELFs`; its row's species colours win when ledger rows disagree. Optional. </td>
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
