@@ -1,3 +1,7 @@
+# fireSense_dataPrepFit 1.2.0.9025
+
+- `Init()` no longer stops with "sppColVect has unique colour values for a single species" when the SpreadFit ledger rows that intersect the study area (the own ELF and its neighbours) give one species different colours. It keeps one colour per species, from the own ELF's row (`sim$.ELFind`, now a declared optional input) or else the first row's, and messages the species that differed.
+
 # fireSense_dataPrepFit 1.2.0.9024
 
 - A spread covariate that is empty is dropped (`fireSenseUtils::emptySpreadCovariates()`): all zero, or, for a fuel class, all on the `logMinB()` floor, which a column sum never saw (a fuel class with no biomass in the buffers is 3.6 everywhere). Spread climate is no longer rounded to whole numbers by `fireSenseUtils::climateRasterToDataTable()`: the x1000 integer storage is the only rounding, as in `fireSense_dataPrepPredict`. Fits change and cached fits re-key (`emptySpreadCovariates` is in `prepSpreadFitData`'s `.cacheExtra`). Needs the `fireSenseUtils` change in PredictiveEcology/fireSenseUtils (floor to be set once it has a version).
@@ -13,8 +17,6 @@
 - `youngAge` is resolved for each fire year, as it was before February 2026, instead of once per data year. `prepare_SpreadFit()` builds the fuels with `fireSenseCovariatesCreate(youngAge = FALSE)` (no `youngAge`, nothing zeroed at the data year) and puts `youngAge` in each fire year's annual table from `fireSenseUtils::youngAgeAtYear()`: the data year's time since disturbance aged to that year, reset by every fire since (all of `firePolysForAge`, not only the fitted buffers); `NA` time since disturbance is not young. `prepare_IgnitionFit()` does the same for the ignition (and escape) covariates with `fireSenseUtils::prepare_FuelCovsCoarseByYear()`, aggregating the per-year values to the `igAggFactor` grid. `nonForestCanBeYoungAge = FALSE` now stops in both. Needs the `fireSenseUtils` change in PredictiveEcology/fireSenseUtils#119 (floor to be set once it has a version). Spread and ignition fits made with the data-year `youngAge`, and cached `prepSpreadFitData` and ignition covariates, are invalid.
 
 # fireSense_dataPrepFit (development version)
-
-- `Init()` no longer stops with "sppColVect has unique colour values for a single species" when the SpreadFit ledger rows that intersect the study area (the own ELF and its neighbours) give one species different colours. It keeps one colour per species, from the own ELF's row (`sim$.ELFind`, now a declared optional input) or else the first row's, and messages the species that differed.
 
 - The pooled `other_agb` spread covariate is gone and `fuelCovariates = "domSecOther"` is renamed `"domSecWetland"` (now the default): spread fuels are `dom_agb_<class>`, `sec_agb_<class>` and `treedWetland_agb`. Needs the `fireSenseUtils` change that renames the value (PredictiveEcology/fireSenseUtils#116). Spread fits made with `other_agb` need refitting, and cached `prepSpreadFitData` results change.
 
