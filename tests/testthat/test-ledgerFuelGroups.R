@@ -74,3 +74,26 @@ test_that("without a ledger fit, Init() leaves the non-forest groups alone", {
   expect_identical(e$sim$nonForestedLCCGroups, list(nf = c(40, 50, 60, 80, 100)))
   expect_identical(e$sim$missingLCCgroup, "nf")
 })
+
+test_that("with own ELF and a neighbour in the ledger, Init() builds the single-ELF objects from the own row", {
+  own <- oneELFLedger()
+  nb <- oneELFLedger()
+  nb[[fireSenseUtils::polygonIDTxt]] <- "4.2.1"
+  nb$sppEquiv <- list(data.table::data.table(LandR = c("Abie_bal", "Pice_mar"),
+                                             FuelClass = c("Abie_bal", "Pice_mar")))
+  nb$nonForestedLCCGroups <- list(list(nfLCC_100 = 100, nfLCC_40 = 40))
+  nb$missingLCCgroup <- "nfLCC_40"
+  ledger <- rbind(nb, own)
+  ledger$params <- list(own$params[[1]], own$params[[1]])
+  ledger$sppEquiv <- list(nb$sppEquiv[[1]], own$sppEquiv[[1]])
+  ledger$nonForestedLCCGroups <- list(nb$nonForestedLCCGroups[[1]], own$nonForestedLCCGroups[[1]])
+  e <- ledgerInitEnv(ledger)
+  e$sim$.ELFind <- "4.2.2"
+  for (s in initBody()) suppressMessages(eval(s, e))
+  expect_identical(e$sim$nonForestedLCCGroups, own$nonForestedLCCGroups[[1]])
+  expect_identical(e$sim$missingLCCgroup, "nfLCC_40_50_80")
+  expect_identical(e$sim$sppNameVector, c("Pice_mar", "Popu_tre"))
+  expect_setequal(e$sim$sppEquiv$LandR, c("Pice_mar", "Popu_tre"))
+  expect_length(e$sim$nonForestedLCCGroupsList, 2L)
+  expect_length(e$sim$sppEquivs, 2L)
+})

@@ -441,9 +441,16 @@ Init <- function(sim) {
 
     # Ok. With the multi-ELF reality, many objects must become lists --> the names of objects will become plural if we need them    
     keepCols <- setdiff(colnames(outs2[[1]]$sppEquiv), P(sim)$fuelClassCol)
-    
+
+    ## The single-ELF objects (sppEquiv, sppNameVector, colours, non-forest groups) are this run's own
+    ## ELF's. The ledger also holds neighbour ELFs' rows; without an own row (non-ELF run) use them all.
+    ledgerIDs <- sim$spreadFitPreRun[[fireSenseUtils::polygonIDTxt]]
+    ownRow <- ownLedgerRow(sim$.ELFind, ledgerIDs)
+    ownRows <- if (is.na(ownRow)) seq_along(outs2) else ownRow
+    outsOwn <- outs2[ownRows]
+
     # sppEquiv
-    sim$sppEquiv <- Map(o = outs2, function(o) o[["sppEquiv"]]) |>
+    sim$sppEquiv <- Map(o = outsOwn, function(o) o[["sppEquiv"]]) |>
       rbindlist(use.names = TRUE) |> 
       unique(by = keepCols) |> 
       setorderv(Par$sppEquivCol)
@@ -457,23 +464,23 @@ Init <- function(sim) {
     }
     
     # sppNameVector # not used in FS modules
-    sim$sppNameVector <- Map(o = outs2, function(o) o[["sppNameVector"]]) |> 
+    sim$sppNameVector <- Map(o = outsOwn, function(o) o[["sppNameVector"]]) |> 
       unlist() |> 
       unique() |> 
       sort()
     
     # sppColourVector: one colour per species, the own ELF's row first
-    sim$sppColorVect <- mergeSppColorVects(sim$sppColorVects, sim$.ELFind,
-                                           sim$spreadFitPreRun[[fireSenseUtils::polygonIDTxt]])
+    sim$sppColorVect <- mergeSppColorVects(sim$sppColorVects[ownRows], sim$.ELFind,
+                                           ledgerIDs[ownRows])
     
     sim$nonForestedLCCGroupsList <- Map(x = outs2, function(x) x[["nonForestedLCCGroups"]])
     sim$missingLCCgroupList <- Map(x = outs2, function(x) x[["missingLCCgroup"]])
     ## This run still builds the ignition and escape covariates (dataPrepBuild) from nonForestedLCCGroups
     ## and missingLCCgroup, and fireSense_dataPrepPredict builds the prediction covariates from the ELF's
     ## groups in the lists above. With one ELF, fit with those groups too, not the module default (`nf`).
-    if (length(outs2) == 1L && length(sim$nonForestedLCCGroupsList[[1]])) {
-      sim$nonForestedLCCGroups <- sim$nonForestedLCCGroupsList[[1]]
-      sim$missingLCCgroup <- sim$missingLCCgroupList[[1]]
+    if (length(ownRows) == 1L && length(sim$nonForestedLCCGroupsList[[ownRows]])) {
+      sim$nonForestedLCCGroups <- sim$nonForestedLCCGroupsList[[ownRows]]
+      sim$missingLCCgroup <- sim$missingLCCgroupList[[ownRows]]
     }
     
     ## Each ELF's fit names its own spread climate variable(s): with spread = "auto" two ELFs can
