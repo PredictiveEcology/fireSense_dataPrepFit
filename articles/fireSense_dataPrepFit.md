@@ -1,6 +1,6 @@
 ---
 title: "fireSense_dataPrepFit Manual"
-subtitle: "v.1.2.0.9024"
+subtitle: "v.1.2.0.9025"
 date: "Last updated: 2026-10-06"
 output:
   bookdown::html_document2:
@@ -274,6 +274,12 @@ Table \@ref(tab:moduleInputs-fireSense-dataPrepFit) shows the full list of modul
    <td style="text-align:left;"> spreadFirePolys </td>
    <td style="text-align:left;"> list </td>
    <td style="text-align:left;"> Not needed from the user: `firePolys` in the CRS of `rasterToMatch`, declared as an input because a later event modifies it. </td>
+   <td style="text-align:left;"> NA </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> spreadFitPreRun </td>
+   <td style="text-align:left;"> data.frame </td>
+   <td style="text-align:left;"> Ledger rows of previous SpreadFit results, as the output of that name; `Init()` reads them (supplied by `fireSense_ELFs`). Declared as an input so the rows are in the cache keys of this module's cached events: otherwise a cache entry saved before an ELF was refitted restores its old row over the one `Init()` just read. </td>
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>

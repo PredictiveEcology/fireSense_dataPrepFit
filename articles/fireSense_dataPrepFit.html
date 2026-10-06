@@ -32,7 +32,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fireSense_dataPrepFit</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9024</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9025</span>
       </span>
     </div>
 
@@ -71,7 +71,7 @@
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>fireSense_dataPrepFit Manual</h1>
-            <h3 data-toc-skip class="subtitle">v.1.2.0.9024</h3>
+            <h3 data-toc-skip class="subtitle">v.1.2.0.9025</h3>
             
             <h4 data-toc-skip class="date">Last updated: 2026-10-06</h4>
       
@@ -575,6 +575,20 @@ list
 </td>
 <td style="text-align:left;">
 Not needed from the user: <code>firePolys</code> in the CRS of <code>rasterToMatch</code>, declared as an input because a later event modifies it.
+</td>
+<td style="text-align:left;">
+NA
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+spreadFitPreRun
+</td>
+<td style="text-align:left;">
+data.frame
+</td>
+<td style="text-align:left;">
+Ledger rows of previous SpreadFit results, as the output of that name; <code><a href="../reference/Init.html">Init()</a></code> reads them (supplied by <code>fireSense_ELFs</code>). Declared as an input so the rows are in the cache keys of this module’s cached events: otherwise a cache entry saved before an ELF was refitted restores its old row over the one <code><a href="../reference/Init.html">Init()</a></code> just read.
 </td>
 <td style="text-align:left;">
 NA
