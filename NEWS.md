@@ -1,3 +1,9 @@
+# fireSense_dataPrepFit (development version)
+
+- Fixed: `Init()` builds the single-ELF objects (`sppEquiv`, `sppNameVector`, `sppColorVect`, `nonForestedLCCGroups`, `missingLCCgroup`) from the run's own ELF's ledger row (`sim$.ELFind`), not from every row that intersects the study area. Before, the neighbours' rows were merged into `sppEquiv` and `sppNameVector`, and `nonForestedLCCGroups`/`missingLCCgroup` stayed the module default (`nf`) whenever a neighbour was read, so `fireSense_ignitionFit` fitted `nf` and `fireSense_ignitionPredict` stopped with "column not found: [nf]". The per-ELF lists (`sppEquivs`, `sppNameVectors`, `nonForestedLCCGroupsList`, `missingLCCgroupList`) still hold every row. Without `.ELFind`, or with no row for it, the behaviour is unchanged.
+
+- Fixed: `spreadFitPreRun` is declared as an input (it was only an output), so the ledger rows `Init()` reads are in the cache keys of the cached events (`dataPrepBuild`, `prepSpreadFitData`, ...). Before, a cache entry saved before an ELF was refitted restored its old ledger row over the new one on a hit, and prediction used stale parameters (ELF 14.3: the old per-class fit instead of the dom/sec fit, then `spreadPredict` "dom_agb_Pn_po.Ps_me not found"). `studyAreaWithSpreadParams` is derived from `spreadFitPreRun` in `Init()`, so keying the latter keys both.
+
 # fireSense_dataPrepFit 1.2.0.9025
 
 - `Init()` no longer stops with "sppColVect has unique colour values for a single species" when the SpreadFit ledger rows that intersect the study area (the own ELF and its neighbours) give one species different colours. It keeps one colour per species, from the own ELF's row (`sim$.ELFind`, now a declared optional input) or else the first row's, and messages the species that differed.
