@@ -275,6 +275,12 @@ Table \@ref(tab:moduleInputs-fireSense-dataPrepFit) shows the full list of modul
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
+   <td style="text-align:left;"> spreadFitPreRun </td>
+   <td style="text-align:left;"> data.frame </td>
+   <td style="text-align:left;"> Ledger rows of previous SpreadFit results, as the output of that name; `Init()` reads them (supplied by `fireSense_ELFs`). Declared as an input so the rows are in the cache keys of this module's cached events: otherwise a cache entry saved before an ELF was refitted restores its old row over the one `Init()` just read. </td>
+   <td style="text-align:left;"> NA </td>
+  </tr>
+  <tr>
    <td style="text-align:left;"> studyArea </td>
    <td style="text-align:left;"> SpatVector </td>
    <td style="text-align:left;"> Study area for all data. Should be buffered to limit edge effects on fire spread. </td>
