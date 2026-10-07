@@ -1372,15 +1372,9 @@ runBorealDP_forCohortData <- function(sim) {
   }
   neededYears <- Par$dataYears
 
-  ecoFile <- ifelse(is.null(sim$ecoregionRst), "ecoregionLayer", "ecoregionRst")
-  objsNeeded <- c(ecoFile,
-                  "firePerimeters",
-                  "rasterToMatch", "studyArea",
-                  "rstLCCs",
-                  "standAgeMaps",
-                  "studyArea_biomassParam", "rasterToMatch_biomassParam", #needed by BBDP
-                  "species", "speciesTable", "sppEquiv")
-  objsNeeded <- intersect(ls(sim), objsNeeded)
+  ## The fit deliberately ignores the parent's local ecoregions (`ecoregionLayer`, `ecoregionRst`):
+  ## the nested Biomass_borealDataPrep builds its own default ones.
+  objsNeeded <- nestedObjsNeeded(ls(sim))
   objsNeeded <- mget(objsNeeded, envir = envir(sim))
   ## simInit applies `objects` after the modules' .inputObjects, so a NULL passed here would
   ## replace what those modules build (e.g. Biomass_speciesData's sppEquiv) with NULL.
