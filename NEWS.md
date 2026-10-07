@@ -1,4 +1,8 @@
-# fireSense_dataPrepFit (development version)
+# fireSense_dataPrepFit 1.3.0
+
+This release reworks how the fire history, climate and fuel data are prepared for fitting fireSense. Fuels are now described by the dominant and secondary tree types in each place, plus treed wetland. Rare land-cover types are grouped with similar ones, and empty inputs are dropped instead of fitted. The climate variable that best separates bad fire years is chosen for each study area. Fire records come from the national fire databases through one shared tool, and the default fire years now run from 1985 to the latest year with climate data.
+
+Several errors are fixed that could quietly feed a fit the wrong data: neighbouring regions' settings leaking into a run, old cached results surviving a refit or a change in a helper function, rock not counted as non-flammable, and fire points outside the study area. New options support validation (holding back part of the fire history) and fitting with an intercept. Settings that did nothing were removed, and the other fireSense modules are referred to by their new lower-case names.
 
 - Fixed: the nested `Biomass_borealDataPrep` runs no longer receive the parent sim's `ecoregionLayer` or `ecoregionRst`. With `localEcozones` in the run, whether the fit used its local regions depended on module load order; the fit now always uses `Biomass_borealDataPrep`'s default ecoregions.
 
