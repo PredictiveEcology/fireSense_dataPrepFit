@@ -17,7 +17,9 @@ test_that("inputs are the expected names and classes", {
   inputs <- stats::setNames(md$inputObjects$objectClass, md$inputObjects$objectName)
   expect_identical(
     inputs[order(names(inputs))],
-    c(climateVariablesForFire     = "list",
+    c(.ELFind                     = "character",
+      climateVariables            = "list",
+      climateVariablesForFire     = "list",
       cohortDatas                 = "list",
       firePolys                   = "list",
       firePolysForAge             = "list",
@@ -30,15 +32,18 @@ test_that("inputs are the expected names and classes", {
       propFlammables              = "list",
       rasterToMatch               = "SpatRaster",
       rasterToMatch_biomassParam  = "SpatRaster",
+      rasterToMatchLarge          = "SpatRaster",
       rstLCCs                     = "list",
       sppEquiv                    = "data.table",
       spreadFirePoints            = "list",
       spreadFirePolys             = "list",
       spreadFitAdditionalColNames = "character",
+      ## Init reads the ledger rows into it; as an input it is in the cached events' keys, so a cache
+      ## entry saved before the ELF was refitted cannot restore the old row over the new one.
+      spreadFitPreRun             = "data.frame",
       standAgeMaps                = "list",
       studyArea                   = "SpatVector",
-      studyArea_biomassParam      = "SpatVector",
-      studyAreaReporting          = "sf")
+      studyArea_biomassParam      = "SpatVector")
   )
 })
 
@@ -54,11 +59,11 @@ test_that("outputs are the expected names and classes", {
       fireSense_escapeCovariates             = "data.table",
       fireSense_escapeFormula                = "character",
       fireSense_ignitionCovariates           = "data.table",
-      fireSense_ignitionFormula              = "character",
       fireSense_nonAnnualSpreadFitCovariates = "list",
       fireSense_spreadFormula                = "character",
       flammableRTM                           = "SpatRaster",
       flammableRTMs                          = "list",
+      fuelClassRoles                         = "list",
       fuelClassTable                         = "data.table",
       ignitionFirePoints                     = "SpatVector",
       ignitionFitRTM                         = "SpatRaster",
@@ -66,6 +71,7 @@ test_that("outputs are the expected names and classes", {
       landcoverDTs                           = "list",
       lightningMaps                          = "SpatRaster",
       missingLCCgroup                        = "character",
+      nonEscapedFireSizesHa                  = "numeric",
       nonForest_timeSinceDisturbance         = "SpatRaster",
       nonForest_timeSinceDisturbances        = "list",
       nonForestedLCCGroups                   = "list",
@@ -76,6 +82,7 @@ test_that("outputs are the expected names and classes", {
       sppColorVect                           = "character",
       sppEquiv                               = "data.table",
       sppNameVector                          = "character",
+      spreadClimateSelection                 = "data.table",
       spreadFirePoints                       = "list",
       spreadFirePolys                        = "list",
       spreadFitPreRun                        = "data.frame",
@@ -88,13 +95,66 @@ test_that("parameters are the expected names", {
   md <- SpaDES.core::moduleMetadata(module = moduleName, path = modulePath)
   expect_identical(
     sort(md$parameters$paramName),
-    sort(c(".plotInterval", ".saveInitialTime", ".saveInterval", ".studyAreaName",
-           ".useCache", "areaMultiplier", "bufferForFireRaster", "cutoffForYoungAge",
-           "dataYears", "estimateFuelClasses", "fireYears", "flammabilityThreshold",
-           "forestedLCC", "fuelClassCol", "igAggFactor", "igFocalFactor",
-           "minBufferSize", "modelAlgorithm", "nonflammableLCC",
-           "nonForestCanBeYoungAge", "sppEquivCol", "spreadFitFilename",
-           "spreadFitGoogleDriveFolder", "targetFuelClasses", "useCentroids",
+    sort(c(".studyAreaName",
+           ".useCache", ".useCacheArgs", "areaMultiplier", "bufferForFireRaster", "cutoffForYoungAge",
+           "dataYears", "escapeSizeHa", "estimateFuelClasses", "fireYears", "flammabilityThreshold",
+           "forestedLCC", "fuelClassCol", "fuelCovariates", "heldOutFold", "igAggFactor",
+           "minBufferSize", "minCovariateProp", "nonflammableLCC",
+           "nonForestCanBeYoungAge", "scanfiVersion", "sppEquivCol", "spreadFitFilename",
+           "spreadFitGoogleDriveFolder", "spreadIntercept", "targetFuelClasses",
            "useRasterizedFireForSpread", "whichModulesToPrepare"))
   )
+})
+
+test_that("every object .inputObjects() assigns is a declared input", {
+  ## SpaDES restores only a module's declared inputs from a cached `.inputObjects`. An object assigned there
+  ## but declared only as an output vanishes on a cache hit: that is how canClimateData got NULL
+  ## `climateVariables` on the Mackenzie relaunch (2026-09-23), though the first run had worked.
+  md <- SpaDES.core::moduleMetadata(module = moduleName, path = modulePath)
+  src <- parse(file.path(modulePath, moduleName, paste0(moduleName, ".R")), keep.source = FALSE)
+  io <- Filter(function(e) is.call(e) && identical(e[[1]], as.name("<-")) &&
+                 identical(as.character(e[[2]]), ".inputObjects"), as.list(src))[[1]][[3]]
+  assigned <- character(0)
+  walk <- function(e) {
+    if (is.call(e)) {
+      if (identical(e[[1]], as.name("<-")) && is.call(e[[2]]) && identical(e[[2]][[1]], as.name("$")) &&
+          identical(e[[2]][[2]], as.name("sim")))
+        assigned <<- c(assigned, as.character(e[[2]][[3]]))
+      for (a in as.list(e)[-1]) if (!missing(a)) walk(a)
+    }
+  }
+  walk(io)
+  expect_true(length(assigned) > 0)
+  expect_setequal(setdiff(unique(assigned), md$inputObjects$objectName), character(0))
+})
+
+test_that("the default whichModulesToPrepare is the two fit modules", {
+  md <- SpaDES.core::moduleMetadata(module = moduleName, path = modulePath)
+  default <- md$parameters$default[[which(md$parameters$paramName == "whichModulesToPrepare")]]
+  expect_setequal(default, c("fireSense_ignitionFit", "fireSense_spreadFit"))
+})
+
+test_that("preparing fireSense_ignitionFit schedules the escape event too", {
+  expect_identical(prepEventsToSchedule("fireSense_ignitionFit"),
+                   c("prepIgnitionFitData", "prepEscapeFitData"))
+  expect_identical(prepEventsToSchedule(c("fireSense_ignitionFit", "fireSense_spreadFit")),
+                   c("prepIgnitionFitData", "prepEscapeFitData", "prepSpreadFitData"))
+  expect_identical(prepEventsToSchedule("fireSense_spreadFit"), "prepSpreadFitData")
+})
+
+test_that("the retired fireSense_EscapeFit stops with a message naming fireSense_ignitionFit", {
+  expect_error(prepEventsToSchedule(c("fireSense_ignitionFit", "fireSense_EscapeFit")),
+               "no longer exists.*fireSense_ignitionFit")
+  expect_error(prepEventsToSchedule("nonsense"), "unrecognized module to prepare")
+})
+
+## `snow` was listed but never used. SpaDES attaches every reqdPkg, and loading snow runs its .onLoad(),
+## whose setDefaultClusterOptions()/addClusterOptions() call seq(along = ...): with the
+## warnPartialMatchArgs = TRUE that FireSense projects set, every run printed two
+## "partial argument match of 'along' to 'along.with'" warnings. On the search path it also masked
+## parallel's cluster functions for unqualified calls.
+test_that("reqdPkgs does not attach the unused snow package", {
+  md <- SpaDES.core::moduleMetadata(module = moduleName, path = modulePath)
+  pkgs <- unlist(md$reqdPkgs)
+  expect_false(any(sub("[ (@].*$", "", basename(pkgs)) == "snow"))
 })
