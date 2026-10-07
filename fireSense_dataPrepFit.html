@@ -442,6 +442,18 @@ Not needed from the user: <code>firePolys</code> in the CRS of <code>rasterToMat
 NA
 </td>
 </tr><tr><td style="text-align:left;">
+spreadFitPreRun
+</td>
+<td style="text-align:left;">
+data.frame
+</td>
+<td style="text-align:left;">
+Ledger rows of previous SpreadFit results, as the output of that name; <code><a href="reference/Init.html">Init()</a></code> reads them (supplied by <code>fireSense_ELFs</code>). Declared as an input so the rows are in the cache keys of this module’s cached events: otherwise a cache entry saved before an ELF was refitted restores its old row over the one <code><a href="reference/Init.html">Init()</a></code> just read.
+</td>
+<td style="text-align:left;">
+NA
+</td>
+</tr><tr><td style="text-align:left;">
 studyArea
 </td>
 <td style="text-align:left;">
@@ -845,7 +857,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-URL of the Google Drive folder holding the ledger of previous SpreadFit results (<code>spreadFitFilename</code>), read with <code><a href="https://reproducible.predictiveecology.org/reference/CacheGeo.html" class="external-link">reproducible::CacheGeo</a></code>.
+URL of the Google Drive folder holding the ledger of previous SpreadFit results (<code>spreadFitFilename</code>), read with <code><a href="https://reproducible.predictiveecology.org/reference/CacheGeoLedger.html" class="external-link">reproducible::CacheGeo</a></code>.
 </td>
 </tr><tr><td style="text-align:left;">
 spreadFitFilename
