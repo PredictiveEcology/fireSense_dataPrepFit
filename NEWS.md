@@ -1,3 +1,5 @@
+# fireSense_dataPrepFit (development version)
+
 # fireSense_dataPrepFit 1.3.0
 
 This release reworks how the fire history, climate and fuel data are prepared for fitting fireSense. Fuels are now described by the dominant and secondary tree types in each place, plus treed wetland. Rare land-cover types are grouped with similar ones, and empty inputs are dropped instead of fitted. The climate variable that best separates bad fire years is chosen for each study area. Fire records come from the national fire databases through one shared tool, and the default fire years now run from 1985 to the latest year with climate data.
