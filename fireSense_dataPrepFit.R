@@ -1471,9 +1471,8 @@ runBorealDP_forCohortData <- function(sim) {
 
   SpaDES.core::paramCheckOtherMods(sim, paramToCheck = "sppEquivCol")
 
-  if (is.null(P(sim)$.studyAreaName)) {
-    P(sim)$.studyAreaName <- studyAreaName(sim$studyArea)
-  }
+  if (is.null(P(sim)$.studyAreaName) || is.na(P(sim)$.studyAreaName))
+    P(sim)$.studyAreaName <- studyAreaName(sim$studyArea, notSupplied = ".studyAreaName")
   cacheTags <- c(currentModule(sim), P(sim)$.studyAreaName)
   dPath <- asPath(inputPath(sim), 1)
   message(currentModule(sim), ": using dataPath '", dPath, "'.")
