@@ -1,7 +1,7 @@
 ---
 title: "fireSense_dataPrepFit Manual"
 subtitle: "v.1.3.0.9000"
-date: "Last updated: 2026-10-08"
+date: "Last updated: 2026-10-09"
 output:
   bookdown::html_document2:
     toc: true
@@ -630,7 +630,7 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-dataP
   <tr>
    <td style="text-align:left;"> climateVariables </td>
    <td style="text-align:left;"> list </td>
-   <td style="text-align:left;"> Climate variable definitions, as used by `climateData::prepClimateLayers` (canClimateData). Unless supplied, built from `climateVariablesForFire` for `fireYears` (and projected years unless canClimateData's `climateGCM` is 'NRV'). If a previous SpreadFit exists, the variables of that fit are added. </td>
+   <td style="text-align:left;"> Climate variable definitions, as used by `climateData::prepClimateLayers` (canClimateData). Unless supplied, built from `climateVariablesForFire` for `fireYears` (and canClimateData's `projectedClimateYears`, if any). If a previous SpreadFit exists, the variables of that fit are added. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> fireBufferedListDT </td>

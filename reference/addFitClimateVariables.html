@@ -65,8 +65,7 @@ climateVariables keep their definition (and years); only missing ones are added.
 <span>  <span class="va">climateVariables</span>,</span>
 <span>  <span class="va">fitClimVars</span>,</span>
 <span>  <span class="va">historicalYears</span>,</span>
-<span>  projected <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  projectedYears <span class="op">=</span> <span class="fl">2011</span><span class="op">:</span><span class="fl">2100</span></span>
+<span>  projectedYears <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -86,12 +85,9 @@ climateVariables keep their definition (and years); only missing ones are added.
 <dd><p>Years for fitting (<code>P(sim)$fireYears</code>).</p></dd>
 
 
-<dt id="arg-projected">projected<a class="anchor" aria-label="anchor" href="#arg-projected"></a></dt>
-<dd><p>Logical; also request projected climate.</p></dd>
-
-
 <dt id="arg-projectedyears">projectedYears<a class="anchor" aria-label="anchor" href="#arg-projectedyears"></a></dt>
-<dd><p>Projected years.</p></dd>
+<dd><p>Projected years, from <code><a href="canClimateProjectedYears.html">canClimateProjectedYears()</a></code>. Projected climate is
+requested for these years only; none (<code>NULL</code> or empty) requests no projected climate.</p></dd>
 
 </dl></div>
     <div id="value">
