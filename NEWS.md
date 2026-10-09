@@ -1,5 +1,7 @@
 # fireSense_dataPrepFit (development version)
 
+- The `fireYears` default is `fireSenseUtils::defaultFireYears()` (the same years as before, `1985L:climateData::latestHistoricalYear()`), so `fireSense_ELFs`, which merges ELFs with too few fires over `fireYears`, takes the same default. Needs a fireSenseUtils that has `defaultFireYears()`.
+
 - The message for an unset `.studyAreaName` comes from `reproducible::studyAreaName(notSupplied = ".studyAreaName")` (PredictiveEcology/reproducible#638), so it reads the same in every module that uses it: "`.studyAreaName` not supplied; using a hash of `<object>`: <hash>". With an older reproducible the name is the same and there is no message.
 
 # fireSense_dataPrepFit 1.3.0
