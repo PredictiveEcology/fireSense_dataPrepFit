@@ -358,7 +358,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> 1985, 19.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Years of fire records to use for fitting. None may precede the first of `dataYears`, and `historicalClimateRasters` must cover all of them. The default runs from 1985, the first SCANFI V2 year, to the latest year with historical climate for every tile (`climateData::latestHistoricalYear()`); climate is the last of the inputs to reach a year. </td>
+   <td style="text-align:left;"> Years of fire records to use for fitting. None may precede the first of `dataYears`, and `historicalClimateRasters` must cover all of them. The default runs from 1985, the first SCANFI V2 year, to the latest year with historical climate for every tile (`fireSenseUtils::defaultFireYears()`); climate is the last of the inputs to reach a year. `fireSense_ELFs` takes its `fireYears` default from the same function. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> flammabilityThreshold </td>

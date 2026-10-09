@@ -767,7 +767,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Years of fire records to use for fitting. None may precede the first of <code>dataYears</code>, and <code>historicalClimateRasters</code> must cover all of them. The default runs from 1985, the first SCANFI V2 year, to the latest year with historical climate for every tile (<code><a href="https://rdrr.io/pkg/climateData/man/latestHistoricalYear.html" class="external-link">climateData::latestHistoricalYear()</a></code>); climate is the last of the inputs to reach a year.
+Years of fire records to use for fitting. None may precede the first of <code>dataYears</code>, and <code>historicalClimateRasters</code> must cover all of them. The default runs from 1985, the first SCANFI V2 year, to the latest year with historical climate for every tile (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/defaultFireYears.html" class="external-link">fireSenseUtils::defaultFireYears()</a></code>); climate is the last of the inputs to reach a year. <code>fireSense_ELFs</code> takes its <code>fireYears</code> default from the same function.
 </td>
 </tr>
 <tr>
