@@ -257,8 +257,8 @@ defineModule(sim, list(
                         "worst quarter of fire years (by area burned), its Spearman correlation, and which was chosen.")),
     createsOutput("climateVariables", "list",
                   paste("Climate variable definitions, as used by `climateData::prepClimateLayers` (canClimateData).",
-                        "Unless supplied, built from `climateVariablesForFire` for `fireYears` (and projected years",
-                        "unless canClimateData's `climateGCM` is 'NRV'). If a previous SpreadFit exists, the",
+                        "Unless supplied, built from `climateVariablesForFire` for `fireYears` (and canClimateData's",
+                        "`projectedClimateYears`, if any). If a previous SpreadFit exists, the",
                         "variables of that fit are added.")),
     createsOutput("fireBufferedListDT", "list",
                   "list of data.tables with fire id, `pixelID`, and buffer status"),
@@ -493,12 +493,9 @@ Init <- function(sim) {
     ## being prepared keep their definition (and years); only missing ones are added, like the rest.
     fitClimVars <- unique(unlist(Map(x = outs2, function(x) x[["theseClimVars"]]), use.names = FALSE))
     fitClimVarsNoUnderscore <- gsub("_", "", fitClimVars)
-    gcm <- tryCatch(P(sim, module = "canClimateData")$climateGCM, error = function(e) NULL)
-    projYears <- tryCatch(P(sim, module = "canClimateData")$projectedClimateYears, error = function(e) NULL)
     sim$climateVariables <- addFitClimateVariables(sim$climateVariables, fitClimVars,
                                                    historicalYears = P(sim)$fireYears,
-                                                   projected = !identical(gcm, "NRV"),
-                                                   projectedYears = if (is.null(projYears)) 2011:2100 else projYears)
+                                                   projectedYears = canClimateProjectedYears(sim))
     sim$climateVariablesForFire[["spread"]] <- fitClimVarsNoUnderscore
     ## ignition (xgboost) can use every one of them
     sim$climateVariablesForFire[["ignition"]] <-
@@ -1504,11 +1501,8 @@ runBorealDP_forCohortData <- function(sim) {
     sim$climateVariablesForFire <- defaultClimateVariablesForFire
   }
   if (!suppliedElsewhere("climateVariables", sim, where = c("sim", "user"))) {
-    gcm <- tryCatch(P(sim, module = "canClimateData")$climateGCM, error = function(e) NULL)
-    projYears <- tryCatch(P(sim, module = "canClimateData")$projectedClimateYears, error = function(e) NULL)
     sim$climateVariables <- fireClimateLayers(sim$climateVariablesForFire, historicalYears = P(sim)$fireYears,
-                                              projected = !identical(gcm, "NRV"),
-                                              projectedYears = if (is.null(projYears)) 2011:2100 else projYears)
+                                              projectedYears = canClimateProjectedYears(sim))
   }
   ## the rest of the module names climate layers without underscores ("CMDsm")
   sim$climateVariablesForFire <- lapply(sim$climateVariablesForFire, function(v) gsub("_", "", v))

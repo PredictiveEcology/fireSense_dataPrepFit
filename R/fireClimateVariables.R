@@ -37,16 +37,15 @@ climateNAnames <- function(x) {
 #'
 #' @param climateVariablesForFire List with `ignition` and `spread` character vectors.
 #' @param historicalYears Years for fitting (`P(sim)$fireYears`).
-#' @param projected Logical; also request projected climate.
-#' @param projectedYears Projected years.
+#' @param projectedYears Projected years, from `canClimateProjectedYears()`. Projected climate is
+#'   requested for these years only; none (`NULL` or empty) requests no projected climate.
 #' @return A list for `sim$climateVariables`, as built by `climateData::climateLayers()`.
 #' @keywords internal
-fireClimateLayers <- function(climateVariablesForFire, historicalYears, projected = TRUE,
-                              projectedYears = 2011:2100) {
+fireClimateLayers <- function(climateVariablesForFire, historicalYears, projectedYears = NULL) {
   vars <- unlist(climateVariablesForFire[c("ignition", "spread")], use.names = FALSE)
   vars <- unique(climateNAnames(setdiff(vars, "auto")))    # "auto" chooses among the ignition variables
   climateData::climateLayers(vars, fun = quote(calcAsIs), historicalYears = historicalYears,
-                             projected = projected, projectedYears = projectedYears)
+                             projected = length(projectedYears) > 0, projectedYears = projectedYears)
 }
 
 #' Pick the spread climate variable that best separates the bad fire years
@@ -114,11 +113,23 @@ selectSpreadClimateVariable <- function(climateRasters, burnedByYear, candidates
 #' @inheritParams fireClimateLayers
 #' @return `climateVariables`, with any missing variable added.
 #' @keywords internal
-addFitClimateVariables <- function(climateVariables, fitClimVars, historicalYears, projected = TRUE,
-                                   projectedYears = 2011:2100) {
+addFitClimateVariables <- function(climateVariables, fitClimVars, historicalYears, projectedYears = NULL) {
   prepared <- unique(sub("^[^_]+_", "", names(climateVariables)))
   toAdd <- fitClimVars[!gsub("_", "", fitClimVars) %in% prepared]
   if (!length(toAdd)) return(climateVariables)
   c(climateVariables, fireClimateLayers(list(ignition = toAdd), historicalYears = historicalYears,
-                                        projected = projected, projectedYears = projectedYears))
+                                        projectedYears = projectedYears))
+}
+
+#' The years of projected climate that canClimateData prepares
+#'
+#' canClimateData's `projectedClimateYears` is the one place these are set (its default is
+#' 2011:2100). Empty, or without canClimateData in the run, means no projected climate: runs that
+#' sample past climate (NRV) set it empty.
+#'
+#' @param sim A `simList`.
+#' @return Integer/numeric years; `NULL` if canClimateData is not in the run.
+#' @keywords internal
+canClimateProjectedYears <- function(sim) {
+  tryCatch(P(sim, module = "canClimateData")$projectedClimateYears, error = function(e) NULL)
 }
