@@ -2,6 +2,8 @@
 
 - Fixed: estimating fuel classes no longer removes species without cohorts from `sppEquiv`. It was a right join to the species that have cohorts, so `sppEquiv` ended up shorter than `sppNameVector` and `sppColorVect`, and `LandR::sppHarmonize` in the nested `Biomass_core` stopped with "Length of 'sppColorVect' differs from number species in final 'sppEquiv'" (ELFs 6.1.2, 6.3.2, 7.1, 7.2, 13.2.2). `sppEquiv` keeps every species; those without cohorts have `NA` as their fuel class.
 
+- Fixed: projected climate is requested only for canClimateData's `projectedClimateYears`; none (empty) requests none. Before, the module requested projected climate for 2011:2100 unless canClimateData's `climateGCM` was "NRV", but canClimateData needs a real model name there, so NRV runs always requested projections they never used, and stopped when the projection archive lacked years (ELFs 5.1.3 and 15.1, tile 39: "Climate data folders are missing ... 2013MSY"). NRV runs set `projectedClimateYears = integer(0)`.
+
 - The message for an unset `.studyAreaName` comes from `reproducible::studyAreaName(notSupplied = ".studyAreaName")` (PredictiveEcology/reproducible#638), so it reads the same in every module that uses it: "`.studyAreaName` not supplied; using a hash of `<object>`: <hash>". With an older reproducible the name is the same and there is no message.
 
 # fireSense_dataPrepFit 1.3.0
