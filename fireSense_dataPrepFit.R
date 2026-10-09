@@ -646,14 +646,13 @@ dataPrepBuild <- function(sim) {
       # sppEquiv
       temp <- fuelClassObjects$modSppEquiv[, .(species, assignedFuelClass)]
       setnames(temp, c(P(sim)$sppEquivCol, P(sim)$fuelClassCol))
-      sim$sppEquiv[, P(sim)$fuelClassCol := NULL]
       sim$missingLCCgroup <- fuelClassObjects$missingLCCgroup
 
       sim$fuelClassTable <- fuelClassObjects$modSppEquiv
       sim$nonForestedLCCGroups <- fuelClassObjects$nonForestedLCCGroups
       message("Estimated fuel classes for this study area:")
       messageDF(sim$fuelClassTable)
-      sim$sppEquiv <- sim$sppEquiv[temp, on = P(sim)$sppEquivCol]
+      sim$sppEquiv <- setSppEquivFuelClass(sim$sppEquiv, temp, P(sim)$sppEquivCol, P(sim)$fuelClassCol)
     } else {
       us <- if (any(userSupplied %in% TRUE)) {
         paste(fuelObjs[userSupplied], collapse = ", ")
