@@ -1,5 +1,7 @@
 # fireSense_dataPrepFit (development version)
 
+- `escapedFires()` moved to fireSenseUtils (exported there), so `fireSense_ELFs` counts escaped fires with the same function when it merges ELFs with too few of them. The module calls `fireSenseUtils::escapedFires()`; behaviour is unchanged. Needs a fireSenseUtils that exports `escapedFires()` (PredictiveEcology/fireSenseUtils#142).
+
 - The `fireYears` default is `fireSenseUtils::defaultFireYears()` (the same years as before, `1985L:climateData::latestHistoricalYear()`), so `fireSense_ELFs`, which merges ELFs with too few fires over `fireYears`, takes the same default. Needs a fireSenseUtils that has `defaultFireYears()`.
 
 - Fixed: estimating fuel classes no longer removes species without cohorts from `sppEquiv`. It was a right join to the species that have cohorts, so `sppEquiv` ended up shorter than `sppNameVector` and `sppColorVect`, and `LandR::sppHarmonize` in the nested `Biomass_core` stopped with "Length of 'sppColorVect' differs from number species in final 'sppEquiv'" (ELFs 6.1.2, 6.3.2, 7.1, 7.2, 13.2.2). `sppEquiv` keeps every species; those without cohorts have `NA` as their fuel class.

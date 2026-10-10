@@ -4,9 +4,9 @@
 fires <- data.frame(SIZE_HA = c(0.1, 3, 6, 12, 49.9, 50, 51, 800), id = 1:8)
 
 test_that("an escaped fire reached escapeSizeHa and is larger than one pixel", {
-  expect_identical(escapedFires(fires, escapeSizeHa = 50, pixSizeHa = 5.76)$id, 6:8)
+  expect_identical(fireSenseUtils::escapedFires(fires, escapeSizeHa = 50, pixSizeHa = 5.76)$id, 6:8)
   ## a threshold below one pixel still needs the fire to be larger than a pixel (the old rule)
-  expect_identical(escapedFires(fires, escapeSizeHa = 0, pixSizeHa = 5.76)$id, 3:8)
+  expect_identical(fireSenseUtils::escapedFires(fires, escapeSizeHa = 0, pixSizeHa = 5.76)$id, 3:8)
 })
 
 test_that("the sizes of the fires that did not escape are kept, in ha", {
@@ -17,7 +17,7 @@ test_that("the sizes of the fires that did not escape are kept, in ha", {
 test_that("the rules work on terra points, as the module's fire points are", {
   skip_if_not_installed("terra")
   v <- terra::vect(cbind(1:8, 1:8), atts = fires)
-  expect_identical(escapedFires(v, 50, 5.76)$id, 6:8)
+  expect_identical(fireSenseUtils::escapedFires(v, 50, 5.76)$id, 6:8)
   expect_equal(nonEscapedFireSizes(v, 50), c(0.1, 3, 6, 12, 49.9))
 })
 
@@ -28,7 +28,7 @@ test_that("the module uses escapeSizeHa for the escape response, the spread fire
   expect_true(any(grepl("nonEscapedFireSizes(sim$ignitionFirePoints, Par$escapeSizeHa)", src, fixed = TRUE)))
 })
 
-## PR #44 filtered spreadFirePoints with escapedFires() (bigger than one pixel AND at least escapeSizeHa)
+## PR #44 filtered spreadFirePoints with fireSenseUtils::escapedFires() (bigger than one pixel AND at least escapeSizeHa)
 ## but left spreadFirePolys filtered only by pixel size (`x[[haColname]] > pixSizeHa`). A fire between
 ## one pixel and escapeSizeHa then survived in the polygons but not in the points, so the two lists no
 ## longer named the same fires per year and fireSenseUtils::harmonizeFireData()'s nfires_poly/nfires_point
@@ -54,11 +54,11 @@ test_that("escapedFires keeps the same fires whether applied to points or to pol
   )
   polys <- lapply(points, identity) # same fires, geometry does not matter here
 
-  pointsFiltered <- lapply(points, escapedFires, escapeSizeHa = 50, pixSizeHa = 5.76, sizeCol = "SIZE_HA")
-  polysFiltered <- lapply(polys, escapedFires, escapeSizeHa = 50, pixSizeHa = 5.76, sizeCol = "SIZE_HA")
+  pointsFiltered <- lapply(points, fireSenseUtils::escapedFires, escapeSizeHa = 50, pixSizeHa = 5.76, sizeCol = "SIZE_HA")
+  polysFiltered <- lapply(polys, fireSenseUtils::escapedFires, escapeSizeHa = 50, pixSizeHa = 5.76, sizeCol = "SIZE_HA")
   expect_identical(lapply(pointsFiltered, `[[`, "FIRE_ID"), lapply(polysFiltered, `[[`, "FIRE_ID"))
 
-  ## the old poly filter (pixel size only) kept the 20 ha fire that escapedFires() drops for points
+  ## the old poly filter (pixel size only) kept the 20 ha fire that fireSenseUtils::escapedFires() drops for points
   polysOldFilter <- lapply(polys, function(x) x[x[["SIZE_HA"]] > 5.76, ])
   expect_false(identical(lapply(pointsFiltered, `[[`, "FIRE_ID"), lapply(polysOldFilter, `[[`, "FIRE_ID")))
 })

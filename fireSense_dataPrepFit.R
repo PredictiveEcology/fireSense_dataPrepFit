@@ -145,7 +145,7 @@ defineModule(sim, list(
                          prepSpreadFitData = list(.cacheExtra = quote(c(list(
                       fireSenseUtils::bufferToArea, fireSenseUtils::chooseDomSecFuelClasses,
                       fireSenseUtils::climateRasterToDataTable, fireSenseUtils::emptySpreadCovariates,
-                      fireSenseUtils::fireSenseCovariatesCreate, fireSenseUtils::firePixelsByYear,
+                      fireSenseUtils::escapedFires, fireSenseUtils::fireSenseCovariatesCreate, fireSenseUtils::firePixelsByYear,
                       fireSenseUtils::harmonizeFireData, fireSenseUtils::lccFlammableShare,
                       fireSenseUtils::makeMutuallyExclusive, fireSenseUtils::rasterFireBufferDT,
                       fireSenseUtils::rasterFireSpreadPoints, fireSenseUtils::youngAgeAtYear),
@@ -1058,13 +1058,13 @@ prepare_SpreadFitFire_Vector <- function(sim) {
   haColname <- grep("_HA$", names(sim$spreadFirePoints[[1]]), value = TRUE)[1] # has been SIZE_HA, POLY_HA
 
   sim$spreadFirePoints <- lapply(sim$spreadFirePoints, function(x) {
-    escapedFires(x, Par$escapeSizeHa, pixSizeHa, sizeCol = haColname)
+    fireSenseUtils::escapedFires(x, Par$escapeSizeHa, pixSizeHa, sizeCol = haColname)
   })
 
   sim$spreadFirePoints[sapply(sim$spreadFirePoints, is.null)] <- NULL ## silly R
 
   sim$spreadFirePolys <- lapply(sim$spreadFirePolys, function(x) {
-    x <- escapedFires(x, Par$escapeSizeHa, pixSizeHa, sizeCol = haColname)
+    x <- fireSenseUtils::escapedFires(x, Par$escapeSizeHa, pixSizeHa, sizeCol = haColname)
     if (nrow(x) > 0) x else NULL
   })
   sim$spreadFirePolys[sapply(sim$spreadFirePolys, is.null)] <- NULL
@@ -1265,8 +1265,8 @@ prepare_EscapeFit <- function(sim) {
     stop("Please include ignitionFit in parameter 'whichModulesToPrepare' if preparing escape data")
   }
 
-  escapes <- escapedFires(sim$ignitionFirePoints, Par$escapeSizeHa,
-                          pixSizeHa = prod(res(sim$flammableRTMs[[1]])) / 10000)
+  escapes <- fireSenseUtils::escapedFires(sim$ignitionFirePoints, Par$escapeSizeHa,
+                                          pixSizeHa = prod(res(sim$flammableRTMs[[1]])) / 10000)
 
   ## make a template aggregated raster - values are irrelevant, only need pixelID
   aggregatedRas <- terra::aggregate(sim$historicalClimateRasters[[1]][[1]],
