@@ -1,6 +1,6 @@
 # fireSense_dataPrepFit (development version)
 
-- Fixed: whether treed wetland is a spread covariate (`minCovariateProp`), and the land-cover shares used to estimate fuel classes, now come from the most recent year of `rstLCCs`/`flammableRTMs`, not from `sim$rstLCC_RTM`/`sim$flammableRTM`. `fireSense_dataPrepPredict` overwrites those two with the year it predicts, so a hindcast (e.g. 1985) rebuilt the spread formula on 1985 land cover and could add a `treedWetland_agb` term the fit did not have. Results of a fit are unchanged.
+- Fixed: whether treed wetland is a spread covariate (`minCovariateProp`), and the land-cover shares used to estimate fuel classes, are decided on the land cover of the data year the fit's last fire year uses (`lccShareForYear()`, `lccDecisionYear()`: the data year closest to and not after `max(fireYears)`, the same rule `yearGroups()` assigns vegetation to fire years with), read from `rstLCCs`/`flammableRTMs`, not from `sim$rstLCC_RTM`/`sim$flammableRTM`. `fireSense_dataPrepPredict` overwrites those two with the year it predicts, so a hindcast (e.g. 1985) rebuilt the spread formula on 1985 land cover and could add a `treedWetland_agb` term the fit did not have. Results of a fit are unchanged.
 
 - `escapedFires()` moved to fireSenseUtils (exported there), so `fireSense_ELFs` counts escaped fires with the same function when it merges ELFs with too few of them. The module calls `fireSenseUtils::escapedFires()`; behaviour is unchanged. Needs a fireSenseUtils that exports `escapedFires()` (PredictiveEcology/fireSenseUtils#142).
 
