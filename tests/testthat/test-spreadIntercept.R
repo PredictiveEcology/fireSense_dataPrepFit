@@ -1,4 +1,4 @@
-## `spreadIntercept` (default FALSE): the spread formula has an intercept, `~ 1 + RHS`, which
+## `spreadIntercept` (default TRUE): the spread formula has an intercept, `~ 1 + RHS`, which
 ## fireSense_spreadFit fits with centred covariates. Off, the formula string is byte-identical to what it
 ## has always been, so every cache key that holds it is unchanged.
 
@@ -16,14 +16,14 @@ test_that("spreadFormula() gives '~ 0 + RHS' by default and '~ 1 + RHS' with an 
                    c(fireSenseUtils::spreadInterceptTxt, "CMD", "youngAge", "fuelA"))
 })
 
-test_that("the module defines spreadIntercept, a logical that is FALSE by default", {
+test_that("the module defines spreadIntercept, a logical that is TRUE by default", {
   def <- Filter(function(x) is.call(x) && identical(x[[1]], as.name("defineModule")),
                 parse(testthat::test_path("..", "..", "fireSense_dataPrepFit.R"), keep.source = FALSE))
   params <- eval(as.list(def[[1]][[3]])[["parameters"]], envir = asNamespace("SpaDES.core"))
   i <- match("spreadIntercept", params$paramName)
   expect_false(is.na(i))
   expect_identical(params$paramClass[[i]], "logical")
-  expect_identical(params$default[[i]], FALSE)
+  expect_identical(params$default[[i]], TRUE)
 })
 
 test_that("prepare_SpreadFit() builds the formula with spreadFormula() from the spreadIntercept parameter", {
