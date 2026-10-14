@@ -14,16 +14,12 @@ lccSim <- function() {
        flammableRTMs = list(year2010 = flam, year2020 = flam))
 }
 
-test_that("dataYearFor is the data year closest to and not after a year, as yearGroups uses it", {
+test_that("yearGroups assigns each fire year the data year fireSenseUtils::dataYearFor() gives", {
   dataYears <- c(1985L, 1990L, 2000L, 2010L, 2020L)
-  expect_identical(dataYearFor(dataYears, c(1985L, 1989L, 1990L, 1999L, 2000L, 2015L, 2020L, 2024L)),
-                   c(1985L, 1985L, 1990L, 1990L, 2000L, 2010L, 2020L, 2020L))
-  expect_identical(dataYearFor(rev(dataYears), 2015L), 2010L) # any order
-  expect_error(dataYearFor(dataYears, 1984L), "before the first dataYear")
   groups <- yearGroups(dataYears, 1985:2024, minmaxOnly = FALSE)
   expect_identical(unlist(Map(function(dy, ys) rep(dy, length(ys)), as.integer(names(groups)), groups),
                           use.names = FALSE),
-                   dataYearFor(dataYears, 1985:2024))
+                   fireSenseUtils::dataYearFor(dataYears, 1985:2024))
 })
 
 test_that("lccShareForYear reads the list element of the data year the year's vegetation uses", {
@@ -42,11 +38,23 @@ test_that("lccShareForYear reads the list element of the data year the year's ve
   expect_equal(lccShareForYear(sim, 2024L), share2020)
 })
 
-test_that("the fit's decisions use lccShareForYear() at the decision year, not the shared year's rasters", {
+test_that("the fit's structure decisions use the fit's decision year, not the shared year's rasters", {
   for (f in c("dataPrepBuild", "prepare_SpreadFit")) {
     txt <- paste(deparse(body(get(f))), collapse = " ")
-    expect_true(grepl("lccShareForYear\\(sim,\\s*lccDecisionYear\\(sim\\)\\)", txt), info = f)
+    expect_true(grepl("lccShareForYear\\(sim,\\s*fitDecisionYear\\(sim\\)\\)", txt), info = f)
     expect_false(grepl("lccFlammableShare(sim$rstLCC_RTM", txt, fixed = TRUE), info = f)
   }
-  expect_true(grepl("max(P(sim)$fireYears)", paste(deparse(body(lccDecisionYear)), collapse = " "), fixed = TRUE))
+  expect_true(grepl("max(P(sim)$fireYears)", paste(deparse(body(fitDecisionYear)), collapse = " "), fixed = TRUE))
+  ## the dominant/secondary fuel classes are chosen on the decision year's element of the lists, not tail()
+  txt <- paste(deparse(body(prepare_SpreadFit)), collapse = " ")
+  expect_true(grepl("fitDecisionYearName(sim)", txt, fixed = TRUE))
+  expect_false(grepl("tail(sim$cohortDatas", txt, fixed = TRUE))
+})
+
+test_that("fitDecisionYearName is the list element of the decision year's data year", {
+  ## P(sim)$fireYears is not available outside a simList: the element rule alone
+  sim <- lccSim()
+  expect_identical(fireSenseUtils::dataYearElement(sim$rstLCCs, 2024L), "year2020")
+  expect_true(grepl("dataYearElement(sim$rstLCCs, fitDecisionYear(sim))",
+                    paste(deparse(body(fitDecisionYearName)), collapse = " "), fixed = TRUE))
 })

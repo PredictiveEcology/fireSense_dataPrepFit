@@ -41,9 +41,9 @@ test_that("prepare_SpreadFit() picks fuelClassRoles once per ELF via chooseDomSe
 })
 
 test_that("chooseDomSecFuelClasses() is asked about one representative data year, not every year", {
-  ## "once per ELF": cohortData/pixelGroupMap/flammableRTM/landcoverDT are each a single tail()
-  ## element, not the per-data-year lists (sim$cohortDatas etc.) fireSenseCovariatesCreate()'s
-  ## Map() call uses.
+  ## "once per ELF": cohortData/pixelGroupMap/flammableRTM/landcoverDT are each the single element
+  ## of the fit's decision year (fitDecisionYearName()), not the per-data-year lists (sim$cohortDatas
+  ## etc.) fireSenseCovariatesCreate()'s Map() call uses.
   body <- body(prepare_SpreadFit)
   callTxt <- NULL
   walkCalls(body, function(e) {
@@ -52,7 +52,7 @@ test_that("chooseDomSecFuelClasses() is asked about one representative data year
         any(grepl("chooseDomSecFuelClasses", deparse(e[[3]]), fixed = TRUE)))
       callTxt <<- gsub("\\s+", " ", paste(deparse(e[[3]]), collapse = " "))
   })
-  expect_match(callTxt, "tail(sim$cohortDatas, 1)", fixed = TRUE)
+  expect_match(callTxt, "cohortData = sim$cohortDatas[[dyEl]]", fixed = TRUE)
   expect_false(grepl("cohortData = sim$cohortDatas,", callTxt, fixed = TRUE))
 })
 
