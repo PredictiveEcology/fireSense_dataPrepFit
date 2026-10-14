@@ -640,7 +640,7 @@ dataPrepBuild <- function(sim) {
                                             sppEquivCol = P(sim)$sppEquivCol,
                                             targetFuelClasses = P(sim)$targetFuelClasses,
                                             nonforestLCC = nonforestLCC,
-                                            lccShare = fireSenseUtils::lccFlammableShare(sim$rstLCC_RTM, sim$flammableRTM),
+                                            lccShare = latestLccFlammableShare(sim),
                                             minCovariateProp = P(sim)$minCovariateProp) |>
         Cache(userTags = c("assessFuelClasses", P(sim)$fuelClassCol))
 
@@ -766,7 +766,7 @@ prepare_SpreadFit <- function(sim) {
 
   ## treed wetland is a covariate only where there is enough of it to estimate (minCovariateProp), decided
   ## once per ELF on the most recent data year like the dom/sec classes; a prediction follows the fit's terms
-  lccShare <- fireSenseUtils::lccFlammableShare(sim$rstLCC_RTM, sim$flammableRTM)
+  lccShare <- latestLccFlammableShare(sim)
   treedWetlandLCC <- eval(formals(fireSenseUtils::fireSenseCovariatesCreate)$treedWetlandLCC)
   treedWetlandShare <- sum(lccShare[as.character(treedWetlandLCC)], na.rm = TRUE)
   useTreedWetland <- treedWetlandShare >= P(sim)$minCovariateProp
@@ -955,6 +955,18 @@ prepare_SpreadFit <- function(sim) {
   }
 
   return(invisible(sim))
+}
+
+#' Land-cover shares of flammable pixels in the most recent data year
+#'
+#' Read from the per-year lists `sim$rstLCCs` and `sim$flammableRTMs`, not from `sim$rstLCC_RTM` and
+#' `sim$flammableRTM`: `fireSense_dataPrepPredict` overwrites those two with the year it predicts (a hindcast
+#' uses 1985), and what is a spread covariate must be decided on the fitted data, not on that year.
+#'
+#' @param sim a `simList` with `rstLCCs` and `flammableRTMs`.
+#' @return as `fireSenseUtils::lccFlammableShare()`.
+latestLccFlammableShare <- function(sim) {
+  fireSenseUtils::lccFlammableShare(tail(sim$rstLCCs, 1)[[1]], tail(sim$flammableRTMs, 1)[[1]])
 }
 
 #' Fire buffers and ignition points from `historicalFireRaster`
