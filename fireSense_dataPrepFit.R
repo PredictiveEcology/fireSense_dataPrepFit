@@ -17,7 +17,7 @@ defineModule(sim, list(
   reqdPkgs = list("data.table", "fastDummies", "Require",
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9042)", # CacheGeo re-reads a changed local file
                   "PredictiveEcology/climateData@development (>= 2.2.3.9006)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9090)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9093)", # dataYearFor(), dataYearElement()
                   "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9015)",
@@ -139,12 +139,14 @@ defineModule(sim, list(
     defineParameter(".useCacheArgs", "list",
                     list(dataPrepBuild = list(.cacheExtra = quote(list(
                       LandR::.compareRas, LandR::asInt, LandR::defineFlammable, LandR::isInt,
-                      fireSenseUtils::assessFuelClasses, fireSenseUtils::fuelClassPrep,
+                      fireSenseUtils::assessFuelClasses, fireSenseUtils::dataYearElement,
+                      fireSenseUtils::dataYearFor, fireSenseUtils::fuelClassPrep,
                       fireSenseUtils::lccFlammableShare, fireSenseUtils::makeLandcoverDT,
                       fireSenseUtils::makeTSD))),
                          prepSpreadFitData = list(.cacheExtra = quote(c(list(
                       fireSenseUtils::bufferToArea, fireSenseUtils::chooseDomSecFuelClasses,
-                      fireSenseUtils::climateRasterToDataTable, fireSenseUtils::emptySpreadCovariates,
+                      fireSenseUtils::climateRasterToDataTable, fireSenseUtils::dataYearElement,
+                      fireSenseUtils::dataYearFor, fireSenseUtils::emptySpreadCovariates,
                       fireSenseUtils::escapedFires, fireSenseUtils::fireSenseCovariatesCreate, fireSenseUtils::firePixelsByYear,
                       fireSenseUtils::harmonizeFireData, fireSenseUtils::lccFlammableShare,
                       fireSenseUtils::makeMutuallyExclusive, fireSenseUtils::rasterFireBufferDT,
@@ -640,7 +642,7 @@ dataPrepBuild <- function(sim) {
                                             sppEquivCol = P(sim)$sppEquivCol,
                                             targetFuelClasses = P(sim)$targetFuelClasses,
                                             nonforestLCC = nonforestLCC,
-                                            lccShare = fireSenseUtils::lccFlammableShare(sim$rstLCC_RTM, sim$flammableRTM),
+                                            lccShare = lccShareForYear(sim, fitDecisionYear(sim)),
                                             minCovariateProp = P(sim)$minCovariateProp) |>
         Cache(userTags = c("assessFuelClasses", P(sim)$fuelClassCol))
 
@@ -749,14 +751,15 @@ prepare_SpreadFit <- function(sim) {
   fuelCovariates <- match.arg(P(sim)$fuelCovariates, c("domSecWetland", "species"))
   sim$fuelClassRoles <- list(domClass = NA_character_, secClass = NA_character_)
   if (identical(fuelCovariates, "domSecWetland")) {
-    ## chosen once per ELF (the most recent data year, as with sim$rstLCC/sim$rstLCC_RTM elsewhere
-    ## in this module), not independently for every data year -- a prediction must build the same
-    ## dom_agb_*/sec_agb_* columns whichever year it is predicting
+    ## chosen once per ELF, on the vegetation of the fit's decision year (fitDecisionYear()), not
+    ## independently for every data year -- a prediction must build the same dom_agb_*/sec_agb_*
+    ## columns whichever year it is predicting
+    dyEl <- fitDecisionYearName(sim)
     sim$fuelClassRoles <- Cache(fireSenseUtils::chooseDomSecFuelClasses,
-                                cohortData = tail(sim$cohortDatas, 1)[[1]],
-                                pixelGroupMap = tail(sim$pixelGroupMaps, 1)[[1]],
-                                flammableRTM = tail(sim$flammableRTMs, 1)[[1]],
-                                landcoverDT = tail(sim$landcoverDTs, 1)[[1]],
+                                cohortData = sim$cohortDatas[[dyEl]],
+                                pixelGroupMap = sim$pixelGroupMaps[[dyEl]],
+                                flammableRTM = sim$flammableRTMs[[dyEl]],
+                                landcoverDT = sim$landcoverDTs[[dyEl]],
                                 sppEquiv = sim$sppEquiv, fuelClassCol = P(sim)$fuelClassCol,
                                 sppEquivCol = P(sim)$sppEquivCol, cutoffForYoungAge = P(sim)$cutoffForYoungAge,
                                 .cacheExtra = dig2, omitArgs = c("cohortData", "pixelGroupMap", "flammableRTM", "landcoverDT"))
@@ -765,8 +768,9 @@ prepare_SpreadFit <- function(sim) {
   }
 
   ## treed wetland is a covariate only where there is enough of it to estimate (minCovariateProp), decided
-  ## once per ELF on the most recent data year like the dom/sec classes; a prediction follows the fit's terms
-  lccShare <- fireSenseUtils::lccFlammableShare(sim$rstLCC_RTM, sim$flammableRTM)
+  ## once per ELF for the fit's decision year (fitDecisionYear()) like the dom/sec classes; a prediction
+  ## follows the fit's terms
+  lccShare <- lccShareForYear(sim, fitDecisionYear(sim))
   treedWetlandLCC <- eval(formals(fireSenseUtils::fireSenseCovariatesCreate)$treedWetlandLCC)
   treedWetlandShare <- sum(lccShare[as.character(treedWetlandLCC)], na.rm = TRUE)
   useTreedWetland <- treedWetlandShare >= P(sim)$minCovariateProp
@@ -955,6 +959,47 @@ prepare_SpreadFit <- function(sim) {
   }
 
   return(invisible(sim))
+}
+
+#' Land-cover shares of flammable pixels, for one year
+#'
+#' The land cover is the data year `year`'s vegetation comes from: the data year closest to, and not
+#' after, `year` (`fireSenseUtils::dataYearFor()`, the rule [yearGroups()] assigns a vegetation year to
+#' each fire year with). Read from the per-year lists `sim$rstLCCs` and `sim$flammableRTMs` (named `year<dataYear>`),
+#' never from `sim$rstLCC_RTM` and `sim$flammableRTM`: `fireSense_dataPrepPredict` overwrites those two
+#' with the year it predicts (a hindcast of 1985 sets 1985), and what is a spread covariate of a fit
+#' must not change with the year predicted.
+#'
+#' @param sim a `simList` with `rstLCCs` and `flammableRTMs`.
+#' @param year integer, the year the shares are for (see [fitDecisionYear()] for a fit).
+#' @return as `fireSenseUtils::lccFlammableShare()`.
+lccShareForYear <- function(sim, year) {
+  el <- fireSenseUtils::dataYearElement(sim$rstLCCs, year)
+  fireSenseUtils::lccFlammableShare(sim$rstLCCs[[el]], sim$flammableRTMs[[el]])
+}
+
+#' The year a fit's structure decisions are for
+#'
+#' The structure of the spread model -- whether treed wetland is a term (`minCovariateProp`), how the
+#' non-forest classes are grouped (`assessFuelClasses()`), the dominant and secondary fuel classes
+#' (`chooseDomSecFuelClasses()`) -- is decided once per ELF, at fit time, for all of `fireYears`, and a
+#' prediction takes it from the fit's ledger row. It is decided for the last fire year,
+#' `max(P(sim)$fireYears)`, whose vegetation data year (`fireSenseUtils::dataYearFor()`) is the latest the fit uses and
+#' the one a prediction starts from. A hindcast's `fireSense_dataPrepFit` run (same `fireYears`, the
+#' ledger row already there) makes the same decision, whatever its `dataYears` or the year it predicts.
+#'
+#' @param sim a `simList`.
+#' @return integer year.
+#' @rdname fitDecisionYear
+fitDecisionYear <- function(sim) {
+  max(P(sim)$fireYears)
+}
+
+#' @return `fitDecisionYearName()`: the name (`year<dataYear>`) of that year's element of the per-year
+#'   lists (`cohortDatas`, `rstLCCs`, ...; they share `rstLCCs`' names), `fireSenseUtils::dataYearElement()`.
+#' @rdname fitDecisionYear
+fitDecisionYearName <- function(sim) {
+  fireSenseUtils::dataYearElement(sim$rstLCCs, fitDecisionYear(sim))
 }
 
 #' Fire buffers and ignition points from `historicalFireRaster`
@@ -1725,19 +1770,16 @@ saMap <- "standAgeMap"
 
 #' Group fire years by the data year whose vegetation they use
 #'
-#' Each fire year belongs to the latest data year at or before it. Stops if a fire year precedes
-#' the first data year, or if a data year gets no fire years.
+#' Each fire year belongs to the latest data year at or before it (`fireSenseUtils::dataYearFor()`, the
+#' rule every match of a year to a data year uses). Stops if a fire year precedes the first data year,
+#' or if a data year gets no fire years.
 #'
 #' @param dataYears increasing integer years with vegetation data.
 #' @param fireYears integer years of fire records.
 #' @param minmaxOnly if `TRUE`, return only the first and last fire year of each group.
 #' @return list with one integer vector per data year, named by it.
 yearGroups <- function(dataYears, fireYears, minmaxOnly = TRUE) {
-  if (any(fireYears < min(dataYears))) {
-    stop("fireYears before the first dataYear (", min(dataYears), ") have no vegetation data: ",
-         paste(fireYears[fireYears < min(dataYears)], collapse = ", "))
-  }
-  ageGroups <- split(fireYears, factor(dataYears[findInterval(fireYears, dataYears)], levels = dataYears))
+  ageGroups <- split(fireYears, factor(fireSenseUtils::dataYearFor(dataYears, fireYears), levels = dataYears))
   empty <- lengths(ageGroups) == 0
   if (any(empty)) {
     stop("dataYears with no fireYears before the next dataYear: ", paste(dataYears[empty], collapse = ", "))
