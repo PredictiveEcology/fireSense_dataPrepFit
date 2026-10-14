@@ -1,6 +1,6 @@
 ---
 title: "fireSense_dataPrepFit Manual"
-subtitle: "v.1.3.0.9003"
+subtitle: "v.1.3.0.9004"
 date: "Last updated: 2026-10-14"
 output:
   bookdown::html_document2:
@@ -313,10 +313,10 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
   <tr>
    <td style="text-align:left;"> areaMultiplier </td>
    <td style="text-align:left;"> numeric,.... </td>
-   <td style="text-align:left;"> ::, fire.... </td>
+   <td style="text-align:left;"> function.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Size of the unburned buffer sampled around each fire: a scalar (buffer area is `areaMultiplier fireSize`) or a quoted function of `fireSize`. See `?fireSenseUtils::bufferToArea`. </td>
+   <td style="text-align:left;"> Size of the unburned buffer sampled around each fire: a scalar (buffer area is `areaMultiplier fireSize`) or a quoted function of `fireSize`. The default is `function(size) 10 fireSenseUtils::multiplier(size)`, 10 times `fireSenseUtils::multiplier`; smaller multipliers gave wrong fits. See `?fireSenseUtils::bufferToArea`. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> bufferForFireRaster </td>
@@ -481,10 +481,10 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
   <tr>
    <td style="text-align:left;"> spreadIntercept </td>
    <td style="text-align:left;"> logical </td>
-   <td style="text-align:left;"> FALSE </td>
+   <td style="text-align:left;"> TRUE </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> If `TRUE`, the spread formula has an intercept (`~ 1 + ...`) and `fireSense_spreadFit` fits it, with the covariates centred, so the coefficients describe variation and the intercept the level. Covariates are rescaled to 0-1 and so are all &gt;= 0: without an intercept the level of the linear predictor is set by the coefficients alone, and a climate coefficient trades off against the fuel and non-forest ones (ELF 13.1). `FALSE` (default) keeps `~ 0 + ...`. Ignored if `sim$fireSense_spreadFormula` is supplied. Needs a `fireSense_spreadFit` and a `fireSense_spreadPredict` that know the intercept. </td>
+   <td style="text-align:left;"> If `TRUE`, the spread formula has an intercept (`~ 1 + ...`) and `fireSense_spreadFit` fits it, with the covariates centred, so the coefficients describe variation and the intercept the level. Covariates are rescaled to 0-1 and so are all &gt;= 0: without an intercept the level of the linear predictor is set by the coefficients alone, and a climate coefficient trades off against the fuel and non-forest ones (ELF 13.1). `TRUE` is the default; `FALSE` gives `~ 0 + ...`. Ignored if `sim$fireSense_spreadFormula` is supplied. Needs a `fireSense_spreadFit` and a `fireSense_spreadPredict` that know the intercept. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> targetFuelClasses </td>
