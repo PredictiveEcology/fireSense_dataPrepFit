@@ -1,5 +1,7 @@
 # fireSense_dataPrepFit (development version)
 
+- Fixed: each fire year is fitted against vegetation from an earlier year. A year's satellite vegetation already shows part of that year's fires (ELF 6.6.2: pixels burned in 2010 have mean biomass 64 in the 2005 vegetation and 26 in the 2010 vegetation, while unburned pixels are near 79 in both), so the fits learned that fire burns where the vegetation already looks burned. A fire year now uses the latest data year strictly before it (1986-1990 use 1985, 1991-2000 use 1990, ...; `yearGroups()`, `lccShareForYear()`, `fitDecisionYear()`'s data year), the decision year of the structure of the model included, and every `fireYears` must be after the first of `dataYears`, with an error otherwise. The `fireYears` default therefore starts in 1986. Fits, ignition and escape alike, must be redone. Prediction is unchanged: it still uses the data year at or before the year.
+
 - `spreadFitGoogleDriveFolder` defaults to `fireSenseUtils::spreadFitLedgerFolder()`, which follows `options(fireSenseUtils.spreadFitLedgerFolder = )`. `fireSenseUtils` floor raised to 0.2.3.9097, the first version with `spreadFitLedgerFolder()`.
 - Fixed: `init` is declared in the new `.neverCache` parameter, so it is never cached, even when `.useCache` (the module's or `.globals`) lists it. It reads the spread-fit ledger on Google Drive, which is not part of the event's cache key, so a cached `init` replayed an old "fit exists" or "no fit yet" answer. Needs SpaDES.core >= 3.2.1.9037.
 

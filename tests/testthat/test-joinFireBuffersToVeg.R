@@ -25,7 +25,7 @@ test_that("fire buffers join only to their own data year's vegetation", {
   expect_identical(nrow(out), length(fireYears) * length(pixels))
   expect_false(anyDuplicated(out, by = c("fireYear", "pixelID")) > 0)
   fireYearNum <- as.integer(gsub(fireSenseUtils::yearTxt, "", out$fireYear))
-  expectedDataYear <- max.col(outer(fireYearNum, dataYears, ">=") * 1, ties.method = "last")
+  expectedDataYear <- max.col(outer(fireYearNum, dataYears, ">") * 1, ties.method = "last")
   expect_identical(out$year, dataYears[expectedDataYear])
   expect_identical(out$fuel, out$year)
 })
