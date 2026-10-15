@@ -1,5 +1,6 @@
 # fireSense_dataPrepFit (development version)
 
+- `spreadFitGoogleDriveFolder` defaults to `fireSenseUtils::spreadFitLedgerFolder()`, which follows `options(fireSenseUtils.spreadFitLedgerFolder = )`. `fireSenseUtils` floor raised to 0.2.3.9094, the first version with `spreadFitLedgerFolder()`.
 - Fixed: `init` is declared in the new `.neverCache` parameter, so it is never cached, even when `.useCache` (the module's or `.globals`) lists it. It reads the spread-fit ledger on Google Drive, which is not part of the event's cache key, so a cached `init` replayed an old "fit exists" or "no fit yet" answer. Needs SpaDES.core >= 3.2.1.9037.
 
 - Changed: the defaults are the values production already passes. `spreadIntercept` is `TRUE` (spread formula `~ 1 + ...`, free intercept with centred covariates) and `areaMultiplier` is `function(size) 10 * fireSenseUtils::multiplier(size)`, 10 times the old default, built to be `identical()` to what runs pass so their caches are unchanged. Fits that relied on the old defaults now get the intercept and the 10x buffers.
