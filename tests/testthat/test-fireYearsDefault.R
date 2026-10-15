@@ -18,7 +18,7 @@ test_that("the default fire years run from the year after the first data year to
   expect_no_error(yearGroups(dataYears, fireYears))
 })
 
-test_that("the default is fireSenseUtils::defaultFireYears() less its first year, which fireSense_ELFs shares", {
+test_that("the default is fireSenseUtils::defaultFireYears(), which fireSense_ELFs shares", {
   ## the default is defined once, in fireSenseUtils, so the ELF merging and the fit count the same years
   exprs <- parse(file.path(modulePath, moduleName, paste0(moduleName, ".R")), keep.source = FALSE)
   found <- list()
@@ -31,5 +31,5 @@ test_that("the default is fireSenseUtils::defaultFireYears() less its first year
   }
   for (e in exprs) walk(e)
   expect_length(found, 1L)
-  expect_identical(found[[1]][[4]], quote(fireSenseUtils::defaultFireYears()[-1L]))
+  expect_identical(found[[1]][[4]], quote(fireSenseUtils::defaultFireYears()))
 })
