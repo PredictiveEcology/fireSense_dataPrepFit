@@ -17,7 +17,7 @@ defineModule(sim, list(
   reqdPkgs = list("data.table", "fastDummies", "Require",
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9042)", # CacheGeo re-reads a changed local file
                   "PredictiveEcology/climateData@development (>= 2.2.3.9006)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9097)", # dataYearFor(), dataYearElement()
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9099)", # defaultFireYears() from 1986; dataYearFor(), dataYearElement()
                   "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9015)",
@@ -53,11 +53,11 @@ defineModule(sim, list(
                     paste("Estimate fuel classes with `fireSenseUtils::assessFuelClasses`? Skipped if the user supplies",
                           "`nonForestedLCCGroups`, `fuelClassTable` or a `FuelClass` column that differs from LandR's,",
                           "or if a previous SpreadFit exists for the study area.")),
-    defineParameter("fireYears", "integer", fireSenseUtils::defaultFireYears()[-1L], NA, NA,
+    defineParameter("fireYears", "integer", fireSenseUtils::defaultFireYears(), NA, NA,
                     paste("Years of fire records to use for fitting. All must be after the first of `dataYears`,",
                           "and `historicalClimateRasters` must cover all of them. The default runs from 1986, the",
                           "year after the first SCANFI V2 year, to the latest year with historical climate for every tile",
-                          "(`fireSenseUtils::defaultFireYears()` without its first year); climate is the last of the inputs to reach a year.",
+                          "(`fireSenseUtils::defaultFireYears()`); climate is the last of the inputs to reach a year.",
                           "`fireSense_ELFs` takes its `fireYears` default from the same function.")),
     defineParameter("flammabilityThreshold", "numeric", fireSenseUtils::fireSenseFlammabilityThreshold, 0, 1,
                     paste("Minimum proportion of flammable fine-resolution land cover for a `rasterToMatch`",
