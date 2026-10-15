@@ -17,7 +17,7 @@ defineModule(sim, list(
   reqdPkgs = list("data.table", "fastDummies", "Require",
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9042)", # CacheGeo re-reads a changed local file
                   "PredictiveEcology/climateData@development (>= 2.2.3.9006)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9093)", # dataYearFor(), dataYearElement()
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9094)", # dataYearFor(), dataYearElement()
                   "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9015)",
@@ -115,7 +115,7 @@ defineModule(sim, list(
                                  "Set it for every fireSense module at once with `.globals = list(heldOutFold = 1L)`;",
                                  "`Init()` stops if `fireSense_spreadFit` has a different value. Any other value is an error.")),
     defineParameter("spreadFitGoogleDriveFolder", "character",
-                    "https://drive.google.com/drive/folders/1X9-mRjyLMNpgkP_cfqhbr_AQEPOsVCHf",
+                    fireSenseUtils::spreadFitLedgerFolder(),
                     NA, NA, paste("URL of the Google Drive folder holding the ledger of previous SpreadFit results",
                                   "(`spreadFitFilename`), read with `reproducible::CacheGeo`.")),
     defineParameter("spreadFitFilename", "character", "latest",
