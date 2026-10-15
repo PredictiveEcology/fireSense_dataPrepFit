@@ -95,7 +95,7 @@ test_that("parameters are the expected names", {
   md <- SpaDES.core::moduleMetadata(module = moduleName, path = modulePath)
   expect_identical(
     sort(md$parameters$paramName),
-    sort(c(".studyAreaName",
+    sort(c(".neverCache", ".studyAreaName",
            ".useCache", ".useCacheArgs", "areaMultiplier", "bufferForFireRaster", "cutoffForYoungAge",
            "dataYears", "escapeSizeHa", "estimateFuelClasses", "fireYears", "flammabilityThreshold",
            "forestedLCC", "fuelClassCol", "fuelCovariates", "heldOutFold", "igAggFactor",

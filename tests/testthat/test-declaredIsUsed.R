@@ -1,6 +1,6 @@
 ## Metadata that the code never uses misleads a project into setting or supplying it. Six such
 ## entries were removed at 1.2.0.9007, with the non-xgboost ignition formula (it needed an object,
-## `ignitionClimate`, that was never defined). `.useCache` and `.useCacheArgs` are read by SpaDES.core.
+## `ignitionClimate`, that was never defined). `.useCache`, `.useCacheArgs` and `.neverCache` are read by SpaDES.core.
 test_that("every declared parameter and input is read, and every declared output is assigned", {
   md <- SpaDES.core::moduleMetadata(module = moduleName, path = modulePath)
   files <- c(file.path(moduleRoot, paste0(moduleName, ".R")),
@@ -9,7 +9,7 @@ test_that("every declared parameter and input is read, and every declared output
   code <- code[!grepl("defineParameter\\(|expectsInput\\(|createsOutput\\(|^\\s*#", code)]
   used <- function(patterns) vapply(patterns, function(p) any(grepl(p, code, perl = TRUE)), logical(1))
 
-  params <- setdiff(md$parameters$paramName, c(".useCache", ".useCacheArgs"))
+  params <- setdiff(md$parameters$paramName, c(".useCache", ".useCacheArgs", ".neverCache"))
   notRead <- params[!used(paste0("(\\$|\")", gsub(".", "\\.", params, fixed = TRUE), "\\b"))]
   expect_identical(notRead, character(0))
 
