@@ -42,7 +42,7 @@ Prepares the data needed to fit `fireSense_ignitionFit` (ignition and escape) an
 The module combines historical fire records, vegetation, land cover and climate into the covariate tables used to fit the three `fireSense` processes [@Marchal:2017a; @Marchal:2017b; @Marchal:2019]: ignition, escape (an ignition that grows beyond one pixel) and spread.
 
 Vegetation, land cover and stand age are snapshots, one per year in `P(sim)$dataYears` (default 2000, 2010, 2020).
-Each year in `P(sim)$fireYears` uses the snapshot at or before it, so no fire year may precede the first data year, and every data year needs at least one fire year.
+Each year in `P(sim)$fireYears` uses the latest snapshot strictly before it (a year's satellite vegetation already shows part of that year's fires), so every fire year must be after the first data year, and every data year needs at least one fire year.
 Climate is annual and is matched to the year of each fire.
 Ignition and escape share climate variables (`sim$climateVariablesForFire$ignition`); spread can use others (`$spread`).
 
@@ -340,7 +340,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> 1985, 19.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Two or more increasing years for which vegetation, land cover and stand age are built (`cohortDatas`, `rstLCCs`, `standAgeMaps`, ...). Each fire year uses the data year at or before it, so no `fireYears` may precede the first, and every data year needs at least one fire year before the next data year. </td>
+   <td style="text-align:left;"> Two or more increasing years for which vegetation, land cover and stand age are built (`cohortDatas`, `rstLCCs`, `standAgeMaps`, ...). Each fire year uses the latest data year strictly before it (a year's satellite vegetation already shows part of that year's fires), so every `fireYears` must be after the first, and every data year needs at least one fire year before the next data year. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> estimateFuelClasses </td>
@@ -356,7 +356,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> 1985, 19.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Years of fire records to use for fitting. None may precede the first of `dataYears`, and `historicalClimateRasters` must cover all of them. The default runs from 1985, the first SCANFI V2 year, to the latest year with historical climate for every tile (`fireSenseUtils::defaultFireYears()`); climate is the last of the inputs to reach a year. `fireSense_ELFs` takes its `fireYears` default from the same function. </td>
+   <td style="text-align:left;"> Years of fire records to use for fitting. All must be after the first of `dataYears`, and `historicalClimateRasters` must cover all of them. The default runs from 1986, the year after the first SCANFI V2 year, to the latest year with historical climate for every tile (`fireSenseUtils::defaultFireYears()` without its first year); climate is the last of the inputs to reach a year. `fireSense_ELFs` takes its `fireYears` default from the same function. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> flammabilityThreshold </td>

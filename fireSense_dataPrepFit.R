@@ -46,17 +46,18 @@ defineModule(sim, list(
     defineParameter("dataYears", "integer", c(1985L, 1990L, 2000L, 2010L, 2020L), NA_integer_, NA_integer_,
                     paste("Two or more increasing years for which vegetation, land cover and stand age are built",
                           "(`cohortDatas`, `rstLCCs`, `standAgeMaps`, ...).",
-                          "Each fire year uses the data year at or before it, so no `fireYears` may precede the first,",
+                          "Each fire year uses the latest data year strictly before it (a year's satellite vegetation already",
+                          "shows part of that year's fires), so every `fireYears` must be after the first,",
                           "and every data year needs at least one fire year before the next data year.")),
     defineParameter("estimateFuelClasses", "logical", TRUE, NA, NA,
                     paste("Estimate fuel classes with `fireSenseUtils::assessFuelClasses`? Skipped if the user supplies",
                           "`nonForestedLCCGroups`, `fuelClassTable` or a `FuelClass` column that differs from LandR's,",
                           "or if a previous SpreadFit exists for the study area.")),
-    defineParameter("fireYears", "integer", fireSenseUtils::defaultFireYears(), NA, NA,
-                    paste("Years of fire records to use for fitting. None may precede the first of `dataYears`,",
-                          "and `historicalClimateRasters` must cover all of them. The default runs from 1985, the",
-                          "first SCANFI V2 year, to the latest year with historical climate for every tile",
-                          "(`fireSenseUtils::defaultFireYears()`); climate is the last of the inputs to reach a year.",
+    defineParameter("fireYears", "integer", fireSenseUtils::defaultFireYears()[-1L], NA, NA,
+                    paste("Years of fire records to use for fitting. All must be after the first of `dataYears`,",
+                          "and `historicalClimateRasters` must cover all of them. The default runs from 1986, the",
+                          "year after the first SCANFI V2 year, to the latest year with historical climate for every tile",
+                          "(`fireSenseUtils::defaultFireYears()` without its first year); climate is the last of the inputs to reach a year.",
                           "`fireSense_ELFs` takes its `fireYears` default from the same function.")),
     defineParameter("flammabilityThreshold", "numeric", fireSenseUtils::fireSenseFlammabilityThreshold, 0, 1,
                     paste("Minimum proportion of flammable fine-resolution land cover for a `rasterToMatch`",
@@ -974,18 +975,17 @@ prepare_SpreadFit <- function(sim) {
 
 #' Land-cover shares of flammable pixels, for one year
 #'
-#' The land cover is the data year `year`'s vegetation comes from: the data year closest to, and not
-#' after, `year` (`fireSenseUtils::dataYearFor()`, the rule [yearGroups()] assigns a vegetation year to
-#' each fire year with). Read from the per-year lists `sim$rstLCCs` and `sim$flammableRTMs` (named `year<dataYear>`),
+#' The land cover is the data year `year`'s vegetation comes from: the latest data year strictly before
+#' `year` ([vegetationYear()], the rule [yearGroups()] assigns a vegetation year to each fire year with). Read from the per-year lists `sim$rstLCCs` and `sim$flammableRTMs` (named `year<dataYear>`),
 #' never from `sim$rstLCC_RTM` and `sim$flammableRTM`: `fireSense_dataPrepPredict` overwrites those two
 #' with the year it predicts (a hindcast of 1985 sets 1985), and what is a spread covariate of a fit
 #' must not change with the year predicted.
 #'
 #' @param sim a `simList` with `rstLCCs` and `flammableRTMs`.
-#' @param year integer, the year the shares are for (see [fitDecisionYear()] for a fit).
+#' @param year integer, the fire year the shares are for (see [fitDecisionYear()] for a fit).
 #' @return as `fireSenseUtils::lccFlammableShare()`.
 lccShareForYear <- function(sim, year) {
-  el <- fireSenseUtils::dataYearElement(sim$rstLCCs, year)
+  el <- fireSenseUtils::dataYearElement(sim$rstLCCs, vegetationYear(year))
   fireSenseUtils::lccFlammableShare(sim$rstLCCs[[el]], sim$flammableRTMs[[el]])
 }
 
@@ -995,7 +995,7 @@ lccShareForYear <- function(sim, year) {
 #' non-forest classes are grouped (`assessFuelClasses()`), the dominant and secondary fuel classes
 #' (`chooseDomSecFuelClasses()`) -- is decided once per ELF, at fit time, for all of `fireYears`, and a
 #' prediction takes it from the fit's ledger row. It is decided for the last fire year,
-#' `max(P(sim)$fireYears)`, whose vegetation data year (`fireSenseUtils::dataYearFor()`) is the latest the fit uses and
+#' `max(P(sim)$fireYears)`, whose vegetation data year ([vegetationYear()]) is the latest the fit uses and
 #' the one a prediction starts from. A hindcast's `fireSense_dataPrepFit` run (same `fireYears`, the
 #' ledger row already there) makes the same decision, whatever its `dataYears` or the year it predicts.
 #'
@@ -1010,7 +1010,7 @@ fitDecisionYear <- function(sim) {
 #'   lists (`cohortDatas`, `rstLCCs`, ...; they share `rstLCCs`' names), `fireSenseUtils::dataYearElement()`.
 #' @rdname fitDecisionYear
 fitDecisionYearName <- function(sim) {
-  fireSenseUtils::dataYearElement(sim$rstLCCs, fitDecisionYear(sim))
+  fireSenseUtils::dataYearElement(sim$rstLCCs, vegetationYear(fitDecisionYear(sim)))
 }
 
 #' Fire buffers and ignition points from `historicalFireRaster`
@@ -1779,18 +1779,43 @@ cohDat <- "cohortData"
 pixGM <- "pixelGroupMap"
 saMap <- "standAgeMap"
 
+#' The latest year whose vegetation a fire year can use
+#'
+#' A satellite vegetation year already shows part of that year's fires, so a fit pairs a fire year with
+#' vegetation of an earlier year: the year before it, for the data year lookup ([vegetationDataYear()],
+#' `fireSenseUtils::dataYearElement()`). This is the one place the module states that rule; prediction
+#' keeps `fireSenseUtils::dataYearFor()`'s "not after".
+#'
+#' @param fireYears integer fire years.
+#' @return integer, the year to look up the data year of.
+vegetationYear <- function(fireYears) fireYears - 1L
+
+#' The data year whose vegetation each fire year uses
+#'
+#' @param dataYears increasing integer years with vegetation data.
+#' @param fireYears integer years of fire records.
+#' @return integer, per fire year the latest of `dataYears` strictly before it (`NA` if none).
+vegetationDataYear <- function(dataYears, fireYears) {
+  fireSenseUtils::dataYearFor(dataYears, vegetationYear(fireYears))
+}
+
 #' Group fire years by the data year whose vegetation they use
 #'
-#' Each fire year belongs to the latest data year at or before it (`fireSenseUtils::dataYearFor()`, the
-#' rule every match of a year to a data year uses). Stops if a fire year precedes the first data year,
-#' or if a data year gets no fire years.
+#' Each fire year belongs to the latest data year strictly before it ([vegetationDataYear()], the
+#' rule every match of a fire year to a data year uses). Stops if a fire year is not after the first
+#' data year, or if a data year gets no fire years.
 #'
 #' @param dataYears increasing integer years with vegetation data.
 #' @param fireYears integer years of fire records.
 #' @param minmaxOnly if `TRUE`, return only the first and last fire year of each group.
 #' @return list with one integer vector per data year, named by it.
 yearGroups <- function(dataYears, fireYears, minmaxOnly = TRUE) {
-  ageGroups <- split(fireYears, factor(fireSenseUtils::dataYearFor(dataYears, fireYears), levels = dataYears))
+  tooEarly <- fireYears <= dataYears[1]
+  if (any(tooEarly)) {
+    stop("fireYears must all be after the first of dataYears (", dataYears[1], "), whose vegetation already ",
+         "shows that year's fires; remove ", paste(fireYears[tooEarly], collapse = ", "), " from fireYears")
+  }
+  ageGroups <- split(fireYears, factor(vegetationDataYear(dataYears, fireYears), levels = dataYears))
   empty <- lengths(ageGroups) == 0
   if (any(empty)) {
     stop("dataYears with no fireYears before the next dataYear: ", paste(dataYears[empty], collapse = ", "))
