@@ -21,7 +21,7 @@ defineModule(sim, list(
                   "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
                   "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9015)",
-                  "PredictiveEcology/SpaDES.core@development (>= 2.0.2.9006)",
+                  "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9037)",
                   "PredictiveEcology/SpaDES.project@development",
                   "PredictiveEcology/SpaDES.tools@development (>= 2.1.1.9000)",
                   "terra"),
@@ -144,6 +144,9 @@ defineModule(sim, list(
     defineParameter(".useCache", "logical", FALSE, NA, NA,
                     paste("Should this entire module be run with caching activated? This is intended",
                           "for data-type modules, where stochasticity and time are not relevant")),
+    defineParameter(".neverCache", "character", "init", NA, NA,
+                    paste("Events that are never cached, whatever `.useCache` says (read by SpaDES.core, 3.2.1.9037 or later):",
+                          "`init` asks Google Drive whether the spread-fit ledger already has parameters for this study area, and a cached `init` replays an older answer.")),
     defineParameter(".useCacheArgs", "list",
                     list(dataPrepBuild = list(.cacheExtra = quote(list(
                       LandR::.compareRas, LandR::asInt, LandR::defineFlammable, LandR::isInt,
