@@ -55,8 +55,8 @@ test_that("the fit's structure decisions use the fit's decision year, not the sh
 test_that("fitDecisionYearName is the list element of the decision year's data year", {
   ## P(sim)$fireYears is not available outside a simList: the element rule alone
   sim <- lccSim()
-  expect_identical(fireSenseUtils::dataYearElement(sim$rstLCCs, vegetationYear(2024L)), "year2020")
-  expect_identical(fireSenseUtils::dataYearElement(sim$rstLCCs, vegetationYear(2020L)), "year2010")
-  expect_true(grepl("dataYearElement(sim$rstLCCs, vegetationYear(fitDecisionYear(sim)))",
-                    paste(deparse(body(fitDecisionYearName)), collapse = " "), fixed = TRUE))
+  expect_identical(fireSenseUtils::dataYearElement(sim$rstLCCs, 2024L, before = TRUE), "year2020")
+  expect_identical(fireSenseUtils::dataYearElement(sim$rstLCCs, 2020L, before = TRUE), "year2010")
+  expect_true(grepl("dataYearElement(sim$rstLCCs, fitDecisionYear(sim), before = TRUE)",
+                    paste(trimws(deparse(body(fitDecisionYearName))), collapse = " "), fixed = TRUE))
 })
