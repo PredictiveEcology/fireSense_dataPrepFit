@@ -1,4 +1,6 @@
-# fireSense_dataPrepFit (development version)
+# fireSense_dataPrepFit 1.3.0.9010 (development version)
+
+- R CMD check of the module's package form has no notes: `NEWS.md` had two "(development version)" headings and none with a version, so it could not be parsed (one heading now, with the version), undefined names are declared (`R/globals.R`), and `methods`, `stats` and `utils` are in `reqdPkgs` for `is()`, `setNames()`, `var()`, `getFromNamespace()` and `modifyList()`. No change to results. One check warning remains: `SpaDES.core::convertToPackage()` writes `import()` for every `reqdPkgs` entry, so the whole-package imports clash ("replacing previous import").
 
 - Fixed: `.inputObjects` (1-2 h of data preparation per ELF) was redone whenever the SpreadFit ledger changed, e.g. when any ELF's fit landed, because `spreadFitPreRun` was declared as an input and `fireSense_ELFs` puts the whole ledger in the simList before `.inputObjects` runs. It is now an output only. `.inputObjects` never reads it; `Init()` always assigns it (this study area's rows from `CacheGeo`, or `NULL`), and `dataPrepBuild`, `prepIgnitionFitData`, `prepEscapeFitData` and `prepSpreadFitData` key on it through `.useCacheArgs`, so a new fit of this study area still re-runs them and a cached event cannot restore an old row. Results are unchanged; the `.inputObjects` key changes once.
 
@@ -53,8 +55,6 @@ Several errors are fixed that could quietly feed a fit the wrong data: neighbour
   `fireSense_dataPrepPredict` builds for prediction. Before, they kept the module default (`nf`), and
   `fireSense_ignitionPredict` stopped with "column not found: [nf]".
 - `youngAge` is resolved for each fire year, as it was before February 2026, instead of once per data year. `prepare_SpreadFit()` builds the fuels with `fireSenseCovariatesCreate(youngAge = FALSE)` (no `youngAge`, nothing zeroed at the data year) and puts `youngAge` in each fire year's annual table from `fireSenseUtils::youngAgeAtYear()`: the data year's time since disturbance aged to that year, reset by every fire since (all of `firePolysForAge`, not only the fitted buffers); `NA` time since disturbance is not young. `prepare_IgnitionFit()` does the same for the ignition (and escape) covariates with `fireSenseUtils::prepare_FuelCovsCoarseByYear()`, aggregating the per-year values to the `igAggFactor` grid. `nonForestCanBeYoungAge = FALSE` now stops in both. Needs the `fireSenseUtils` change in PredictiveEcology/fireSenseUtils#119 (floor to be set once it has a version). Spread and ignition fits made with the data-year `youngAge`, and cached `prepSpreadFitData` and ignition covariates, are invalid.
-
-# fireSense_dataPrepFit (development version)
 
 - The pooled `other_agb` spread covariate is gone and `fuelCovariates = "domSecOther"` is renamed `"domSecWetland"` (now the default): spread fuels are `dom_agb_<class>`, `sec_agb_<class>` and `treedWetland_agb`. Needs the `fireSenseUtils` change that renames the value (PredictiveEcology/fireSenseUtils#116). Spread fits made with `other_agb` need refitting, and cached `prepSpreadFitData` results change.
 

@@ -19,7 +19,7 @@ defineModule(sim, list(
                   "PredictiveEcology/climateData@development (>= 2.2.3.9006)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9100)", # dataYearBefore(), dataYearElement(before =); defaultFireYears() from 1986
                   "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
-                  "ggplot2", "parallel", "purrr", "raster", "sf", "sp",
+                  "ggplot2", "methods", "parallel", "purrr", "raster", "sf", "sp", "stats", "utils",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9015)",
                   "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9037)",
                   "PredictiveEcology/SpaDES.project@development",
