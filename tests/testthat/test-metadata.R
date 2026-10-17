@@ -38,9 +38,7 @@ test_that("inputs are the expected names and classes", {
       spreadFirePoints            = "list",
       spreadFirePolys             = "list",
       spreadFitAdditionalColNames = "character",
-      ## Init reads the ledger rows into it; as an input it is in the cached events' keys, so a cache
-      ## entry saved before the ELF was refitted cannot restore the old row over the new one.
-      spreadFitPreRun             = "data.frame",
+      ## spreadFitPreRun is an output only: as an input it would be in the .inputObjects cache key
       standAgeMaps                = "list",
       studyArea                   = "SpatVector",
       studyArea_biomassParam      = "SpatVector")
