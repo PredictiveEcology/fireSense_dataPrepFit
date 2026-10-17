@@ -1,4 +1,4 @@
-# fireSense_dataPrepFit 1.3.0.9010 (development version)
+# fireSense_dataPrepFit 1.3.0.9011 (development version)
 
 - R CMD check of the module's package form has no notes: `NEWS.md` had two "(development version)" headings and none with a version, so it could not be parsed (one heading now, with the version), undefined names are declared (`R/globals.R`), and `methods`, `stats` and `utils` are in `reqdPkgs` for `is()`, `setNames()`, `var()`, `getFromNamespace()` and `modifyList()`. No change to results. One check warning remains: `SpaDES.core::convertToPackage()` writes `import()` for every `reqdPkgs` entry, so the whole-package imports clash ("replacing previous import").
 
