@@ -17,7 +17,7 @@ defineModule(sim, list(
   reqdPkgs = list("data.table", "fastDummies", "Require",
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9042)", # CacheGeo re-reads a changed local file
                   "PredictiveEcology/climateData@development (>= 2.2.3.9006)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9100)", # dataYearBefore(), dataYearElement(before =); defaultFireYears() from 1986
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9104)", # dataYearBefore(), dataYearElement(before =); defaultFireYears() from 1986
                   "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
                   "ggplot2", "methods", "parallel", "purrr", "raster", "sf", "sp", "stats", "utils",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9015)",
@@ -115,6 +115,12 @@ defineModule(sim, list(
                                  "the species, fuel and climate objects itself, as for an unfitted study area.",
                                  "Set it for every fireSense module at once with `.globals = list(heldOutFold = 1L)`;",
                                  "`Init()` stops if `fireSense_spreadFit` has a different value. Any other value is an error.")),
+    defineParameter("fitFileSuffix", "character", "", NA, NA,
+                    paste("Text put after the model tag in the ledger file names, e.g. `\"_boundfix_rep81\"`, so a test run",
+                          "writes and reads (`\"latest\"`) only its own files, never the production ones. `\"\"` (the",
+                          "default) is the production ledger. The same parameter of `fireSense_spreadFit`, `fireSense_ignitionFit` and `fireSense_ELFs`;",
+                          "set it for all with `.globals = list(fitFileSuffix = ...)`; modules that disagree stop",
+                          "(`SpaDES.core::paramCheckOtherMods()`). Ignored when a file name is given.")),
     defineParameter("spreadFitGoogleDriveFolder", "character",
                     fireSenseUtils::spreadFitLedgerFolder(),
                     NA, NA, paste("URL of the Google Drive folder holding the ledger of previous SpreadFit results",
@@ -415,7 +421,8 @@ Init <- function(sim) {
          paste(format(heldOutFold), collapse = ", "))
   sim$spreadFitPreRun <- if (isTRUE(is.na(heldOutFold))) {
     readSpreadFitLedger(Par$spreadFitFilename, Par$spreadFitGoogleDriveFolder,
-                        domain = sa, destinationPath = inputPath(sim))
+                        domain = sa, destinationPath = inputPath(sim),
+                        fitFileSuffix = SpaDES.core::paramCheckOtherMods(sim, "fitFileSuffix"))
   }
   mod$haveSpreadFit <- is(sim$spreadFitPreRun, "sf") || is(sim$spreadFitPreRun, "data.frame")
   if (mod$haveSpreadFit) {
