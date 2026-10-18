@@ -14,7 +14,7 @@ ledger <- function(ids, value) {
 
 test_that("'latest' reads the combined ledger and keeps only this study area's rows", {
   d <- withr::local_tempdir()
-  testthat::local_mocked_bindings(latestSpreadFits = function(cloudFolderID, destinationPath, polygonIDs = NULL)
+  testthat::local_mocked_bindings(latestSpreadFits = function(cloudFolderID, destinationPath, polygonIDs = NULL, suffix = "")
     ledger(c("4.1", "4.3"), c(1, 2)), .package = "fireSenseUtils")
   domain <- sf::st_as_sf(square(4e4))                       # the second polygon, 4.3
   out <- suppressMessages(readSpreadFitLedger("latest", "folder", domain, d))
@@ -26,7 +26,7 @@ test_that("a changed ledger is read again, not returned from an earlier read", {
   d <- withr::local_tempdir()
   domain <- sf::st_as_sf(square(4e4))
   value <- 2
-  testthat::local_mocked_bindings(latestSpreadFits = function(cloudFolderID, destinationPath, polygonIDs = NULL)
+  testthat::local_mocked_bindings(latestSpreadFits = function(cloudFolderID, destinationPath, polygonIDs = NULL, suffix = "")
     ledger(c("4.1", "4.3"), c(1, value)), .package = "fireSenseUtils")
   first <- suppressMessages(readSpreadFitLedger("latest", "folder", domain, d))
   value <- 5                                                 # a newer fit of 4.3 arrives
@@ -47,4 +47,18 @@ test_that("a named file is read from the Drive folder, as before", {
   expect_identical(rec$args$targetFile, "fireSenseParams_1985-2024_linearFuel.rds")
   expect_identical(rec$args$cloudFolderID, "folderURL")
   expect_identical(rec$args$action, "nothing")
+})
+
+test_that("'latest' reads only the files with this run's fitFileSuffix", {
+  d <- withr::local_tempdir()
+  asked <- NULL
+  testthat::local_mocked_bindings(latestSpreadFits = function(cloudFolderID, destinationPath, polygonIDs = NULL, suffix = "") {
+    asked <<- suffix
+    ledger("4.3", 2)
+  }, .package = "fireSenseUtils")
+  domain <- sf::st_as_sf(square(2e4 * 1))
+  suppressMessages(readSpreadFitLedger("latest", "folder", domain, d, fitFileSuffix = "_boundfix_rep81"))
+  expect_identical(asked, "_boundfix_rep81")
+  suppressMessages(readSpreadFitLedger("latest", "folder", domain, d))
+  expect_identical(asked, "")
 })

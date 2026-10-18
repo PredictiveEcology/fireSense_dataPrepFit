@@ -99,7 +99,7 @@ test_that("parameters are the expected names", {
            "forestedLCC", "fuelClassCol", "fuelCovariates", "heldOutFold", "igAggFactor",
            "minBufferSize", "minCovariateProp", "nonflammableLCC",
            "nonForestCanBeYoungAge", "scanfiVersion", "sppEquivCol", "spreadFitFilename",
-           "spreadFitGoogleDriveFolder", "spreadIntercept", "targetFuelClasses",
+           "spreadFitGoogleDriveFolder", "fitFileSuffix", "spreadIntercept", "targetFuelClasses",
            "useRasterizedFireForSpread", "whichModulesToPrepare"))
   )
 })

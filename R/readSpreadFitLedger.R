@@ -6,14 +6,16 @@
 #' (`prepInputs()` would otherwise find its checksum changed and try to download it).
 #'
 #' @param spreadFitFilename The module's `spreadFitFilename`: a file in `cloudFolderID`, or `"latest"`.
+#' @param fitFileSuffix With `"latest"`, only ledger files with this suffix are read; see
+#'   `fireSenseUtils::spreadFitFilenameFor()`.
 #' @param cloudFolderID The Google Drive folder holding the ledger files.
 #' @param domain The study area, an `sf` object.
 #' @param destinationPath Where the ledger files are downloaded.
 #' @return What `CacheGeo()` returns: the ledger rows within `domain`, or `NULL`.
-readSpreadFitLedger <- function(spreadFitFilename, cloudFolderID, domain, destinationPath) {
+readSpreadFitLedger <- function(spreadFitFilename, cloudFolderID, domain, destinationPath, fitFileSuffix = "") {
   purge <- 7                                         # download the named file again: it changes on Drive
   if (identical(spreadFitFilename, "latest")) {
-    latest <- fireSenseUtils::latestSpreadFits(cloudFolderID, destinationPath)
+    latest <- fireSenseUtils::latestSpreadFits(cloudFolderID, destinationPath, suffix = fitFileSuffix)
     if (is.null(latest))
       return(NULL)
     tf <- tempfile(fileext = ".rds")
