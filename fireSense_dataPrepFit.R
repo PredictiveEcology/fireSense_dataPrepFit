@@ -21,7 +21,7 @@ defineModule(sim, list(
                   "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
                   "ggplot2", "methods", "parallel", "purrr", "raster", "sf", "sp", "stats", "utils",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9015)",
-                  "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9037)",
+                  "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9044)",
                   "PredictiveEcology/SpaDES.project@development",
                   "PredictiveEcology/SpaDES.tools@development (>= 2.1.1.9000)",
                   "terra"),
@@ -155,15 +155,20 @@ defineModule(sim, list(
                     paste("Events that are never cached, whatever `.useCache` says (read by SpaDES.core, 3.2.1.9037 or later):",
                           "`init` asks Google Drive whether the spread-fit ledger already has parameters for this study area, and a cached `init` replays an older answer.")),
     defineParameter(".useCacheArgs", "list",
-                    list(dataPrepBuild = list(.cacheExtra = quote(list(
+                    local({
+                      ## `fitFileSuffix` only picks the ledger in `init` (never cached); the ledger reaches these
+                      ## events through `spreadFitPreRun` in `.cacheExtra`. SpaDES.core (3.2.1.9044 or later) leaves it out of their keys.
+                      labelParams <- list(omitParams = "fitFileSuffix")
+                      list(.inputObjects = labelParams,
+                         dataPrepBuild = c(list(.cacheExtra = quote(list(
                       LandR::.compareRas, LandR::asInt, LandR::defineFlammable, LandR::isInt,
                       fireSenseUtils::assessFuelClasses, fireSenseUtils::dataYearElement,
                       fireSenseUtils::dataYearFor, fireSenseUtils::fuelClassPrep,
                       fireSenseUtils::lccFlammableShare, fireSenseUtils::makeLandcoverDT,
-                      fireSenseUtils::makeTSD, spreadFitPreRun = sim$spreadFitPreRun))),
-                         prepIgnitionFitData = list(.cacheExtra = quote(list(spreadFitPreRun = sim$spreadFitPreRun))),
-                         prepEscapeFitData = list(.cacheExtra = quote(list(spreadFitPreRun = sim$spreadFitPreRun))),
-                         prepSpreadFitData = list(.cacheExtra = quote(c(list(
+                      fireSenseUtils::makeTSD, spreadFitPreRun = sim$spreadFitPreRun))), labelParams),
+                         prepIgnitionFitData = c(list(.cacheExtra = quote(list(spreadFitPreRun = sim$spreadFitPreRun))), labelParams),
+                         prepEscapeFitData = c(list(.cacheExtra = quote(list(spreadFitPreRun = sim$spreadFitPreRun))), labelParams),
+                         prepSpreadFitData = c(list(.cacheExtra = quote(c(list(
                       fireSenseUtils::bufferToArea, fireSenseUtils::chooseDomSecFuelClasses,
                       fireSenseUtils::climateRasterToDataTable, fireSenseUtils::dataYearElement,
                       fireSenseUtils::dataYearFor, fireSenseUtils::emptySpreadCovariates,
@@ -172,14 +177,17 @@ defineModule(sim, list(
                       fireSenseUtils::makeMutuallyExclusive, fireSenseUtils::rasterFireBufferDT,
                       fireSenseUtils::rasterFireSpreadPoints, fireSenseUtils::youngAgeAtYear,
                       spreadFitPreRun = sim$spreadFitPreRun),
-                      fireSenseUtils::harmonizeFireDataDeps())))),
+                      fireSenseUtils::harmonizeFireDataDeps()))), labelParams))
+                    }),
                     NA, NA,
                     paste("Extra `reproducible::Cache()` arguments, by event. A cached event's digest covers",
                           "this module's code but not the package functions it calls, so `dataPrepBuild` and",
                           "`prepSpreadFitData` pass those in `.cacheExtra`: a changed function then re-runs the event.",
                           "Every cached event after `init` also keys on `sim$spreadFitPreRun`, evaluated when the event runs:",
                           "`Init()` has by then assigned it (this study area's ledger rows, or `NULL`), so a new fit of",
-                          "this study area re-runs the events, while rows of other study areas do not."))
+                          "this study area re-runs the events, while rows of other study areas do not.",
+                          "`omitParams` (SpaDES.core 3.2.1.9044 or later) leaves `fitFileSuffix` out of the key of `.inputObjects` and of those events:",
+                          "it only picks the ledger in `init`, so a test run with another suffix reuses the cached data preparation."))
   ),
   inputObjects = bindrows(
     expectsInput("climateVariables", "list", sourceURL = NA,
@@ -1596,6 +1604,8 @@ runBorealDP_forCohortData <- function(sim) {
         scanfiVersion = P(sim)$scanfiVersion) |>
         Cache(userTags = c("makeFireSenseLCC", dy),
               .functionName = paste0("makeFireSenseLCC", dy),
+              ## destinationPath is the replicate's folder; the result comes back from the cache, not from it
+              omitArgs = "destinationPath",
               ## Cache digests only makeFireSenseLCC's own code, so the functions it CALLS must be named
               ## here. Which ones depends on lccSource, a run-time option, so ask rather than list.
               .cacheExtra = fireSenseUtils::makeFireSenseLCCDeps())
@@ -1606,6 +1616,7 @@ runBorealDP_forCohortData <- function(sim) {
                                            destinationPath = dPath,
                                            dataYear = dy) |>
         Cache(.functionName = paste0("prepInputsStandAgeMap", dy),
+              omitArgs = "destinationPath",  # the replicate's download folder, not an input of the result
               userTags = c(cacheTags, "prepInputsStandAgeMap"),
               ## Cache digests only prepInputsStandAgeMap's own code; it adjusts ages in fires with this function
               .cacheExtra = list(LandR::replaceAgeInFires))
