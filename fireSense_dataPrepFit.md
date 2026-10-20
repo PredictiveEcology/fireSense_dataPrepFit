@@ -1,7 +1,7 @@
 ---
 title: "fireSense_dataPrepFit Manual"
-subtitle: "v.1.3.0.9004"
-date: "Last updated: 2026-10-14"
+subtitle: "v.1.3.0.9012"
+date: "Last updated: 2026-10-20"
 output:
   bookdown::html_document2:
     toc: true
@@ -275,12 +275,6 @@ Table \@ref(tab:moduleInputs-fireSense-dataPrepFit) shows the full list of modul
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> spreadFitPreRun </td>
-   <td style="text-align:left;"> data.frame </td>
-   <td style="text-align:left;"> Ledger rows of previous SpreadFit results, as the output of that name; `Init()` reads them (supplied by `fireSense_ELFs`). Declared as an input so the rows are in the cache keys of this module's cached events: otherwise a cache entry saved before an ELF was refitted restores its old row over the one `Init()` just read. </td>
-   <td style="text-align:left;"> NA </td>
-  </tr>
-  <tr>
    <td style="text-align:left;"> studyArea </td>
    <td style="text-align:left;"> SpatVector </td>
    <td style="text-align:left;"> Study area for all data. Should be buffered to limit edge effects on fire spread. </td>
@@ -353,7 +347,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
   <tr>
    <td style="text-align:left;"> fireYears </td>
    <td style="text-align:left;"> integer </td>
-   <td style="text-align:left;"> 1985, 19.... </td>
+   <td style="text-align:left;"> 1986, 19.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Years of fire records to use for fitting. All must be after the first of `dataYears`, and `historicalClimateRasters` must cover all of them. The default runs from 1986, the year after the first SCANFI V2 year, to the latest year with historical climate for every tile (`fireSenseUtils::defaultFireYears()`); climate is the last of the inputs to reach a year. `fireSense_ELFs` takes its `fireYears` default from the same function. </td>
@@ -463,6 +457,14 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA (default): unchanged. `1` or `2`: a cross-validation fold is being fitted (the same parameter as in `fireSense_spreadFit`), so the SpreadFit ledger is not relevant and `Init()` does not read it: `sim$spreadFitPreRun` stays NULL and this module derives the species, fuel and climate objects itself, as for an unfitted study area. Set it for every fireSense module at once with `.globals = list(heldOutFold = 1L)`; `Init()` stops if `fireSense_spreadFit` has a different value. Any other value is an error. </td>
   </tr>
   <tr>
+   <td style="text-align:left;"> fitFileSuffix </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;">  </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Text put after the model tag in the ledger file names, e.g. `"_boundfix_rep81"`, so a test run writes and reads (`"latest"`) only its own files, never the production ones. `""` (the default) is the production ledger. The same parameter of `fireSense_spreadFit`, `fireSense_ignitionFit` and `fireSense_ELFs`; set it for all with `.globals = list(fitFileSuffix = ...)`; modules that disagree stop (`SpaDES.core::paramCheckOtherMods()`). Ignored when a file name is given. </td>
+  </tr>
+  <tr>
    <td style="text-align:left;"> spreadFitGoogleDriveFolder </td>
    <td style="text-align:left;"> character </td>
    <td style="text-align:left;"> https://.... </td>
@@ -527,12 +529,20 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> Should this entire module be run with caching activated? This is intended for data-type modules, where stochasticity and time are not relevant </td>
   </tr>
   <tr>
+   <td style="text-align:left;"> .neverCache </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;"> init </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Events that are never cached, whatever `.useCache` says (read by SpaDES.core, 3.2.1.9037 or later): `init` asks Google Drive whether the spread-fit ledger already has parameters for this study area, and a cached `init` replays an older answer. </td>
+  </tr>
+  <tr>
    <td style="text-align:left;"> .useCacheArgs </td>
    <td style="text-align:left;"> list </td>
    <td style="text-align:left;"> list(.ca.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Extra `reproducible::Cache()` arguments, by event. A cached event's digest covers this module's code but not the package functions it calls, so `dataPrepBuild` and `prepSpreadFitData` pass those in `.cacheExtra`: a changed function then re-runs the event. </td>
+   <td style="text-align:left;"> Extra `reproducible::Cache()` arguments, by event. A cached event's digest covers this module's code but not the package functions it calls, so `dataPrepBuild` and `prepSpreadFitData` pass those in `.cacheExtra`: a changed function then re-runs the event. Every cached event after `init` also keys on `sim$spreadFitPreRun`, evaluated when the event runs: `Init()` has by then assigned it (this study area's ledger rows, or `NULL`), so a new fit of this study area re-runs the events, while rows of other study areas do not. </td>
   </tr>
 </tbody>
 </table>
@@ -603,7 +613,7 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-dataP
   <tr>
    <td style="text-align:left;"> spreadFitPreRun </td>
    <td style="text-align:left;"> data.frame </td>
-   <td style="text-align:left;"> Ledger rows of previous SpreadFit results that overlap `studyArea`, from `CacheGeo`: a geometry column (convert with `sf::st_as_sf`), plus `polygonID` and the columns in `spreadFitAdditionalColNames`. `NULL` if there is no previous fit. </td>
+   <td style="text-align:left;"> Ledger rows of previous SpreadFit results that overlap `studyArea`, from `CacheGeo`: a geometry column (convert with `sf::st_as_sf`), plus `polygonID` and the columns in `spreadFitAdditionalColNames`. `NULL` if there is no previous fit. `Init()` always assigns it (`fireSense_ELFs` may have put the whole ledger there before). It is not an input: as one, it would be in the `.inputObjects` cache key and any ELF's new fit would redo the data preparation. The cached events after `init` key on it through `.useCacheArgs`, so a cached event cannot restore an old row over the one `Init()` just read. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> studyAreaWithSpreadParams </td>
