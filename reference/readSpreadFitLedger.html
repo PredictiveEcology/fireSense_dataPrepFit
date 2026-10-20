@@ -20,7 +20,7 @@ rows, as it does from a named file. The combined rows go to a local file named b
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fireSense_dataPrepFit</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.0.9004</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.0.9012</span>
       </span>
     </div>
 
@@ -63,7 +63,13 @@ rows, as it does from a named file. The combined rows go to a local file named b
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">readSpreadFitLedger</span><span class="op">(</span><span class="va">spreadFitFilename</span>, <span class="va">cloudFolderID</span>, <span class="va">domain</span>, <span class="va">destinationPath</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">readSpreadFitLedger</span><span class="op">(</span></span>
+<span>  <span class="va">spreadFitFilename</span>,</span>
+<span>  <span class="va">cloudFolderID</span>,</span>
+<span>  <span class="va">domain</span>,</span>
+<span>  <span class="va">destinationPath</span>,</span>
+<span>  fitFileSuffix <span class="op">=</span> <span class="st">""</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -84,6 +90,11 @@ rows, as it does from a named file. The combined rows go to a local file named b
 
 <dt id="arg-destinationpath">destinationPath<a class="anchor" aria-label="anchor" href="#arg-destinationpath"></a></dt>
 <dd><p>Where the ledger files are downloaded.</p></dd>
+
+
+<dt id="arg-fitfilesuffix">fitFileSuffix<a class="anchor" aria-label="anchor" href="#arg-fitfilesuffix"></a></dt>
+<dd><p>With <code>"latest"</code>, only ledger files with this suffix are read; see
+<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/spreadFitLedger.html" class="external-link">fireSenseUtils::spreadFitFilenameFor()</a></code>.</p></dd>
 
 </dl></div>
     <div id="value">

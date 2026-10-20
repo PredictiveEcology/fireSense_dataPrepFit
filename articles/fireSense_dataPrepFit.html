@@ -32,7 +32,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fireSense_dataPrepFit</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.0.9004</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.0.9012</span>
       </span>
     </div>
 
@@ -71,9 +71,9 @@
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>fireSense_dataPrepFit Manual</h1>
-            <h3 data-toc-skip class="subtitle">v.1.3.0.9004</h3>
+            <h3 data-toc-skip class="subtitle">v.1.3.0.9012</h3>
             
-            <h4 data-toc-skip class="date">Last updated: 2026-10-14</h4>
+            <h4 data-toc-skip class="date">Last updated: 2026-10-20</h4>
       
 
       <div class="hidden name"><code>fireSense_dataPrepFit.Rmd</code></div>
@@ -103,7 +103,7 @@
 </h4>
 <p>The module combines historical fire records, vegetation, land cover and climate into the covariate tables used to fit the three <code>fireSense</code> processes <span class="citation">(<a href="#ref-Marchal:2017a">Marchal, Steve G. Cumming, et al. 2017b</a>; <a href="#ref-Marchal:2017b">Marchal, Steve G. Cumming, et al. 2017a</a>; <a href="#ref-Marchal:2019">Marchal et al. 2019</a>)</span>: ignition, escape (an ignition that grows beyond one pixel) and spread.</p>
 <p>Vegetation, land cover and stand age are snapshots, one per year in <code>P(sim)$dataYears</code> (default 2000, 2010, 2020).
-Each year in <code>P(sim)$fireYears</code> uses the snapshot at or before it, so no fire year may precede the first data year, and every data year needs at least one fire year.
+Each year in <code>P(sim)$fireYears</code> uses the latest snapshot strictly before it (a year’s satellite vegetation already shows part of that year’s fires), so every fire year must be after the first data year, and every data year needs at least one fire year.
 Climate is annual and is matched to the year of each fire.
 Ignition and escape share climate variables (<code>sim$climateVariablesForFire$ignition</code>); spread can use others (<code>$spread</code>).</p>
 <p>By default the module builds its own inputs:</p>
@@ -582,20 +582,6 @@ NA
 </tr>
 <tr>
 <td style="text-align:left;">
-spreadFitPreRun
-</td>
-<td style="text-align:left;">
-data.frame
-</td>
-<td style="text-align:left;">
-Ledger rows of previous SpreadFit results, as the output of that name; <code><a href="../reference/Init.html">Init()</a></code> reads them (supplied by <code>fireSense_ELFs</code>). Declared as an input so the rows are in the cache keys of this module’s cached events: otherwise a cache entry saved before an ELF was refitted restores its old row over the one <code><a href="../reference/Init.html">Init()</a></code> just read.
-</td>
-<td style="text-align:left;">
-NA
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
 studyArea
 </td>
 <td style="text-align:left;">
@@ -727,7 +713,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Two or more increasing years for which vegetation, land cover and stand age are built (<code>cohortDatas</code>, <code>rstLCCs</code>, <code>standAgeMaps</code>, …). Each fire year uses the data year at or before it, so no <code>fireYears</code> may precede the first, and every data year needs at least one fire year before the next data year.
+Two or more increasing years for which vegetation, land cover and stand age are built (<code>cohortDatas</code>, <code>rstLCCs</code>, <code>standAgeMaps</code>, …). Each fire year uses the latest data year strictly before it (a year’s satellite vegetation already shows part of that year’s fires), so every <code>fireYears</code> must be after the first, and every data year needs at least one fire year before the next data year.
 </td>
 </tr>
 <tr>
@@ -758,7 +744,7 @@ fireYears
 integer
 </td>
 <td style="text-align:left;">
-1985, 19….
+1986, 19….
 </td>
 <td style="text-align:left;">
 NA
@@ -767,7 +753,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Years of fire records to use for fitting. None may precede the first of <code>dataYears</code>, and <code>historicalClimateRasters</code> must cover all of them. The default runs from 1985, the first SCANFI V2 year, to the latest year with historical climate for every tile (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/defaultFireYears.html" class="external-link">fireSenseUtils::defaultFireYears()</a></code>); climate is the last of the inputs to reach a year. <code>fireSense_ELFs</code> takes its <code>fireYears</code> default from the same function.
+Years of fire records to use for fitting. All must be after the first of <code>dataYears</code>, and <code>historicalClimateRasters</code> must cover all of them. The default runs from 1986, the year after the first SCANFI V2 year, to the latest year with historical climate for every tile (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/defaultFireYears.html" class="external-link">fireSenseUtils::defaultFireYears()</a></code>); climate is the last of the inputs to reach a year. <code>fireSense_ELFs</code> takes its <code>fireYears</code> default from the same function.
 </td>
 </tr>
 <tr>
@@ -1032,6 +1018,25 @@ NA (default): unchanged. <code>1</code> or <code>2</code>: a cross-validation fo
 </tr>
 <tr>
 <td style="text-align:left;">
+fitFileSuffix
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Text put after the model tag in the ledger file names, e.g. <code>"_boundfix_rep81"</code>, so a test run writes and reads (<code>"latest"</code>) only its own files, never the production ones. <code>""</code> (the default) is the production ledger. The same parameter of <code>fireSense_spreadFit</code>, <code>fireSense_ignitionFit</code> and <code>fireSense_ELFs</code>; set it for all with <code>.globals = list(fitFileSuffix = ...)</code>; modules that disagree stop (<code><a href="https://spades-core.predictiveecology.org/reference/paramCheckOtherMods.html" class="external-link">SpaDES.core::paramCheckOtherMods()</a></code>). Ignored when a file name is given.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
 spreadFitGoogleDriveFolder
 </td>
 <td style="text-align:left;">
@@ -1191,6 +1196,26 @@ Should this entire module be run with caching activated? This is intended for da
 </tr>
 <tr>
 <td style="text-align:left;">
+.neverCache
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+init
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Events that are never cached, whatever <code>.useCache</code> says (read by SpaDES.core, 3.2.1.9037 or later): <code>init</code> asks Google Drive whether the spread-fit ledger already has parameters for this study area, and a cached <code>init</code> replays an older answer.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
 .useCacheArgs
 </td>
 <td style="text-align:left;">
@@ -1206,7 +1231,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Extra <code><a href="https://reproducible.predictiveecology.org/reference/Cache.html" class="external-link">reproducible::Cache()</a></code> arguments, by event. A cached event’s digest covers this module’s code but not the package functions it calls, so <code>dataPrepBuild</code> and <code>prepSpreadFitData</code> pass those in <code>.cacheExtra</code>: a changed function then re-runs the event.
+Extra <code><a href="https://reproducible.predictiveecology.org/reference/Cache.html" class="external-link">reproducible::Cache()</a></code> arguments, by event. A cached event’s digest covers this module’s code but not the package functions it calls, so <code>dataPrepBuild</code> and <code>prepSpreadFitData</code> pass those in <code>.cacheExtra</code>: a changed function then re-runs the event. Every cached event after <code>init</code> also keys on <code>sim$spreadFitPreRun</code>, evaluated when the event runs: <code><a href="../reference/Init.html">Init()</a></code> has by then assigned it (this study area’s ledger rows, or <code>NULL</code>), so a new fit of this study area re-runs the events, while rows of other study areas do not.
 </td>
 </tr>
 </tbody>
@@ -1301,7 +1326,7 @@ spreadFitPreRun
 data.frame
 </td>
 <td style="text-align:left;">
-Ledger rows of previous SpreadFit results that overlap <code>studyArea</code>, from <code>CacheGeo</code>: a geometry column (convert with <code><a href="https://r-spatial.github.io/sf/reference/st_as_sf.html" class="external-link">sf::st_as_sf</a></code>), plus <code>polygonID</code> and the columns in <code>spreadFitAdditionalColNames</code>. <code>NULL</code> if there is no previous fit.
+Ledger rows of previous SpreadFit results that overlap <code>studyArea</code>, from <code>CacheGeo</code>: a geometry column (convert with <code><a href="https://r-spatial.github.io/sf/reference/st_as_sf.html" class="external-link">sf::st_as_sf</a></code>), plus <code>polygonID</code> and the columns in <code>spreadFitAdditionalColNames</code>. <code>NULL</code> if there is no previous fit. <code><a href="../reference/Init.html">Init()</a></code> always assigns it (<code>fireSense_ELFs</code> may have put the whole ledger there before). It is not an input: as one, it would be in the <code>.inputObjects</code> cache key and any ELF’s new fit would redo the data preparation. The cached events after <code>init</code> key on it through <code>.useCacheArgs</code>, so a cached event cannot restore an old row over the one <code><a href="../reference/Init.html">Init()</a></code> just read.
 </td>
 </tr>
 <tr>

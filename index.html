@@ -33,7 +33,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">fireSense_dataPrepFit</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.0.9004</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.0.9012</span>
       </span>
     </div>
 
@@ -90,7 +90,7 @@
 <h3 id="module-summary">Module summary<a class="anchor" aria-label="anchor" href="#module-summary"></a>
 </h3>
 <p>The module combines historical fire records, vegetation, land cover and climate into the covariate tables used to fit the three <code>fireSense</code> processes [@Marchal:2017a; @Marchal:2017b; @Marchal:2019]: ignition, escape (an ignition that grows beyond one pixel) and spread.</p>
-<p>Vegetation, land cover and stand age are snapshots, one per year in <code>P(sim)$dataYears</code> (default 2000, 2010, 2020). Each year in <code>P(sim)$fireYears</code> uses the snapshot at or before it, so no fire year may precede the first data year, and every data year needs at least one fire year. Climate is annual and is matched to the year of each fire. Ignition and escape share climate variables (<code>sim$climateVariablesForFire$ignition</code>); spread can use others (<code>$spread</code>).</p>
+<p>Vegetation, land cover and stand age are snapshots, one per year in <code>P(sim)$dataYears</code> (default 2000, 2010, 2020). Each year in <code>P(sim)$fireYears</code> uses the latest snapshot strictly before it (a year’s satellite vegetation already shows part of that year’s fires), so every fire year must be after the first data year, and every data year needs at least one fire year. Climate is annual and is matched to the year of each fire. Ignition and escape share climate variables (<code>sim$climateVariablesForFire$ignition</code>); spread can use others (<code>$spread</code>).</p>
 <p>By default the module builds its own inputs:</p>
 <ul>
 <li>land cover (<code>rstLCCs</code>) with <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/makeFireSenseLCC.html" class="external-link">fireSenseUtils::makeFireSenseLCC()</a></code> and stand age with <code><a href="https://landr.predictiveecology.org/reference/prepInputsStandAgeMap.html" class="external-link">LandR::prepInputsStandAgeMap()</a></code>, per data year;</li>
@@ -628,7 +628,7 @@ areaMultiplier
 numeric,….
 </td>
 <td style="text-align:left;">
-::, fire….
+function….
 </td>
 <td style="text-align:left;">
 NA
@@ -637,7 +637,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Size of the unburned buffer sampled around each fire: a scalar (buffer area is <code>areaMultiplier fireSize</code>) or a quoted function of <code>fireSize</code>. See <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/bufferToArea.html" class="external-link">?fireSenseUtils::bufferToArea</a></code>.
+Size of the unburned buffer sampled around each fire: a scalar (buffer area is <code>areaMultiplier fireSize</code>) or a quoted function of <code>fireSize</code>. The default is <code>function(size) 10 fireSenseUtils::multiplier(size)</code>, 10 times <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/multiplier.html" class="external-link">fireSenseUtils::multiplier</a></code>; smaller multipliers gave wrong fits. See <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/bufferToArea.html" class="external-link">?fireSenseUtils::bufferToArea</a></code>.
 </td>
 </tr>
 <tr>
@@ -697,7 +697,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Two or more increasing years for which vegetation, land cover and stand age are built (<code>cohortDatas</code>, <code>rstLCCs</code>, <code>standAgeMaps</code>, …). Each fire year uses the data year at or before it, so no <code>fireYears</code> may precede the first, and every data year needs at least one fire year before the next data year.
+Two or more increasing years for which vegetation, land cover and stand age are built (<code>cohortDatas</code>, <code>rstLCCs</code>, <code>standAgeMaps</code>, …). Each fire year uses the latest data year strictly before it (a year’s satellite vegetation already shows part of that year’s fires), so every <code>fireYears</code> must be after the first, and every data year needs at least one fire year before the next data year.
 </td>
 </tr>
 <tr>
@@ -737,7 +737,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Years of fire records to use for fitting. None may precede the first of <code>dataYears</code>, and <code>historicalClimateRasters</code> must cover all of them. The default runs from 1985, the first SCANFI V2 year, to the latest year with historical climate for every tile (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/defaultFireYears.html" class="external-link">fireSenseUtils::defaultFireYears()</a></code>); climate is the last of the inputs to reach a year. <code>fireSense_ELFs</code> takes its <code>fireYears</code> default from the same function.
+Years of fire records to use for fitting. All must be after the first of <code>dataYears</code>, and <code>historicalClimateRasters</code> must cover all of them. The default runs from 1986, the year after the first SCANFI V2 year, to the latest year with historical climate for every tile (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/defaultFireYears.html" class="external-link">fireSenseUtils::defaultFireYears()</a></code>); climate is the last of the inputs to reach a year. <code>fireSense_ELFs</code> takes its <code>fireYears</code> default from the same function.
 </td>
 </tr>
 <tr>
@@ -1048,7 +1048,7 @@ spreadIntercept
 logical
 </td>
 <td style="text-align:left;">
-FALSE
+TRUE
 </td>
 <td style="text-align:left;">
 NA
@@ -1057,7 +1057,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-If <code>TRUE</code>, the spread formula has an intercept (<code>~ 1 + ...</code>) and <code>fireSense_spreadFit</code> fits it, with the covariates centred, so the coefficients describe variation and the intercept the level. Covariates are rescaled to 0-1 and so are all &gt;= 0: without an intercept the level of the linear predictor is set by the coefficients alone, and a climate coefficient trades off against the fuel and non-forest ones (ELF 13.1). <code>FALSE</code> (default) keeps <code>~ 0 + ...</code>. Ignored if <code>sim$fireSense_spreadFormula</code> is supplied. Needs a <code>fireSense_spreadFit</code> and a <code>fireSense_spreadPredict</code> that know the intercept.
+If <code>TRUE</code>, the spread formula has an intercept (<code>~ 1 + ...</code>) and <code>fireSense_spreadFit</code> fits it, with the covariates centred, so the coefficients describe variation and the intercept the level. Covariates are rescaled to 0-1 and so are all &gt;= 0: without an intercept the level of the linear predictor is set by the coefficients alone, and a climate coefficient trades off against the fuel and non-forest ones (ELF 13.1). <code>TRUE</code> is the default; <code>FALSE</code> gives <code>~ 0 + ...</code>. Ignored if <code>sim$fireSense_spreadFormula</code> is supplied. Needs a <code>fireSense_spreadFit</code> and a <code>fireSense_spreadPredict</code> that know the intercept.
 </td>
 </tr>
 <tr>
