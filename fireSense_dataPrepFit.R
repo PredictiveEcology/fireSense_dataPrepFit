@@ -17,7 +17,7 @@ defineModule(sim, list(
   reqdPkgs = list("data.table", "fastDummies", "Require",
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9042)", # CacheGeo re-reads a changed local file
                   "PredictiveEcology/climateData@development (>= 2.2.3.9006)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9104)", # dataYearBefore(), dataYearElement(before =); defaultFireYears() from 1986
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9111)", # fuelCovsToCoarse(): coarse cells with a non-flammable pixel keep their row
                   "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
                   "ggplot2", "methods", "parallel", "purrr", "raster", "sf", "sp", "stats", "utils",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9015)",
@@ -1251,6 +1251,7 @@ prepare_IgnitionFit <- function(sim) {
                     studyAreaName = P(sim)$.studyAreaName
     ))  |>
     Cache(.cacheExtra = list(prepare_FuelCovsCoarseByYear = fireSenseUtils::prepare_FuelCovsCoarseByYear,
+                             fuelCovsToCoarse = fireSenseUtils::fuelCovsToCoarse,
                              fireSenseCovariatesCreate = fireSenseUtils::fireSenseCovariatesCreate,
                              youngAgeAtYear = fireSenseUtils::youngAgeAtYear, dig2,
                              firePixels = .robustDigest(firePixels)),
