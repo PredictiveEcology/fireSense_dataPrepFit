@@ -1,5 +1,7 @@
 # fireSense_dataPrepFit 1.3.0.9011 (development version)
 
+- The ignition covariate cache key (`ignitionCovariatesCreate`) also includes the body of `fireSenseUtils::fuelCovsToCoarse()`, the new function `prepare_FuelCovsCoarseByYear()` aggregates with, which keeps a coarse cell with a non-flammable pixel in the fit instead of dropping it with its ignitions (20% of the core's natural ignitions on ELFs 6.6.1 and 6.6.2). Floor `fireSenseUtils` raised to 0.2.3.9111 (Depends-on: PredictiveEcology/fireSenseUtils#172). The key changes once; fits must be redone.
+
 - New parameter `fitFileSuffix` (default `""`), the same in `fireSense_spreadFit`, `fireSense_ignitionFit` and `fireSense_ELFs` (checked with `paramCheckOtherMods()`): with `spreadFitFilename = "latest"`, the SpreadFit ledger is read from the files with that suffix only (`fireSenseUtils::latestSpreadFits(suffix =)`), so a test run never reads the production fits. `""` is unchanged. Needs fireSenseUtils (>= 0.2.3.9104).
 - R CMD check of the module's package form has no notes: `NEWS.md` had two "(development version)" headings and none with a version, so it could not be parsed (one heading now, with the version), undefined names are declared (`R/globals.R`), and `methods`, `stats` and `utils` are in `reqdPkgs` for `is()`, `setNames()`, `var()`, `getFromNamespace()` and `modifyList()`. No change to results. One check warning remains: `SpaDES.core::convertToPackage()` writes `import()` for every `reqdPkgs` entry, so the whole-package imports clash ("replacing previous import").
 
