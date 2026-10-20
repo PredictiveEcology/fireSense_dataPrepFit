@@ -1,6 +1,6 @@
 ---
 title: "fireSense_dataPrepFit Manual"
-subtitle: "v.1.3.0.9012"
+subtitle: "v.1.3.0.9013"
 date: "Last updated: 2026-10-20"
 output:
   bookdown::html_document2:
