@@ -552,20 +552,6 @@ NA
 </tr>
 <tr>
 <td style="text-align:left;">
-spreadFitPreRun
-</td>
-<td style="text-align:left;">
-data.frame
-</td>
-<td style="text-align:left;">
-Ledger rows of previous SpreadFit results, as the output of that name; <code><a href="reference/Init.html">Init()</a></code> reads them (supplied by <code>fireSense_ELFs</code>). Declared as an input so the rows are in the cache keys of this module’s cached events: otherwise a cache entry saved before an ELF was refitted restores its old row over the one <code><a href="reference/Init.html">Init()</a></code> just read.
-</td>
-<td style="text-align:left;">
-NA
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
 studyArea
 </td>
 <td style="text-align:left;">
@@ -728,7 +714,7 @@ fireYears
 integer
 </td>
 <td style="text-align:left;">
-1985, 19….
+1986, 19….
 </td>
 <td style="text-align:left;">
 NA
@@ -1002,6 +988,25 @@ NA (default): unchanged. <code>1</code> or <code>2</code>: a cross-validation fo
 </tr>
 <tr>
 <td style="text-align:left;">
+fitFileSuffix
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Text put after the model tag in the ledger file names, e.g. <code>"_boundfix_rep81"</code>, so a test run writes and reads (<code>"latest"</code>) only its own files, never the production ones. <code>""</code> (the default) is the production ledger. The same parameter of <code>fireSense_spreadFit</code>, <code>fireSense_ignitionFit</code> and <code>fireSense_ELFs</code>; set it for all with <code>.globals = list(fitFileSuffix = ...)</code>; modules that disagree stop (<code><a href="https://spades-core.predictiveecology.org/reference/paramCheckOtherMods.html" class="external-link">SpaDES.core::paramCheckOtherMods()</a></code>). Ignored when a file name is given.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
 spreadFitGoogleDriveFolder
 </td>
 <td style="text-align:left;">
@@ -1161,6 +1166,26 @@ Should this entire module be run with caching activated? This is intended for da
 </tr>
 <tr>
 <td style="text-align:left;">
+.neverCache
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+init
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Events that are never cached, whatever <code>.useCache</code> says (read by SpaDES.core, 3.2.1.9037 or later): <code>init</code> asks Google Drive whether the spread-fit ledger already has parameters for this study area, and a cached <code>init</code> replays an older answer.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
 .useCacheArgs
 </td>
 <td style="text-align:left;">
@@ -1176,7 +1201,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Extra <code><a href="https://reproducible.predictiveecology.org/reference/Cache.html" class="external-link">reproducible::Cache()</a></code> arguments, by event. A cached event’s digest covers this module’s code but not the package functions it calls, so <code>dataPrepBuild</code> and <code>prepSpreadFitData</code> pass those in <code>.cacheExtra</code>: a changed function then re-runs the event.
+Extra <code><a href="https://reproducible.predictiveecology.org/reference/Cache.html" class="external-link">reproducible::Cache()</a></code> arguments, by event. A cached event’s digest covers this module’s code but not the package functions it calls, so <code>dataPrepBuild</code> and <code>prepSpreadFitData</code> pass those in <code>.cacheExtra</code>: a changed function then re-runs the event. Every cached event after <code>init</code> also keys on <code>sim$spreadFitPreRun</code>, evaluated when the event runs: <code><a href="reference/Init.html">Init()</a></code> has by then assigned it (this study area’s ledger rows, or <code>NULL</code>), so a new fit of this study area re-runs the events, while rows of other study areas do not.
 </td>
 </tr>
 </tbody>
@@ -1257,7 +1282,7 @@ spreadFitPreRun
 data.frame
 </td>
 <td style="text-align:left;">
-Ledger rows of previous SpreadFit results that overlap <code>studyArea</code>, from <code>CacheGeo</code>: a geometry column (convert with <code><a href="https://r-spatial.github.io/sf/reference/st_as_sf.html" class="external-link">sf::st_as_sf</a></code>), plus <code>polygonID</code> and the columns in <code>spreadFitAdditionalColNames</code>. <code>NULL</code> if there is no previous fit.
+Ledger rows of previous SpreadFit results that overlap <code>studyArea</code>, from <code>CacheGeo</code>: a geometry column (convert with <code><a href="https://r-spatial.github.io/sf/reference/st_as_sf.html" class="external-link">sf::st_as_sf</a></code>), plus <code>polygonID</code> and the columns in <code>spreadFitAdditionalColNames</code>. <code>NULL</code> if there is no previous fit. <code><a href="reference/Init.html">Init()</a></code> always assigns it (<code>fireSense_ELFs</code> may have put the whole ledger there before). It is not an input: as one, it would be in the <code>.inputObjects</code> cache key and any ELF’s new fit would redo the data preparation. The cached events after <code>init</code> key on it through <code>.useCacheArgs</code>, so a cached event cannot restore an old row over the one <code><a href="reference/Init.html">Init()</a></code> just read.
 </td>
 </tr>
 <tr>
