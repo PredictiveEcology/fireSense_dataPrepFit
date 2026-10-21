@@ -2995,7 +2995,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">fireSense_dataPrepFit Manual</h1>
 <h3 class="subtitle">v.1.3.0.9013</h3>
-<h4 class="date">Last updated: 2026-10-20</h4>
+<h4 class="date">Last updated: 2026-10-21</h4>
 
 </div>
 
@@ -3546,6 +3546,9 @@ max
 <th style="text-align:left;">
 paramDesc
 </th>
+<th style="text-align:left;">
+cacheKey
+</th>
 </tr>
 </thead>
 <tbody>
@@ -3568,6 +3571,9 @@ NA
 <td style="text-align:left;">
 Size of the unburned buffer sampled around each fire: a scalar (buffer area is <code>areaMultiplier fireSize</code>) or a quoted function of <code>fireSize</code>. The default is <code>function(size) 10 fireSenseUtils::multiplier(size)</code>, 10 times <code>fireSenseUtils::multiplier</code>; smaller multipliers gave wrong fits. See <code>?fireSenseUtils::bufferToArea</code>.
 </td>
+<td style="text-align:left;">
+TRUE
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -3587,6 +3593,9 @@ NA
 </td>
 <td style="text-align:left;">
 Buffer distance within which separate patches of burned pixels count as one fire. Only used when <code>useRasterizedFireForSpread = TRUE</code>.
+</td>
+<td style="text-align:left;">
+TRUE
 </td>
 </tr>
 <tr>
@@ -3608,6 +3617,9 @@ NA
 <td style="text-align:left;">
 Age at and below which pixels are considered ‘young’ (<code>young &amp;lt;- age &amp;lt;= cutoffForYoungAge</code>)
 </td>
+<td style="text-align:left;">
+TRUE
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -3627,6 +3639,9 @@ NA
 </td>
 <td style="text-align:left;">
 Two or more increasing years for which vegetation, land cover and stand age are built (<code>cohortDatas</code>, <code>rstLCCs</code>, <code>standAgeMaps</code>, …). Each fire year uses the latest data year strictly before it (a year’s satellite vegetation already shows part of that year’s fires), so every <code>fireYears</code> must be after the first, and every data year needs at least one fire year before the next data year.
+</td>
+<td style="text-align:left;">
+TRUE
 </td>
 </tr>
 <tr>
@@ -3648,6 +3663,9 @@ NA
 <td style="text-align:left;">
 Estimate fuel classes with <code>fireSenseUtils::assessFuelClasses</code>? Skipped if the user supplies <code>nonForestedLCCGroups</code>, <code>fuelClassTable</code> or a <code>FuelClass</code> column that differs from LandR’s, or if a previous SpreadFit exists for the study area.
 </td>
+<td style="text-align:left;">
+TRUE
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -3667,6 +3685,9 @@ NA
 </td>
 <td style="text-align:left;">
 Years of fire records to use for fitting. All must be after the first of <code>dataYears</code>, and <code>historicalClimateRasters</code> must cover all of them. The default runs from 1986, the year after the first SCANFI V2 year, to the latest year with historical climate for every tile (<code>fireSenseUtils::defaultFireYears()</code>); climate is the last of the inputs to reach a year. <code>fireSense_ELFs</code> takes its <code>fireYears</code> default from the same function.
+</td>
+<td style="text-align:left;">
+TRUE
 </td>
 </tr>
 <tr>
@@ -3688,6 +3709,9 @@ numeric
 <td style="text-align:left;">
 Minimum proportion of flammable fine-resolution land cover for a <code>rasterToMatch</code> pixel to be flammable. Only used when <code>rstLCCs</code> is built here.
 </td>
+<td style="text-align:left;">
+TRUE
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -3707,6 +3731,9 @@ NA
 </td>
 <td style="text-align:left;">
 Forested land cover classes - these differ from non-forest because the biomass and composition of fuels are taken into account by fireSense, while non-forest classes are treated categorically
+</td>
+<td style="text-align:left;">
+TRUE
 </td>
 </tr>
 <tr>
@@ -3728,6 +3755,9 @@ NA
 <td style="text-align:left;">
 Aggregation factor (number of <code>rasterToMatch</code> cells per side) for the ignition and escape covariates.
 </td>
+<td style="text-align:left;">
+TRUE
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -3747,6 +3777,9 @@ NA
 </td>
 <td style="text-align:left;">
 Size (ha) a fire must reach to count as escaped: the escape model’s response, and the smallest fire the spread model is fitted to. Smaller fires’ sizes become <code>nonEscapedFireSizesHa</code>.
+</td>
+<td style="text-align:left;">
+TRUE
 </td>
 </tr>
 <tr>
@@ -3768,6 +3801,9 @@ NA
 <td style="text-align:left;">
 the column in <code>sppEquiv</code> that defines unique fuel classes. A column named <code>FuelClass</code> exists in the <code>LandR::sppEquivalencies_CA</code> and will be used by default. To change the <code>FuelClass</code> classifications, add a column to that table, or to <code>sim$sppEquiv</code> and then modify this <code>fuelClassCol</code> parameter
 </td>
+<td style="text-align:left;">
+TRUE
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -3787,6 +3823,9 @@ NA
 </td>
 <td style="text-align:left;">
 How the spread-fit fuel covariates are represented. <code>&quot;domSecWetland&quot;</code> (default): <code>dom_agb_&amp;lt;class&amp;gt;</code> and <code>sec_agb_&amp;lt;class&amp;gt;</code> (the two fuel classes with the most total treed AGB over the fit study area) and <code>treedWetland_agb</code> (all tree AGB on treed-wetland pixels, removed from dom/sec there); other classes are not covariates; see <code>fireSenseUtils::fireSenseCovariatesCreate()</code>. <code>&quot;species&quot;</code>: the previous one column per fuel class. <code>fireSense_dataPrepPredict</code> follows whichever a fit used; this is not a parameter there.
+</td>
+<td style="text-align:left;">
+TRUE
 </td>
 </tr>
 <tr>
@@ -3808,6 +3847,9 @@ NA
 <td style="text-align:left;">
 Minimum number of cells in each fire’s burned-plus-buffer sample, applied after <code>areaMultiplier</code>.
 </td>
+<td style="text-align:left;">
+TRUE
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -3827,6 +3869,9 @@ numeric
 </td>
 <td style="text-align:left;">
 A land-cover class covering less than this proportion of the ELF’s flammable pixels (most recent data year) is too rare to estimate a spread coefficient for. A non-forest class joins the non-forest group nearest its burn rate instead of being clustered on its own (<code>fireSenseUtils::assessFuelClasses()</code>); with less treed wetland than this there is no <code>treedWetland_agb</code> and its tree AGB stays in <code>dom_agb_</code>/<code>sec_agb_</code> (<code>fireSenseUtils::fireSenseCovariatesCreate()</code>). <code>0</code> keeps every class.
+</td>
+<td style="text-align:left;">
+TRUE
 </td>
 </tr>
 <tr>
@@ -3848,6 +3893,9 @@ NA
 <td style="text-align:left;">
 Non-flammable classes in <code>rstLCCs</code>; the default, <code>fireSenseUtils::fireSenseNonflammableLCC</code>, is no data, water, rock, snow/ice and barren land.
 </td>
+<td style="text-align:left;">
+TRUE
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -3867,6 +3915,9 @@ NA
 </td>
 <td style="text-align:left;">
 if TRUE, burned non-forest will be treated as <code>youngAge</code>. Recommended to be TRUE as burned forest is often classified as non-forest. <code>youngAge</code> is resolved for each fire year from the data year’s time since disturbance, which covers forest and non-forest alike, so <code>FALSE</code> is not supported and stops the spread and ignition preparation.
+</td>
+<td style="text-align:left;">
+TRUE
 </td>
 </tr>
 <tr>
@@ -3888,6 +3939,9 @@ NA
 <td style="text-align:left;">
 SCANFI land-cover version for non-forest land cover, <code>&quot;V2&quot;</code> or <code>&quot;V3&quot;</code>. Passed to <code>fireSenseUtils::makeFireSenseLCC()</code>.
 </td>
+<td style="text-align:left;">
+TRUE
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -3907,6 +3961,9 @@ NA
 </td>
 <td style="text-align:left;">
 column name in <code>sppEquiv</code> object that defines unique species in <code>cohortData</code>
+</td>
+<td style="text-align:left;">
+TRUE
 </td>
 </tr>
 <tr>
@@ -3928,6 +3985,32 @@ NA
 <td style="text-align:left;">
 NA (default): unchanged. <code>1</code> or <code>2</code>: a cross-validation fold is being fitted (the same parameter as in <code>fireSense_spreadFit</code>), so the SpreadFit ledger is not relevant and <code>Init()</code> does not read it: <code>sim$spreadFitPreRun</code> stays NULL and this module derives the species, fuel and climate objects itself, as for an unfitted study area. Set it for every fireSense module at once with <code>.globals = list(heldOutFold = 1L)</code>; <code>Init()</code> stops if <code>fireSense_spreadFit</code> has a different value. Any other value is an error.
 </td>
+<td style="text-align:left;">
+TRUE
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+doFit
+</td>
+<td style="text-align:left;">
+logical
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+The same parameter as in <code>fireSense_spreadFit</code>: NA (default) fits only an ELF without a ledger fit, TRUE always refits. When this ELF’s ledger fit is reused (NA with a ledger row, or FALSE), the spread formula takes that fit’s climate variable(s); when it is fitted, <code>climateVariablesForFire$spread</code> as given (<code>&quot;auto&quot;</code>: chosen afresh). Set it for every fireSense module at once with <code>.globals = list(doFit = ...)</code>.
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -3946,6 +4029,9 @@ NA
 </td>
 <td style="text-align:left;">
 Text put after the model tag in the ledger file names, e.g. <code>&quot;_boundfix_rep81&quot;</code>, so a test run writes and reads (<code>&quot;latest&quot;</code>) only its own files, never the production ones. <code>&quot;&quot;</code> (the default) is the production ledger. The same parameter of <code>fireSense_spreadFit</code>, <code>fireSense_ignitionFit</code> and <code>fireSense_ELFs</code>; set it for all with <code>.globals = list(fitFileSuffix = ...)</code>; modules that disagree stop (<code>SpaDES.core::paramCheckOtherMods()</code>). Ignored when a file name is given.
+</td>
+<td style="text-align:left;">
+TRUE
 </td>
 </tr>
 <tr>
@@ -3967,6 +4053,9 @@ NA
 <td style="text-align:left;">
 URL of the Google Drive folder holding the ledger of previous SpreadFit results (<code>spreadFitFilename</code>), read with <code>reproducible::CacheGeo</code>.
 </td>
+<td style="text-align:left;">
+TRUE
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -3986,6 +4075,9 @@ NA
 </td>
 <td style="text-align:left;">
 Name of the ledger file in <code>spreadFitGoogleDriveFolder</code>: study area polygons with their fitted SpreadFit parameters. <code>&quot;latest&quot;</code> (the default) takes each polygon’s fit from the most recent ledger file that has it (<code>fireSenseUtils::latestSpreadFits()</code>).
+</td>
+<td style="text-align:left;">
+TRUE
 </td>
 </tr>
 <tr>
@@ -4007,6 +4099,9 @@ NA
 <td style="text-align:left;">
 If <code>TRUE</code>, the spread formula has an intercept (<code>~ 1 + ...</code>) and <code>fireSense_spreadFit</code> fits it, with the covariates centred, so the coefficients describe variation and the intercept the level. Covariates are rescaled to 0-1 and so are all &gt;= 0: without an intercept the level of the linear predictor is set by the coefficients alone, and a climate coefficient trades off against the fuel and non-forest ones (ELF 13.1). <code>TRUE</code> is the default; <code>FALSE</code> gives <code>~ 0 + ...</code>. Ignored if <code>sim$fireSense_spreadFormula</code> is supplied. Needs a <code>fireSense_spreadFit</code> and a <code>fireSense_spreadPredict</code> that know the intercept.
 </td>
+<td style="text-align:left;">
+TRUE
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -4026,6 +4121,9 @@ numeric
 </td>
 <td style="text-align:left;">
 the target number of unique fuel classes when using semi-automated approach
+</td>
+<td style="text-align:left;">
+TRUE
 </td>
 </tr>
 <tr>
@@ -4047,6 +4145,9 @@ NA
 <td style="text-align:left;">
 Use <code>historicalFireRaster</code> in place of fire polygons for spread? Not currently supported: <code>TRUE</code> stops with an error when preparing SpreadFit.
 </td>
+<td style="text-align:left;">
+TRUE
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -4067,6 +4168,9 @@ NA
 <td style="text-align:left;">
 Which fireSense fit modules to prep? defaults to both. Preparing <code>fireSense_ignitionFit</code> prepares its ignition and escape data.
 </td>
+<td style="text-align:left;">
+TRUE
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -4085,6 +4189,9 @@ NA
 </td>
 <td style="text-align:left;">
 <code>studyArea</code> name used in file names and cache tags; <code>NULL</code> derives it from <code>sim$studyArea</code>.
+</td>
+<td style="text-align:left;">
+TRUE
 </td>
 </tr>
 <tr>
@@ -4106,6 +4213,9 @@ NA
 <td style="text-align:left;">
 Should this entire module be run with caching activated? This is intended for data-type modules, where stochasticity and time are not relevant
 </td>
+<td style="text-align:left;">
+TRUE
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -4126,6 +4236,9 @@ NA
 <td style="text-align:left;">
 Events that are never cached, whatever <code>.useCache</code> says (read by SpaDES.core, 3.2.1.9037 or later): <code>init</code> asks Google Drive whether the spread-fit ledger already has parameters for this study area, and a cached <code>init</code> replays an older answer.
 </td>
+<td style="text-align:left;">
+TRUE
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -4145,6 +4258,9 @@ NA
 </td>
 <td style="text-align:left;">
 Extra <code>reproducible::Cache()</code> arguments, by event. A cached event’s digest covers this module’s code but not the package functions it calls, so <code>dataPrepBuild</code> and <code>prepSpreadFitData</code> pass those in <code>.cacheExtra</code>: a changed function then re-runs the event. Every cached event after <code>init</code> also keys on <code>sim$spreadFitPreRun</code>, evaluated when the event runs: <code>Init()</code> has by then assigned it (this study area’s ledger rows, or <code>NULL</code>), so a new fit of this study area re-runs the events, while rows of other study areas do not.
+</td>
+<td style="text-align:left;">
+TRUE
 </td>
 </tr>
 </tbody>
@@ -4222,7 +4338,7 @@ climateVariablesForFire
 list
 </td>
 <td style="text-align:left;">
-As the input. If a previous SpreadFit exists, <code>spread</code> becomes the climate variables of that fit, and they are added to <code>ignition</code>.
+As the input. If previous SpreadFits exist, <code>spread</code> becomes the climate variables of all of them (prediction blends neighbour ELFs) plus this ELF’s own, and they are added to <code>ignition</code>. The spread formula has only this ELF’s own (see <code>doFit</code>).
 </td>
 </tr>
 <tr>

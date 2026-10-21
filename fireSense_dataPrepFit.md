@@ -1,7 +1,7 @@
 ---
 title: "fireSense_dataPrepFit Manual"
 subtitle: "v.1.3.0.9013"
-date: "Last updated: 2026-10-20"
+date: "Last updated: 2026-10-21"
 output:
   bookdown::html_document2:
     toc: true
@@ -301,6 +301,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <th style="text-align:left;"> min </th>
    <th style="text-align:left;"> max </th>
    <th style="text-align:left;"> paramDesc </th>
+   <th style="text-align:left;"> cacheKey </th>
   </tr>
  </thead>
 <tbody>
@@ -311,6 +312,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Size of the unburned buffer sampled around each fire: a scalar (buffer area is `areaMultiplier fireSize`) or a quoted function of `fireSize`. The default is `function(size) 10 fireSenseUtils::multiplier(size)`, 10 times `fireSenseUtils::multiplier`; smaller multipliers gave wrong fits. See `?fireSenseUtils::bufferToArea`. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> bufferForFireRaster </td>
@@ -319,6 +321,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> 0 </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Buffer distance within which separate patches of burned pixels count as one fire. Only used when `useRasterizedFireForSpread = TRUE`. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> cutoffForYoungAge </td>
@@ -327,6 +330,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Age at and below which pixels are considered 'young' (`young &lt;- age &lt;= cutoffForYoungAge`) </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> dataYears </td>
@@ -335,6 +339,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Two or more increasing years for which vegetation, land cover and stand age are built (`cohortDatas`, `rstLCCs`, `standAgeMaps`, ...). Each fire year uses the latest data year strictly before it (a year's satellite vegetation already shows part of that year's fires), so every `fireYears` must be after the first, and every data year needs at least one fire year before the next data year. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> estimateFuelClasses </td>
@@ -343,6 +348,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Estimate fuel classes with `fireSenseUtils::assessFuelClasses`? Skipped if the user supplies `nonForestedLCCGroups`, `fuelClassTable` or a `FuelClass` column that differs from LandR's, or if a previous SpreadFit exists for the study area. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> fireYears </td>
@@ -351,6 +357,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Years of fire records to use for fitting. All must be after the first of `dataYears`, and `historicalClimateRasters` must cover all of them. The default runs from 1986, the year after the first SCANFI V2 year, to the latest year with historical climate for every tile (`fireSenseUtils::defaultFireYears()`); climate is the last of the inputs to reach a year. `fireSense_ELFs` takes its `fireYears` default from the same function. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> flammabilityThreshold </td>
@@ -359,6 +366,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> 0 </td>
    <td style="text-align:left;"> 1 </td>
    <td style="text-align:left;"> Minimum proportion of flammable fine-resolution land cover for a `rasterToMatch` pixel to be flammable. Only used when `rstLCCs` is built here. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> forestedLCC </td>
@@ -367,6 +375,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Forested land cover classes - these differ from non-forest because the biomass and composition of fuels are taken into account by fireSense, while non-forest classes are treated categorically </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> igAggFactor </td>
@@ -375,6 +384,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> 1 </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Aggregation factor (number of `rasterToMatch` cells per side) for the ignition and escape covariates. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> escapeSizeHa </td>
@@ -383,6 +393,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> 0 </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Size (ha) a fire must reach to count as escaped: the escape model's response, and the smallest fire the spread model is fitted to. Smaller fires' sizes become `nonEscapedFireSizesHa`. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> fuelClassCol </td>
@@ -391,6 +402,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> the column in `sppEquiv` that defines unique fuel classes. A column named `FuelClass` exists in the `LandR::sppEquivalencies_CA` and will be used by default. To change the `FuelClass` classifications, add a column to that table, or to `sim$sppEquiv` and then modify this `fuelClassCol` parameter </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> fuelCovariates </td>
@@ -399,6 +411,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> How the spread-fit fuel covariates are represented. `"domSecWetland"` (default): `dom_agb_&lt;class&gt;` and `sec_agb_&lt;class&gt;` (the two fuel classes with the most total treed AGB over the fit study area) and `treedWetland_agb` (all tree AGB on treed-wetland pixels, removed from dom/sec there); other classes are not covariates; see `fireSenseUtils::fireSenseCovariatesCreate()`. `"species"`: the previous one column per fuel class. `fireSense_dataPrepPredict` follows whichever a fit used; this is not a parameter there. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> minBufferSize </td>
@@ -407,6 +420,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Minimum number of cells in each fire's burned-plus-buffer sample, applied after `areaMultiplier`. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> minCovariateProp </td>
@@ -415,6 +429,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> 0 </td>
    <td style="text-align:left;"> 1 </td>
    <td style="text-align:left;"> A land-cover class covering less than this proportion of the ELF's flammable pixels (most recent data year) is too rare to estimate a spread coefficient for. A non-forest class joins the non-forest group nearest its burn rate instead of being clustered on its own (`fireSenseUtils::assessFuelClasses()`); with less treed wetland than this there is no `treedWetland_agb` and its tree AGB stays in `dom_agb_ `/`sec_agb_ ` (`fireSenseUtils::fireSenseCovariatesCreate()`). `0` keeps every class. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> nonflammableLCC </td>
@@ -423,6 +438,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Non-flammable classes in `rstLCCs`; the default, `fireSenseUtils::fireSenseNonflammableLCC`, is no data, water, rock, snow/ice and barren land. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> nonForestCanBeYoungAge </td>
@@ -431,6 +447,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> if TRUE, burned non-forest will be treated as `youngAge`. Recommended to be TRUE as burned forest is often classified as non-forest. `youngAge` is resolved for each fire year from the data year's time since disturbance, which covers forest and non-forest alike, so `FALSE` is not supported and stops the spread and ignition preparation. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> scanfiVersion </td>
@@ -439,6 +456,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> SCANFI land-cover version for non-forest land cover, `"V2"` or `"V3"`. Passed to `fireSenseUtils::makeFireSenseLCC()`. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> sppEquivCol </td>
@@ -447,6 +465,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> column name in `sppEquiv` object that defines unique species in `cohortData` </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> heldOutFold </td>
@@ -455,6 +474,16 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA (default): unchanged. `1` or `2`: a cross-validation fold is being fitted (the same parameter as in `fireSense_spreadFit`), so the SpreadFit ledger is not relevant and `Init()` does not read it: `sim$spreadFitPreRun` stays NULL and this module derives the species, fuel and climate objects itself, as for an unfitted study area. Set it for every fireSense module at once with `.globals = list(heldOutFold = 1L)`; `Init()` stops if `fireSense_spreadFit` has a different value. Any other value is an error. </td>
+   <td style="text-align:left;"> TRUE </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> doFit </td>
+   <td style="text-align:left;"> logical </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> The same parameter as in `fireSense_spreadFit`: NA (default) fits only an ELF without a ledger fit, TRUE always refits. When this ELF's ledger fit is reused (NA with a ledger row, or FALSE), the spread formula takes that fit's climate variable(s); when it is fitted, `climateVariablesForFire$spread` as given (`"auto"`: chosen afresh). Set it for every fireSense module at once with `.globals = list(doFit = ...)`. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> fitFileSuffix </td>
@@ -463,6 +492,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Text put after the model tag in the ledger file names, e.g. `"_boundfix_rep81"`, so a test run writes and reads (`"latest"`) only its own files, never the production ones. `""` (the default) is the production ledger. The same parameter of `fireSense_spreadFit`, `fireSense_ignitionFit` and `fireSense_ELFs`; set it for all with `.globals = list(fitFileSuffix = ...)`; modules that disagree stop (`SpaDES.core::paramCheckOtherMods()`). Ignored when a file name is given. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> spreadFitGoogleDriveFolder </td>
@@ -471,6 +501,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> URL of the Google Drive folder holding the ledger of previous SpreadFit results (`spreadFitFilename`), read with `reproducible::CacheGeo`. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> spreadFitFilename </td>
@@ -479,6 +510,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Name of the ledger file in `spreadFitGoogleDriveFolder`: study area polygons with their fitted SpreadFit parameters. `"latest"` (the default) takes each polygon's fit from the most recent ledger file that has it (`fireSenseUtils::latestSpreadFits()`). </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> spreadIntercept </td>
@@ -487,6 +519,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> If `TRUE`, the spread formula has an intercept (`~ 1 + ...`) and `fireSense_spreadFit` fits it, with the covariates centred, so the coefficients describe variation and the intercept the level. Covariates are rescaled to 0-1 and so are all &gt;= 0: without an intercept the level of the linear predictor is set by the coefficients alone, and a climate coefficient trades off against the fuel and non-forest ones (ELF 13.1). `TRUE` is the default; `FALSE` gives `~ 0 + ...`. Ignored if `sim$fireSense_spreadFormula` is supplied. Needs a `fireSense_spreadFit` and a `fireSense_spreadPredict` that know the intercept. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> targetFuelClasses </td>
@@ -495,6 +528,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> 1 </td>
    <td style="text-align:left;"> 7 </td>
    <td style="text-align:left;"> the target number of unique fuel classes when using semi-automated approach </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> useRasterizedFireForSpread </td>
@@ -503,6 +537,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Use `historicalFireRaster` in place of fire polygons for spread? Not currently supported: `TRUE` stops with an error when preparing SpreadFit. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> whichModulesToPrepare </td>
@@ -511,6 +546,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Which fireSense fit modules to prep? defaults to both. Preparing `fireSense_ignitionFit` prepares its ignition and escape data. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .studyAreaName </td>
@@ -519,6 +555,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> `studyArea` name used in file names and cache tags; `NULL` derives it from `sim$studyArea`. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .useCache </td>
@@ -527,6 +564,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Should this entire module be run with caching activated? This is intended for data-type modules, where stochasticity and time are not relevant </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .neverCache </td>
@@ -535,6 +573,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Events that are never cached, whatever `.useCache` says (read by SpaDES.core, 3.2.1.9037 or later): `init` asks Google Drive whether the spread-fit ledger already has parameters for this study area, and a cached `init` replays an older answer. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .useCacheArgs </td>
@@ -543,6 +582,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Extra `reproducible::Cache()` arguments, by event. A cached event's digest covers this module's code but not the package functions it calls, so `dataPrepBuild` and `prepSpreadFitData` pass those in `.cacheExtra`: a changed function then re-runs the event. Every cached event after `init` also keys on `sim$spreadFitPreRun`, evaluated when the event runs: `Init()` has by then assigned it (this study area's ledger rows, or `NULL`), so a new fit of this study area re-runs the events, while rows of other study areas do not. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
 </tbody>
 </table>
@@ -608,7 +648,7 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-dataP
   <tr>
    <td style="text-align:left;"> climateVariablesForFire </td>
    <td style="text-align:left;"> list </td>
-   <td style="text-align:left;"> As the input. If a previous SpreadFit exists, `spread` becomes the climate variables of that fit, and they are added to `ignition`. </td>
+   <td style="text-align:left;"> As the input. If previous SpreadFits exist, `spread` becomes the climate variables of all of them (prediction blends neighbour ELFs) plus this ELF's own, and they are added to `ignition`. The spread formula has only this ELF's own (see `doFit`). </td>
   </tr>
   <tr>
    <td style="text-align:left;"> spreadFitPreRun </td>
