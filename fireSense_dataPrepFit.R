@@ -115,6 +115,12 @@ defineModule(sim, list(
                                  "the species, fuel and climate objects itself, as for an unfitted study area.",
                                  "Set it for every fireSense module at once with `.globals = list(heldOutFold = 1L)`;",
                                  "`Init()` stops if `fireSense_spreadFit` has a different value. Any other value is an error.")),
+    defineParameter("doFit", "logical", default = NA,
+                    desc = paste("The same parameter as in `fireSense_spreadFit`: NA (default) fits only an ELF without",
+                                 "a ledger fit, TRUE always refits. When this ELF's ledger fit is reused (NA with a",
+                                 "ledger row, or FALSE), the spread formula takes that fit's climate variable(s);",
+                                 "when it is fitted, `climateVariablesForFire$spread` as given (`\"auto\"`: chosen",
+                                 "afresh). Set it for every fireSense module at once with `.globals = list(doFit = ...)`.")),
     defineParameter("fitFileSuffix", "character", "", NA, NA,
                     paste("Text put after the model tag in the ledger file names, e.g. `\"_boundfix_rep81\"`, so a test run",
                           "writes and reads (`\"latest\"`) only its own files, never the production ones. `\"\"` (the",
@@ -260,8 +266,9 @@ defineModule(sim, list(
   ),
   outputObjects = bindrows(
     createsOutput("climateVariablesForFire", "list",
-                  paste("As the input. If a previous SpreadFit exists, `spread` becomes the climate variables",
-                        "of that fit, and they are added to `ignition`.")),
+                  paste("As the input. If previous SpreadFits exist, `spread` becomes the climate variables",
+                        "of all of them (prediction blends neighbour ELFs) plus this ELF's own, and they are added",
+                        "to `ignition`. The spread formula has only this ELF's own (see `doFit`).")),
     createsOutput("spreadFitPreRun", "data.frame",
                   desc = paste("Ledger rows of previous SpreadFit results that overlap `studyArea`, from `CacheGeo`:",
                                "a geometry column (convert with `sf::st_as_sf`), plus `polygonID` and the columns in",
@@ -456,7 +463,7 @@ Init <- function(sim) {
       
       ClimateNames <- setdiff(setdiff(colnames(pars), lpn[[whLogistic]]), FuelNames)
       
-      allVars <- getFromNamespace(".allowedClimateVars", ns = asNamespace("climateData"))
+      allVars <- unique(getFromNamespace(".allowedClimateVars", ns = asNamespace("climateData"))) # it lists CMD twice
       allVarsNoUnderscore <- gsub("_", "", allVars)
       whClimateVar <- which(allVarsNoUnderscore %in% ClimateNames)
       theseClimVars <- allVars[whClimateVar]
@@ -516,13 +523,19 @@ Init <- function(sim) {
     }
     
     ## Each ELF's fit names its own spread climate variable(s): with spread = "auto" two ELFs can
-    ## differ. Prepare the union; each ELF's own formula picks its variables from it. Variables already
+    ## differ. Prepare the union, which prediction needs as it blends neighbour ELFs. Variables already
     ## being prepared keep their definition (and years); only missing ones are added, like the rest.
     fitClimVars <- unique(unlist(Map(x = outs2, function(x) x[["theseClimVars"]]), use.names = FALSE))
     fitClimVarsNoUnderscore <- gsub("_", "", fitClimVars)
     sim$climateVariables <- addFitClimateVariables(sim$climateVariables, fitClimVars,
                                                    historicalYears = P(sim)$fireYears,
                                                    projectedYears = canClimateProjectedYears(sim))
+    ## This ELF's spread formula takes only its own variable(s): those of its ledger fit when that fit is
+    ## reused, otherwise the requested ones ("auto" chooses in dataPrepBuild). Not the union: a neighbour's
+    ## CMDsm beside this ELF's CMD gave 6.2.2 two near-collinear terms (2026-10-21).
+    reuseOwnFit <- !is.na(ownRow) && !isTRUE(Par$doFit)
+    mod$spreadFormulaClimate <- if (reuseOwnFit) outs2[[ownRow]][["theseClimVarsNoUnderscore"]] else
+      sim$climateVariablesForFire[["spread"]]
     sim$climateVariablesForFire[["spread"]] <- fitClimVarsNoUnderscore
     ## ignition (xgboost) can use every one of them
     sim$climateVariablesForFire[["ignition"]] <-
@@ -878,9 +891,11 @@ prepare_SpreadFit <- function(sim) {
     }
   }
 
+  ## This ELF's spread climate variable(s), set by Init() when there is a ledger
+  spreadVars <- mod$spreadFormulaClimate %||% sim$climateVariablesForFire$spread
   ## spread = "auto": the climate variable that best separates this study area's bad fire years
   ## (R/fireClimateVariables.R)
-  if (identical(sim$climateVariablesForFire$spread, "auto")) {
+  if (identical(spreadVars, "auto")) {
     fy <- paste0(fireSenseUtils::yearTxt, P(sim)$fireYears)
     burned <- setNames(numeric(length(fy)), fy)
     b <- vapply(sim$fireBufferedListDT, function(d) as.numeric(sum(d$buffer == 1)), numeric(1))
@@ -888,18 +903,20 @@ prepare_SpreadFit <- function(sim) {
     burned[names(b)] <- b
     sim$spreadClimateSelection <- selectSpreadClimateVariable(sim$historicalClimateRasters, burned,
                                                               candidates = sim$climateVariablesForFire$ignition)
-    sim$climateVariablesForFire$spread <- sim$spreadClimateSelection[chosen == TRUE, var]
-    message("Spread climate variable (auto): ", sim$climateVariablesForFire$spread,
+    spreadVars <- sim$spreadClimateSelection[chosen == TRUE, var]
+    message("Spread climate variable (auto): ", spreadVars,
             "; bad-fire-year AUC: ", paste0(sim$spreadClimateSelection$var, " ",
                                             round(sim$spreadClimateSelection$auc, 2), collapse = ", "))
   }
+  ## prediction takes every ELF's variables (Init()'s union) and this one's
+  sim$climateVariablesForFire$spread <- union(setdiff(sim$climateVariablesForFire$spread, "auto"), spreadVars)
 
   ## vegCols has no "youngAge" (it is in the annual tables) but, in principle, it could hold the
   ## spread climate variable name; both are added explicitly below, so they must be excluded here or
   ## the formula lists them twice and terms() silently drops the duplicate, leaving one fewer term
   ## than parameters.
-  vegColsForRHS <- setdiff(vegCols, c(youngAgeTxt, sim$climateVariablesForFire$spread))
-  RHS <- paste(paste0(sim$climateVariablesForFire$spread, collapse = " + "), youngAgeTxt,
+  vegColsForRHS <- setdiff(vegCols, c(youngAgeTxt, spreadVars))
+  RHS <- paste(paste0(spreadVars, collapse = " + "), youngAgeTxt,
                paste0(vegColsForRHS, collapse = " + "), sep =  " + ")
 
   ## this is a funny way to get years but avoids years with 0 fires
@@ -908,7 +925,7 @@ prepare_SpreadFit <- function(sim) {
 
   #### prep climate data ####
 
-  spreadClimate <- sim$historicalClimateRasters[sim$climateVariablesForFire$spread]
+  spreadClimate <- sim$historicalClimateRasters[spreadVars]
   #don't need climate data for years outside fire years
   spreadClimate <- lapply(spreadClimate, FUN = function(x){
     x <- terra::subset(x, subset = names(x) %in% paste0(fireSenseUtils::yearTxt, P(sim)$fireYears))

@@ -13,7 +13,7 @@ test_that("the spread formula lists a veg-table youngAge column once, not twice"
   ## pull just the statements that build vegCols and the formula's RHS out of prepare_SpreadFit,
   ## in their original order, and eval them against a small fabricated fireSenseVegData -- the
   ## rest of that function (fire buffering, climate rasters, ...) is irrelevant to this defect
-  patterns <- c("^nonVegColnames <-", "^vegCols <- setdiff", "^dropCols <-",
+  patterns <- c("^spreadVars <-", "^nonVegColnames <-", "^vegCols <- setdiff", "^dropCols <-",
                 "^if \\(length\\(dropCols\\)", "^vegColsForRHS <-", "^RHS <-",
                 "^if \\(is\\.null\\(sim\\$fireSense_spreadFormula\\)\\)")
   idx <- sort(unique(unlist(lapply(patterns, grep, x = txt))))
@@ -23,6 +23,7 @@ test_that("the spread formula lists a veg-table youngAge column once, not twice"
   env$sim <- new.env()
   env$sim$climateVariablesForFire <- list(spread = "CMD")
   env$sim$fireSense_spreadFormula <- NULL
+  env$mod <- new.env() # no ledger: no `spreadFormulaClimate`
   env$Par <- list(spreadIntercept = FALSE) # the module's `Par`, as it is with the default
   ## the shape fireSenseVegData has after joinFireBuffersToVeg() and setnames(..., "buffer",
   ## "burned"): a youngAge column that is not all-zero, as in ELFs 14.3/14.4
