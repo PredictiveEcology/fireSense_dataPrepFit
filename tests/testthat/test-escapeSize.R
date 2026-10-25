@@ -23,7 +23,7 @@ test_that("the rules work on terra points, as the module's fire points are", {
 
 test_that("the module uses escapeSizeHa for the escape response, the spread fires and the small-fire sizes", {
   src <- readLines(file.path(modulePath, moduleName, paste0(moduleName, ".R")))
-  expect_true(any(grepl("escapedFires(sim$ignitionFirePoints, Par$escapeSizeHa", src, fixed = TRUE)))
+  expect_true(any(grepl("escapedIgnitions(sim$ignitionFirePoints, sim$spreadFirePolys, Par$escapeSizeHa", src, fixed = TRUE)))
   expect_true(any(grepl("escapedFires(x, Par$escapeSizeHa, pixSizeHa", src, fixed = TRUE)))
   expect_true(any(grepl("nonEscapedFireSizes(sim$ignitionFirePoints, Par$escapeSizeHa)", src, fixed = TRUE)))
 })

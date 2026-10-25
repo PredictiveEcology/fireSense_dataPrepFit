@@ -69,9 +69,10 @@ defineModule(sim, list(
     defineParameter("igAggFactor", "numeric", fireSenseUtils::fireSenseIgAggFactor, 1, NA,
                     "Aggregation factor (number of `rasterToMatch` cells per side) for the ignition and escape covariates."),
     defineParameter("escapeSizeHa", "numeric", 50, 0, NA,
-                    paste("Size (ha) a fire must reach to count as escaped: the escape model's response, and the",
-                          "smallest fire the spread model is fitted to. Smaller fires' sizes become",
-                          "`nonEscapedFireSizesHa`.")),
+                    paste("Size (ha) a fire must reach to count as escaped, and the smallest fire the spread model",
+                          "is fitted to. The escape model's response is the ignitions that became a fire polygon",
+                          "of at least this size (`fireSenseUtils::escapedIgnitions()`). Smaller fires' sizes",
+                          "become `nonEscapedFireSizesHa`.")),
     defineParameter("fuelClassCol", "character", fireSenseUtils::fireSenseFuelClassCol, NA, NA,
                     "the column in `sppEquiv` that defines unique fuel classes. A column ",
                     "named `FuelClass` exists in the `LandR::sppEquivalencies_CA` and will be used ",
@@ -168,7 +169,9 @@ defineModule(sim, list(
                       fireSenseUtils::lccFlammableShare, fireSenseUtils::makeLandcoverDT,
                       fireSenseUtils::makeTSD, spreadFitPreRun = sim$spreadFitPreRun))),
                          prepIgnitionFitData = list(.cacheExtra = quote(list(spreadFitPreRun = sim$spreadFitPreRun))),
-                         prepEscapeFitData = list(.cacheExtra = quote(list(spreadFitPreRun = sim$spreadFitPreRun))),
+                         prepEscapeFitData = list(.cacheExtra = quote(list(
+                      fireSenseUtils::escapedFires, fireSenseUtils::escapedIgnitions,
+                      spreadFitPreRun = sim$spreadFitPreRun))),
                          prepSpreadFitData = list(.cacheExtra = quote(c(list(
                       fireSenseUtils::bufferToArea, fireSenseUtils::chooseDomSecFuelClasses,
                       fireSenseUtils::climateRasterToDataTable, fireSenseUtils::dataYearElement,
@@ -1339,8 +1342,10 @@ prepEventsToSchedule <- function(which) {
 
 #' Prepare the covariates and formula for the escape part of fireSense_ignitionFit
 #'
-#' Adds to the ignition covariates the number of escapes: ignitions that reached `escapeSizeHa` (and grew
-#' beyond one `flammableRTMs` pixel). Needs `prepare_IgnitionFit()` to have run.
+#' Adds to the ignition covariates the number of escapes: ignitions that became a fire polygon
+#' (`spreadFirePolys`, the fires the spread model is fitted to) of at least `escapeSizeHa` and larger than one
+#' `flammableRTMs` pixel, one per polygon (`fireSenseUtils::escapedIgnitions()`). Needs `prepare_IgnitionFit()`
+#' to have run, and runs before `prepare_SpreadFit()` modifies `spreadFirePolys`.
 #'
 #' @param sim a `simList`.
 #' @return the `simList`, invisibly, with `fireSense_escapeCovariates` and `fireSense_escapeFormula`.
@@ -1351,8 +1356,12 @@ prepare_EscapeFit <- function(sim) {
     stop("Please include ignitionFit in parameter 'whichModulesToPrepare' if preparing escape data")
   }
 
-  escapes <- fireSenseUtils::escapedFires(sim$ignitionFirePoints, Par$escapeSizeHa,
-                                          pixSizeHa = prod(res(sim$flammableRTMs[[1]])) / 10000)
+  if (is.null(sim$spreadFirePolys)) {
+    stop("escapes are the ignitions that became a fire polygon: prepEscapeFitData needs firePolys")
+  }
+  escaped <- fireSenseUtils::escapedIgnitions(sim$ignitionFirePoints, sim$spreadFirePolys, Par$escapeSizeHa,
+                                              pixSizeHa = prod(res(sim$flammableRTMs[[1]])) / 10000)
+  escapes <- sim$ignitionFirePoints[escaped, ]
 
   ## make a template aggregated raster - values are irrelevant, only need pixelID
   aggregatedRas <- terra::aggregate(sim$historicalClimateRasters[[1]][[1]],
