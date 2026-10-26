@@ -229,7 +229,8 @@ defineModule(sim, list(
                        "with layers named `year<year>`. Must be supplied, and must cover `fireYears`.")),
     expectsInput("ignitionFirePoints", "SpatVector", sourceURL = NA,
                  paste("Points of annual ignitions, of every fire size, with columns `YEAR` and `SIZE_HA`.",
-                       "The default is the lightning- and natural-caused fires of the current NFDB release.")),
+                       "The default is the lightning- and natural-caused fires of the current NFDB release, without",
+                       "rows that repeat another row's date and location (`dropRepeatedFirePoints()`).")),
     expectsInput("missingLCCgroup", "character", sourceURL = NA,
                  paste("The `nonForestedLCCGroups` name given to forested pixels that are absent from `cohortData`.",
                        "The default is the first name; it is replaced if fuel classes are estimated.")),
@@ -1792,7 +1793,7 @@ runBorealDP_forCohortData <- function(sim) {
       Cache(omitArgs = "shp", .cacheExtra = basename(nfdbShp),
             userTags = c("ignitionFirePoints", P(sim)$.studyAreaName)) |>
       postProcessTo(projectTo = sim$rasterToMatch)
-    sim$ignitionFirePoints <- ignitionFirePoints[ignitionFirePoints$CAUSE %in% c("L", "N"),]
+    sim$ignitionFirePoints <- dropRepeatedFirePoints(ignitionFirePoints[ignitionFirePoints$CAUSE %in% c("L", "N"), ])
     if (nrow(sim$ignitionFirePoints) == 0) {
       stop("no lightning- or natural-caused (CAUSE L or N) NFDB fire points in the study area during fireYears")
     }

@@ -64,3 +64,18 @@ nfdbFirePoints <- function(shp, years, studyArea) {
 withIDsIn <- function(x, y, IDvar) {
   x[terra::values(x)[[IDvar]] %in% terra::values(y)[[IDvar]], ]
 }
+
+#' NFDB fire points with one row per fire
+#'
+#' Some NFDB rows repeat another row's date (`YEAR`, `MONTH`, `DAY`) and location exactly, nearly always under
+#' a different `FIRE_ID`: 554 of the 134,007 natural fires of 1986-2025 in release 20260811, 319 of them in BC.
+#' Each such group is taken as one fire recorded more than once, and the row with the largest `SIZE_HA` is kept.
+#'
+#' @param pts `SpatVector` of NFDB points with `YEAR`, `MONTH`, `DAY` and `SIZE_HA`.
+#' @return `pts` without the repeated rows, in their original order.
+dropRepeatedFirePoints <- function(pts) {
+  xy <- terra::crds(pts)
+  key <- paste(pts$YEAR, pts$MONTH, pts$DAY, xy[, 1], xy[, 2])
+  ord <- order(pts$SIZE_HA, decreasing = TRUE)
+  pts[sort(ord[!duplicated(key[ord])]), ]
+}
