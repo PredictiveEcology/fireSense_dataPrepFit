@@ -60,3 +60,19 @@ test_that("the cached harmonizeFireData() call is keyed on the functions it call
   txt <- paste(deparse(moduleDefs()[["prepare_SpreadFitFire_Vector"]]), collapse = " ")
   expect_match(txt, ".cacheExtra = fireSenseUtils::harmonizeFireDataDeps()", fixed = TRUE)
 })
+
+## The escape response comes from fireSenseUtils::escapedIgnitions() (2026-10-25); a change to it must remake
+## the cached escape data, so prepEscapeFitData's key names it and every other package function it reaches.
+test_that("prepEscapeFitData's cache key includes the package functions it reaches", {
+  skip_if_not_installed("LandR")
+  skip_if_not_installed("fireSenseUtils")
+  def <- Filter(function(x) is.call(x) && identical(x[[1]], as.name("defineModule")),
+                parse(testthat::test_path("..", "..", "fireSense_dataPrepFit.R"), keep.source = FALSE))
+  params <- eval(as.list(def[[1]][[3]])[["parameters"]], envir = asNamespace("SpaDES.core"))
+  extra <- params$default[[match(".useCacheArgs", params$paramName)]]$prepEscapeFitData$.cacheExtra
+  txt <- paste(deparse(extra), collapse = " ")
+  keyed <- regmatches(txt, gregexpr("(LandR|fireSenseUtils)::[A-Za-z0-9_.]+", txt))[[1]]
+  called <- packageCallsFrom("prepare_EscapeFit")
+  expect_true("fireSenseUtils::escapedIgnitions" %in% called)
+  expect_identical(setdiff(called, keyed), character(0))
+})
