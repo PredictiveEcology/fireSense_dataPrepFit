@@ -168,13 +168,16 @@ defineModule(sim, list(
                       fireSenseUtils::dataYearFor, fireSenseUtils::fuelClassPrep,
                       fireSenseUtils::lccFlammableShare, fireSenseUtils::makeLandcoverDT,
                       fireSenseUtils::makeTSD, spreadFitPreRun = sim$spreadFitPreRun))),
-                         prepIgnitionFitData = list(.cacheExtra = quote(list(spreadFitPreRun = sim$spreadFitPreRun))),
+                         prepIgnitionFitData = list(.cacheExtra = quote(list(
+                      fireSenseUtils::escapedFires, fireSenseUtils::ignitionPolygonPairs,
+                      fireSenseUtils::polygonIgnitions, spreadFitPreRun = sim$spreadFitPreRun))),
                          prepEscapeFitData = list(.cacheExtra = quote(list(
                       fireSenseUtils::escapedFires, fireSenseUtils::escapedIgnitions,
-                      spreadFitPreRun = sim$spreadFitPreRun))),
+                      fireSenseUtils::ignitionPolygonPairs, spreadFitPreRun = sim$spreadFitPreRun))),
                          prepSpreadFitData = list(.cacheExtra = quote(c(list(
                       fireSenseUtils::bufferToArea, fireSenseUtils::chooseDomSecFuelClasses,
-                      fireSenseUtils::climateRasterToDataTable, fireSenseUtils::dataYearElement,
+                      fireSenseUtils::climateRasterToDataTable, fireSenseUtils::dataYearBefore,
+                      fireSenseUtils::dataYearElement,
                       fireSenseUtils::dataYearFor, fireSenseUtils::emptySpreadCovariates,
                       fireSenseUtils::escapedFires, fireSenseUtils::fireSenseCovariatesCreate, fireSenseUtils::firePixelsByYear,
                       fireSenseUtils::harmonizeFireData, fireSenseUtils::lccFlammableShare,
@@ -322,7 +325,9 @@ defineModule(sim, list(
                         "the fuel classes chosen once for this ELF by `fireSenseUtils::chooseDomSecFuelClasses()`.",
                         "Both `NA` with `fuelCovariates = \"species\"` or when the ELF has no tree fuel class.")),
     createsOutput("ignitionFirePoints", "SpatVector",
-                  paste("The input, in the CRS of `rasterToMatch` and clipped to `studyArea`.")),
+                  paste("The input, in the CRS of `rasterToMatch` and clipped to `studyArea`; `prepIgnitionFitData` adds",
+                        "an ignition for each natural-cause fire polygon that no ignition point matches",
+                        "(`fireSenseUtils::polygonIgnitions()`).")),
     createsOutput("ignitionFitRTM", "SpatRaster",
                   paste("Template raster with the resolution and extent of `fireSense_ignitionCovariates`.",
                         "Attributes: `nonNAs`, the number of rows in that table, and `meanForestB`,",
@@ -774,6 +779,8 @@ dataPrepBuild <- function(sim) {
 #'   `spreadFirePoints` and `spreadFirePolys`.
 prepare_SpreadFit <- function(sim) {
 
+  mod$allYears <- fitYearNames(Par) # it runs before prepare_IgnitionFit, which set them
+
   ## prep veg data ---------------------------------------------------------------------------------
   doAssertion <- getOption("fireSenseUtils.assertions", TRUE)
   stopIfNonForestCannotBeYoung(P(sim)$nonForestCanBeYoungAge)
@@ -1218,13 +1225,25 @@ prepare_SpreadFitFire_Vector <- function(sim) {
 #' Prepare the covariates for fireSense_ignitionFit
 #'
 #' Aggregates fuel, climate and lightning covariates by `igAggFactor` and counts the ignitions in
-#' each coarse pixel and year. Sets `mod$allYears`, which the spread preparation uses. No formula is
+#' each coarse pixel and year. The ignitions are `ignitionFirePoints` plus, for each natural-cause fire polygon
+#' that no ignition point matches, one at the fire's start point (`fireSenseUtils::polygonIgnitions()` on
+#' `spreadFirePolys` and `spreadFirePoints`, so it runs after `prepare_SpreadFit()`). Sets `mod$allYears`. No formula is
 #' built: fireSense_ignitionFit fits with xgboost, which does not use one.
 #'
 #' @param sim a `simList`.
 #' @return the `simList`, invisibly, with `fireSense_ignitionCovariates`, `ignitionFitRTM` and
 #'   `lightningMaps`.
 prepare_IgnitionFit <- function(sim) {
+
+  ## A natural-cause fire polygon of at least escapeSizeHa that no natural ignition point matches is an
+  ## ignition too (and an escape), at the start point the spread fit gives the fire (Eliot, 2026-10-25)
+  if (!is.null(sim$spreadFirePolys)) {
+    added <- fireSenseUtils::polygonIgnitions(
+      sim$ignitionFirePoints, sim$spreadFirePolys, sim$spreadFirePoints,
+      idCol = grep("ID$", names(sim$spreadFirePolys[[1]]), value = TRUE)[1],
+      escapeSizeHa = Par$escapeSizeHa, pixSizeHa = prod(res(sim$flammableRTMs[[1]])) / 10000)
+    sim$ignitionFirePoints <- rbind(sim$ignitionFirePoints, clipPointsToStudyArea(added, mod$studyAreaUnion))
+  }
 
   stopifnot(
     "all ignitionFirePoints are not within studyArea" = identical(
@@ -1241,8 +1260,7 @@ prepare_IgnitionFit <- function(sim) {
 
   ## ignition won't have same years as spread so we do not use names of init objects
   ## The reason is some years may have ignitions but no fires, e.g. 2010 in RIA
-  years <- yearGroups(Par$dataYears, Par$fireYears, FALSE)
-  years <- Map(y = years, function(y) paste0(fireSenseUtils::yearTxt, y))
+  years <- fitYearNames(Par)
   mod$allYears <- years
   allYearsVect <- unlist(mod$allYears)
 
@@ -1322,6 +1340,15 @@ prepare_IgnitionFit <- function(sim) {
   return(invisible(sim))
 }
 
+#' The fire years, by data year, as `year<year>` names
+#'
+#' @param Par the module's parameters.
+#' @return named list of character vectors, one per group of `yearGroups()`.
+fitYearNames <- function(Par) {
+  years <- yearGroups(Par$dataYears, Par$fireYears, FALSE)
+  Map(y = years, function(y) paste0(fireSenseUtils::yearTxt, y))
+}
+
 #' The prep events to schedule for `whichModulesToPrepare`
 #'
 #' Preparing `fireSense_ignitionFit` schedules `prepIgnitionFitData` and `prepEscapeFitData`: that module
@@ -1336,8 +1363,9 @@ prepEventsToSchedule <- function(which) {
          "fireSense_ignitionFit. Remove it from parameter whichModulesToPrepare.")
   if (!all(which %in% c("fireSense_spreadFit", "fireSense_ignitionFit")))
     stop("unrecognized module to prepare - review parameter whichModulesToPrepare")
-  c(if ("fireSense_ignitionFit" %in% which) c("prepIgnitionFitData", "prepEscapeFitData"),
-    if ("fireSense_spreadFit" %in% which) "prepSpreadFitData")
+  ## spread first: its fire start points place the ignitions of fire polygons without an ignition point
+  c(if ("fireSense_spreadFit" %in% which) "prepSpreadFitData",
+    if ("fireSense_ignitionFit" %in% which) c("prepIgnitionFitData", "prepEscapeFitData"))
 }
 
 #' Prepare the covariates and formula for the escape part of fireSense_ignitionFit
@@ -1345,7 +1373,7 @@ prepEventsToSchedule <- function(which) {
 #' Adds to the ignition covariates the number of escapes: ignitions that became a fire polygon
 #' (`spreadFirePolys`, the fires the spread model is fitted to) of at least `escapeSizeHa` and larger than one
 #' `flammableRTMs` pixel, one per polygon (`fireSenseUtils::escapedIgnitions()`). Needs `prepare_IgnitionFit()`
-#' to have run, and runs before `prepare_SpreadFit()` modifies `spreadFirePolys`.
+#' to have run (it adds the ignitions of polygons without an ignition point, which escape here).
 #'
 #' @param sim a `simList`.
 #' @return the `simList`, invisibly, with `fireSense_escapeCovariates` and `fireSense_escapeFormula`.

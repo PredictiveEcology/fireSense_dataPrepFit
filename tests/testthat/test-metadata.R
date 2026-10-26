@@ -132,11 +132,12 @@ test_that("the default whichModulesToPrepare is the two fit modules", {
   expect_setequal(default, c("fireSense_ignitionFit", "fireSense_spreadFit"))
 })
 
-test_that("preparing fireSense_ignitionFit schedules the escape event too", {
+## spread first (2026-10-25): its fire start points place the ignitions of polygons without an ignition point
+test_that("preparing fireSense_ignitionFit schedules the escape event too, after the spread data", {
   expect_identical(prepEventsToSchedule("fireSense_ignitionFit"),
                    c("prepIgnitionFitData", "prepEscapeFitData"))
   expect_identical(prepEventsToSchedule(c("fireSense_ignitionFit", "fireSense_spreadFit")),
-                   c("prepIgnitionFitData", "prepEscapeFitData", "prepSpreadFitData"))
+                   c("prepSpreadFitData", "prepIgnitionFitData", "prepEscapeFitData"))
   expect_identical(prepEventsToSchedule("fireSense_spreadFit"), "prepSpreadFitData")
 })
 
