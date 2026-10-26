@@ -49,3 +49,18 @@ firePolysByYear <- function(shp, years, studyArea) {
 nfdbFirePoints <- function(shp, years, studyArea) {
   fireregimetools::load_nfdb_points(shp, study_area = studyArea, fire_years = years, min_size_ha = 0)
 }
+
+#' Rows of `x` whose ID is among the IDs of `y`
+#'
+#' `x[[IDvar]]` on a `SpatVector` is a one-column `data.frame`, and `%in%` between two `data.frame`s compares
+#' each whole column as one element: one `TRUE` or `FALSE` for the lot, `TRUE` only when the IDs are identical
+#' and in the same order. `harmonizeFireData()` reorders points (moved centroids go last), so a year whose
+#' points came back reordered lost every polygon (ELF 6.6.1: 64 of 127, all escapes of 9 years). This compares
+#' the ID values.
+#'
+#' @param x,y `SpatVector`s with an `IDvar` column.
+#' @param IDvar Name of the ID column.
+#' @return `x` without the rows whose ID is not in `y`.
+withIDsIn <- function(x, y, IDvar) {
+  x[terra::values(x)[[IDvar]] %in% terra::values(y)[[IDvar]], ]
+}

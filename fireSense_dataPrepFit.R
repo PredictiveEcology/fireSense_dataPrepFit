@@ -1137,8 +1137,8 @@ prepare_SpreadFitFire_Vector <- function(sim) {
                             polys <- polys[[year]]
                             points <- points[[year]]
                             ## ensure matching IDs
-                            points <- points[points[[IDvar]] %in% polys[[IDvar]],]
-                            polys <- polys[polys[[IDvar]] %in% points[[IDvar]],]
+                            points <- withIDsIn(points, polys, IDvar)
+                            polys <- withIDsIn(polys, points, IDvar)
                             points[[IDvar]] <- as.numeric(as.factor(points[[IDvar]][[IDvar]]))
                             polys[[IDvar]] <- as.numeric(as.factor(polys[[IDvar]][[IDvar]]))
                             return(list(polys = polys, points = points))
@@ -1215,7 +1215,7 @@ prepare_SpreadFitFire_Vector <- function(sim) {
   sim$spreadFirePolys <- Map(year = names(sim$spreadFirePolys), function(year) {
     poly <- sim$spreadFirePolys[[year]]
     point <- sim$spreadFirePoints[[year]]
-    poly <- poly[poly[[IDvar]] %in% point[[IDvar]],]
+    poly <- withIDsIn(poly, point, IDvar)
     return(poly)
   })
   return(invisible(sim))
