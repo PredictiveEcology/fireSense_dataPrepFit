@@ -1,6 +1,6 @@
 ---
 title: "fireSense_dataPrepFit Manual"
-subtitle: "v.1.3.0.9016"
+subtitle: "v.1.3.0.9017"
 date: "Last updated: 2026-10-26"
 output:
   bookdown::html_document2:
@@ -201,7 +201,7 @@ Table \@ref(tab:moduleInputs-fireSense-dataPrepFit) shows the full list of modul
   <tr>
    <td style="text-align:left;"> ignitionFirePoints </td>
    <td style="text-align:left;"> SpatVector </td>
-   <td style="text-align:left;"> Points of annual ignitions, of every fire size, with columns `YEAR` and `SIZE_HA`. The default is the lightning- and natural-caused fires of the current NFDB release. </td>
+   <td style="text-align:left;"> Points of annual ignitions, of every fire size, with columns `YEAR` and `SIZE_HA`. The default is the lightning- and natural-caused fires of the current NFDB release, without rows that repeat another row's date and location (`dropRepeatedFirePoints()`). </td>
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
