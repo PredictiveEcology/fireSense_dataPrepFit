@@ -2994,7 +2994,7 @@ border-radius: 0px;
 
 
 <h1 class="title toc-ignore">fireSense_dataPrepFit Manual</h1>
-<h3 class="subtitle">v.1.3.0.9016</h3>
+<h3 class="subtitle">v.1.3.0.9017</h3>
 <h4 class="date">Last updated: 2026-10-26</h4>
 
 </div>
@@ -3317,7 +3317,7 @@ ignitionFirePoints
 SpatVector
 </td>
 <td style="text-align:left;">
-Points of annual ignitions, of every fire size, with columns <code>YEAR</code> and <code>SIZE_HA</code>. The default is the lightning- and natural-caused fires of the current NFDB release.
+Points of annual ignitions, of every fire size, with columns <code>YEAR</code> and <code>SIZE_HA</code>. The default is the lightning- and natural-caused fires of the current NFDB release, without rows that repeat another row’s date and location (<code>dropRepeatedFirePoints()</code>).
 </td>
 <td style="text-align:left;">
 NA
