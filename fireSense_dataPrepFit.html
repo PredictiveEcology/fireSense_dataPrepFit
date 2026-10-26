@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">fireSense_dataPrepFit</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.0.9015</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.0.9016</span>
       </span>
     </div>
 
@@ -695,7 +695,7 @@ numeric
 NA
 </td>
 <td style="text-align:left;">
-Size (ha) a fire must reach to count as escaped: the escape model’s response, and the smallest fire the spread model is fitted to. Smaller fires’ sizes become <code>nonEscapedFireSizesHa</code>.
+Size (ha) a fire must reach to count as escaped, and the smallest fire the spread model is fitted to. The escape model’s response is the ignitions that became a fire polygon of at least this size (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/escapedIgnitions.html" class="external-link">fireSenseUtils::escapedIgnitions()</a></code>). Smaller fires’ sizes become <code>nonEscapedFireSizesHa</code>.
 </td>
 <td style="text-align:left;">
 TRUE
@@ -1353,7 +1353,7 @@ ignitionFirePoints
 SpatVector
 </td>
 <td style="text-align:left;">
-The input, in the CRS of <code>rasterToMatch</code> and clipped to <code>studyArea</code>.
+The input, in the CRS of <code>rasterToMatch</code> and clipped to <code>studyArea</code>; <code>prepIgnitionFitData</code> adds an ignition for each natural-cause fire polygon that no ignition point matches (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/polygonIgnitions.html" class="external-link">fireSenseUtils::polygonIgnitions()</a></code>).
 </td>
 </tr><tr><td style="text-align:left;">
 ignitionFitRTM
