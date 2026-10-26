@@ -1,7 +1,7 @@
 ---
 title: "fireSense_dataPrepFit Manual"
 subtitle: "v.1.3.0.9014"
-date: "Last updated: 2026-10-21"
+date: "Last updated: 2026-10-26"
 output:
   bookdown::html_document2:
     toc: true
@@ -394,7 +394,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> 50 </td>
    <td style="text-align:left;"> 0 </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Size (ha) a fire must reach to count as escaped: the escape model's response, and the smallest fire the spread model is fitted to. Smaller fires' sizes become `nonEscapedFireSizesHa`. </td>
+   <td style="text-align:left;"> Size (ha) a fire must reach to count as escaped, and the smallest fire the spread model is fitted to. The escape model's response is the ignitions that became a fire polygon of at least this size (`fireSenseUtils::escapedIgnitions()`). Smaller fires' sizes become `nonEscapedFireSizesHa`. </td>
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
@@ -740,7 +740,7 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-dataP
   <tr>
    <td style="text-align:left;"> ignitionFirePoints </td>
    <td style="text-align:left;"> SpatVector </td>
-   <td style="text-align:left;"> The input, in the CRS of `rasterToMatch` and clipped to `studyArea`. </td>
+   <td style="text-align:left;"> The input, in the CRS of `rasterToMatch` and clipped to `studyArea`; `prepIgnitionFitData` adds an ignition for each natural-cause fire polygon that no ignition point matches (`fireSenseUtils::polygonIgnitions()`). </td>
   </tr>
   <tr>
    <td style="text-align:left;"> ignitionFitRTM </td>
