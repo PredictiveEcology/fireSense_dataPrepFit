@@ -93,3 +93,18 @@ test_that("nfdbFirePoints keeps fires of every size and cause in the study area 
   expect_equal(out$SIZE_HA[order(out$FIRE_ID)], c(0, 0.1, 50))
   expect_identical(out$CAUSE[order(out$FIRE_ID)], c("L", "N", "H"))
 })
+
+## NFDB has rows that repeat another row's date and location, under another FIRE_ID (554 natural
+## fires in release 20260811, 319 in BC); each was counted as a separate ignition.
+test_that("dropRepeatedFirePoints keeps one row, the largest, per date and location", {
+  pts <- terra::vect(cbind(c(1000, 1000, 1000, 2000, 1000), c(1000, 1000, 1000, 2000, 1000)), crs = crs)
+  pts$YEAR <- c(2002, 2002, 2002, 2002, 2003)
+  pts$MONTH <- c(7, 7, 7, 7, 7)
+  pts$DAY <- c(16, 16, 17, 16, 16)
+  pts$SIZE_HA <- c(0.1, 80, 0.1, 0.1, 0.1)
+  pts$FIRE_ID <- c("VQ029", "VQ030", "VQ031", "VQ032", "VQ001")
+
+  out <- dropRepeatedFirePoints(pts)
+
+  expect_identical(out$FIRE_ID, c("VQ030", "VQ031", "VQ032", "VQ001"))
+})
