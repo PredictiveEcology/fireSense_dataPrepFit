@@ -17,7 +17,7 @@ defineModule(sim, list(
   reqdPkgs = list("data.table", "fastDummies", "Require",
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9042)", # CacheGeo re-reads a changed local file
                   "PredictiveEcology/climateData@development (>= 2.2.3.9006)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9128)", # burnableHaTxt: fire target size on burnable pixels
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9130)", # climateRasterToDataTable(Index) reads only those cells; 9128: burnableHaTxt
                   "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
                   "ggplot2", "methods", "parallel", "purrr", "raster", "sf", "sp", "stats", "utils",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9015)",
@@ -961,7 +961,9 @@ prepare_SpreadFit <- function(sim) {
     x <- terra::subset(x, subset = names(x) %in% paste0(fireSenseUtils::yearTxt, P(sim)$fireYears))
   })
 
-  climateDT <- climateRasterToDataTable(historicalClimateRasters = spreadClimate) |>
+  ## only the fire-buffer pixels of each year are read from the rasters; the join below keeps no others
+  climateDT <- climateRasterToDataTable(historicalClimateRasters = spreadClimate,
+                                        Index = sim$fireBufferedListDT) |>
     Cache(userTags = c("climateRasterToDataTable", names(spreadClimate)))
 
   fbl <- rbindlist(sim$fireBufferedListDT, idcol = fireSenseUtils::yearTxt)
