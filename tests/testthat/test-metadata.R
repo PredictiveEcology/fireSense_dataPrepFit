@@ -97,7 +97,7 @@ test_that("parameters are the expected names", {
            ".useCache", ".useCacheArgs", "areaMultiplier", "bufferForFireRaster", "cutoffForYoungAge",
            "dataYears", "doFit", "escapeSizeHa", "estimateFuelClasses", "fireYears", "flammabilityThreshold",
            "forestedLCC", "fuelClassCol", "fuelCovariates", "heldOutFold", "igAggFactor",
-           "minBufferSize", "minCovariateProp", "nonflammableLCC",
+           "minBufferSize", "minBurnableFireSizeHa", "minCovariateProp", "nonflammableLCC",
            "nonForestCanBeYoungAge", "scanfiVersion", "sppEquivCol", "spreadFitFilename",
            "spreadFitGoogleDriveFolder", "fitFileSuffix", "spreadIntercept", "targetFuelClasses",
            "useRasterizedFireForSpread", "whichModulesToPrepare"))

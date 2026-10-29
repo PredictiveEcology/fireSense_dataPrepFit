@@ -17,7 +17,7 @@ defineModule(sim, list(
   reqdPkgs = list("data.table", "fastDummies", "Require",
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9042)", # CacheGeo re-reads a changed local file
                   "PredictiveEcology/climateData@development (>= 2.2.3.9006)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9127)", # polygonIgnitions(): escapes from burned-area polygons (#187)
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9128)", # burnableHaTxt: fire target size on burnable pixels
                   "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
                   "ggplot2", "methods", "parallel", "purrr", "raster", "sf", "sp", "stats", "utils",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9015)",
@@ -88,6 +88,13 @@ defineModule(sim, list(
                           "this is not a parameter there.")),
     defineParameter("minBufferSize", "numeric", 5000, NA, NA,
                     paste("Minimum number of cells in each fire's burned-plus-buffer sample, applied after `areaMultiplier`.")),
+    defineParameter("minBurnableFireSizeHa", "numeric", NA_real_, 0, NA,
+                    paste("A fire's spread-fit target size is its burned area on burnable pixels (`landcoverDTs`), the only",
+                          "pixels the fit can burn, not its polygon area. A fire with less than this (ha) on burnable",
+                          "pixels is left out of the spread fit (`fireBufferedListDT`); it stays in the escape data.",
+                          "`NA` (default) is `escapeSizeHa`: the spread objective scores only fires of at least",
+                          "`escapeSizeHa` (`fireSenseUtils::escapeSizePixels()`), so smaller ones would only add",
+                          "unscored buffers.")),
     defineParameter("minCovariateProp", "numeric", 0.05, 0, 1,
                     paste("A land-cover class covering less than this proportion of the ELF's flammable pixels",
                           "(most recent data year) is too rare to estimate a spread coefficient for. A non-forest class",
@@ -301,7 +308,8 @@ defineModule(sim, list(
                         "`projectedClimateYears`, if any). If a previous SpreadFit exists, the",
                         "variables of that fit are added.")),
     createsOutput("fireBufferedListDT", "list",
-                  "list of data.tables with fire id, `pixelID`, and buffer status"),
+                  paste("list of data.tables with fire id, `pixelID`, and buffer status, of the fires the spread",
+                        "model is fitted to: those with at least `minBurnableFireSizeHa` on burnable pixels.")),
     createsOutput("fuelClassTable", "data.table",
                   "Fuel class assigned to each tree species; only created if fuel classes are estimated."),
     createsOutput("spreadFirePolys", "list",
@@ -350,7 +358,8 @@ defineModule(sim, list(
     createsOutput("sppEquiv", "data.table", "sppEquiv table potentially modified with new or overwritten fuel class"),
     createsOutput("spreadFirePoints", "list",
                   paste("List of ignition points, one per fire year, for fires larger than one pixel,",
-                        "harmonized with `spreadFirePolys`.")),
+                        "harmonized with `spreadFirePolys`. Column `fireSenseUtils::burnableHaTxt` is each fire's",
+                        "burned area (ha) on burnable pixels, the spread fit's target size.")),
     
     # For fireSense_**Predict modules
     createsOutput("propFlammable", "SpatRaster",
@@ -867,6 +876,16 @@ prepare_SpreadFit <- function(sim) {
     sim <- prepare_SpreadFitFire_Vector(sim)
   }
 
+  ## each fire's target size is its burned area on the pixels the fit can burn, not its polygon area
+  burnablePixels <- burnablePixelsByFireYear(sim$landcoverDTs, mod$allYears)
+  burnableFires <- spreadFitBurnableFires(
+    sim$fireBufferedListDT, sim$spreadFirePoints, burnablePixels,
+    pixSizeHa = prod(res(sim$flammableRTMs[[1]])) / 1e4, minHa = minBurnableFireSizeHa(Par),
+    idCol = fireIDColumn(sim$spreadFirePoints[[1]]))
+  sim$fireBufferedListDT <- burnableFires$fireBufferedListDT
+  sim$spreadFirePoints <- burnableFires$spreadFirePoints
+  mod$allYears <- yearGroupsWithFire(mod$allYears, names(sim$fireBufferedListDT))
+
   ## join fire and veg data
   fireSenseVegData <- joinFireBuffersToVeg(sim$fireBufferedListDT, vegData, mod$allYears)
 
@@ -966,13 +985,8 @@ prepare_SpreadFit <- function(sim) {
   })
 
   ## get rid of nonflammable pixels (their time since disturbance is NA, which is never young)
-  annualCovariates <- Map(ac = annualCovariates, yrNum = names(annualCovariates),
-      function(ac,
-               yrNum) {
-        yrChar <- paste0(fireSenseUtils::yearTxt, yrNum)
-    lapply(ac, function(x) {
-      x[pixelID %in% sim$landcoverDTs[[yrChar]]$pixelID, ]
-    })
+  annualCovariates <- lapply(annualCovariates, function(ac) {
+    Map(x = ac, fy = names(ac), function(x, fy) x[pixelID %in% burnablePixels[[fy]], ])
   })
 
   ## youngAge of each fire year's pixels: the data year's time since disturbance aged to that year,
@@ -1123,7 +1137,7 @@ prepare_SpreadFitFire_Raster <- function(sim) {
 prepare_SpreadFitFire_Vector <- function(sim) {
 
   # prep fire data -----------------------------------------------------------------
-  IDvar <- grep("ID", names(sim$spreadFirePolys[[1]]), value = TRUE) |> setdiff("GID")
+  IDvar <- fireIDColumn(sim$spreadFirePolys[[1]])
   if (is.null(sim$spreadFirePolys[[1]][[IDvar]])) {
     stop("firePolys needs a numeric an ID column, such as FIRE_ID, NFIREID")
   }
@@ -1174,10 +1188,7 @@ prepare_SpreadFitFire_Vector <- function(sim) {
   pointsIDcolumn <- grep("ID$", names(sim$spreadFirePolys[[1]]), value = TRUE)[1]
 
   # There may be entire decades with no fires
-  yearsWeHave <- names(sim$spreadFirePolys)
-  ays <- mod$allYears
-  aysAll <- Map(ay = ays, function(ay) isTRUE(any(yearsWeHave %in% ay)))
-  mod$allYears <- mod$allYears[unlist(aysAll)]
+  mod$allYears <- yearGroupsWithFire(mod$allYears, names(sim$spreadFirePolys))
   
   harmonizeds <- Map(yr = mod$allYears, nam = names(mod$allYears),
                      function(yr, nam) {
