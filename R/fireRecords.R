@@ -65,36 +65,13 @@ withIDsIn <- function(x, y, IDvar) {
   x[terra::values(x)[[IDvar]] %in% terra::values(y)[[IDvar]], ]
 }
 
-#' Cause groups and the NFDB / NBAC values in them
-#'
-#' The one place that says which `CAUSE` (NFDB points) and `FIRECAUS` (NBAC polygons) values are which cause.
-#' `natural` is what the module has always used (NFDB L and N; NBAC Natural). A missing or blank cause is
-#' `unknown`: neither source says what started the fire. `human` is NFDB H and H-PB (prescribed burn); `other` is
-#' NFDB RE (re-burn).
-#'
-#' @param groups Cause groups: any of `natural`, `unknown`, `human`, `other`.
-#' @param source `"nfdb"` or `"nbac"`.
-#' @return The values of `CAUSE` (`"nfdb"`) or `FIRECAUS` (`"nbac"`) in `groups`; `NA` is among those of `unknown`.
-fireCauseCodes <- function(groups, source = c("nfdb", "nbac")) {
-  source <- match.arg(source)
-  codes <- list(
-    natural = list(nfdb = c("L", "N"),           nbac = "Natural"),
-    unknown = list(nfdb = c("U", "", NA),        nbac = c("Unknown", "", NA)),
-    human   = list(nfdb = c("H", "H-PB"),        nbac = "Human"),
-    other   = list(nfdb = "RE",                  nbac = character()))
-  bad <- setdiff(groups, names(codes))
-  if (length(bad)) stop("unknown fire cause group: ", paste(bad, collapse = ", "),
-                        " (use ", paste(names(codes), collapse = ", "), ")")
-  unique(unlist(lapply(codes[groups], `[[`, source), use.names = FALSE))
-}
-
 #' NFDB fire points of the given cause groups
 #'
 #' @param points NFDB fire points (`SpatVector`) with column `CAUSE`.
-#' @param groups Cause groups, see `fireCauseCodes()`.
+#' @param groups Cause groups, see `fireSenseUtils::fireCauseCodes()`.
 #' @return The rows of `points` whose `CAUSE` is in `groups`.
 pointsOfCauses <- function(points, groups) {
-  points[points$CAUSE %in% fireCauseCodes(groups, "nfdb"), ]
+  points[points$CAUSE %in% fireSenseUtils::fireCauseCodes(groups, "nfdb"), ]
 }
 
 #' Fire polygons of the given causes
@@ -103,7 +80,7 @@ pointsOfCauses <- function(points, groups) {
 #' no value is not of any cause asked for.
 #'
 #' @param polys `SpatVector` of fire polygons.
-#' @param causes `FIRECAUS` values to keep, e.g. from `fireCauseCodes()`.
+#' @param causes `FIRECAUS` values to keep, e.g. from `fireSenseUtils::fireCauseCodes()`.
 #' @param causeCol Name of the cause column.
 #' @return `polys` without the other rows; `NULL` if none is left.
 polysOfCauses <- function(polys, causes, causeCol = "FIRECAUS") {

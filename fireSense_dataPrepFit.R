@@ -75,7 +75,7 @@ defineModule(sim, list(
                           "become `nonEscapedFireSizesHa`.")),
     defineParameter("fireCauses", "character", NULL, NA, NA,
                     paste("Cause groups of the fires all three models use: `\"natural\"`, `\"unknown\"`, `\"human\"`, `\"other\"`",
-                          "(`fireCauseCodes()` maps them to NFDB `CAUSE` and NBAC `FIRECAUS` values; a missing cause is",
+                          "(`fireSenseUtils::fireCauseCodes()` maps them to NFDB `CAUSE` and NBAC `FIRECAUS` values; a missing cause is",
                           "`\"unknown\"`). Sets the ignition points, the polygons that add an ignition and an escape, and the",
                           "polygons the spread model is fitted to. `NULL` (default) is the original behaviour: ignition points",
                           "of `CAUSE` L or N, polygon ignitions from `FIRECAUS` `\"Natural\"`, and spread fires of every cause.",
@@ -183,8 +183,8 @@ defineModule(sim, list(
                       fireSenseUtils::lccFlammableShare, fireSenseUtils::makeLandcoverDT,
                       fireSenseUtils::makeTSD, spreadFitPreRun = sim$spreadFitPreRun))),
                          prepIgnitionFitData = list(.cacheExtra = quote(list(
-                      fireSenseUtils::escapedFires, fireSenseUtils::ignitionPolygonPairs,
-                      fireSenseUtils::polygonIgnitions, spreadFitPreRun = sim$spreadFitPreRun))),
+                      fireSenseUtils::escapedFires, fireSenseUtils::fireCauseCodes,
+                      fireSenseUtils::ignitionPolygonPairs, fireSenseUtils::polygonIgnitions, spreadFitPreRun = sim$spreadFitPreRun))),
                          prepEscapeFitData = list(.cacheExtra = quote(list(
                       fireSenseUtils::escapedFires, fireSenseUtils::escapedIgnitions,
                       fireSenseUtils::ignitionPolygonPairs, spreadFitPreRun = sim$spreadFitPreRun))),
@@ -193,7 +193,7 @@ defineModule(sim, list(
                       fireSenseUtils::climateRasterToDataTable, fireSenseUtils::dataYearBefore,
                       fireSenseUtils::dataYearElement,
                       fireSenseUtils::dataYearFor, fireSenseUtils::emptySpreadCovariates,
-                      fireSenseUtils::escapedFires, fireSenseUtils::fireSenseCovariatesCreate, fireSenseUtils::firePixelsByYear,
+                      fireSenseUtils::escapedFires, fireSenseUtils::fireCauseCodes, fireSenseUtils::fireSenseCovariatesCreate, fireSenseUtils::firePixelsByYear,
                       fireSenseUtils::harmonizeFireData, fireSenseUtils::lccFlammableShare,
                       fireSenseUtils::makeMutuallyExclusive, fireSenseUtils::rasterFireBufferDT,
                       fireSenseUtils::rasterFireSpreadPoints, fireSenseUtils::youngAgeAtYear,
@@ -1174,7 +1174,7 @@ prepare_SpreadFitFire_Vector <- function(sim) {
 
   ## fires of the requested causes only (NULL: every fire); the start points follow their polygons
   if (!is.null(Par$fireCauses)) {
-    ofCauses <- lapply(sim$spreadFirePolys, polysOfCauses, causes = fireCauseCodes(Par$fireCauses, "nbac"))
+    ofCauses <- lapply(sim$spreadFirePolys, polysOfCauses, causes = fireSenseUtils::fireCauseCodes(Par$fireCauses, "nbac"))
     sim$spreadFirePolys <- ofCauses[!sapply(ofCauses, is.null)]
     sim$spreadFirePoints <- Map(pts = sim$spreadFirePoints[names(sim$spreadFirePolys)], polys = sim$spreadFirePolys,
                                 function(pts, polys) withIDsIn(pts, polys, IDvar))
@@ -1274,7 +1274,7 @@ prepare_IgnitionFit <- function(sim) {
       sim$ignitionFirePoints, sim$spreadFirePolys, sim$spreadFirePoints,
       idCol = grep("ID$", names(sim$spreadFirePolys[[1]]), value = TRUE)[1],
       escapeSizeHa = Par$escapeSizeHa, pixSizeHa = prod(res(sim$flammableRTMs[[1]])) / 10000,
-      naturalPolyCauses = fireCauseCodes(Par$fireCauses %||% "natural", "nbac"))
+      naturalPolyCauses = fireSenseUtils::fireCauseCodes(Par$fireCauses %||% "natural", "nbac"))
     sim$ignitionFirePoints <- rbind(sim$ignitionFirePoints, clipPointsToStudyArea(added, mod$studyAreaUnion))
   }
 

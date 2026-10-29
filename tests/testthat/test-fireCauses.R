@@ -4,16 +4,6 @@
 sqWkt <- function(x0, y0, w) sprintf("POLYGON ((%f %f, %f %f, %f %f, %f %f, %f %f))",
                                      x0, y0, x0 + w, y0, x0 + w, y0 + w, x0, y0 + w, x0, y0)
 
-test_that("fireCauseCodes: natural is what the module always used; unknown takes missing causes", {
-  expect_identical(fireCauseCodes("natural", "nfdb"), c("L", "N"))
-  expect_identical(fireCauseCodes("natural", "nbac"), "Natural")
-  expect_true(all(c("U", "", NA) %in% fireCauseCodes(c("natural", "unknown"), "nfdb")))
-  expect_true(all(c("Natural", "Unknown", NA) %in% fireCauseCodes(c("natural", "unknown"), "nbac")))
-  expect_false(any(c("H", "Human") %in% c(fireCauseCodes(c("natural", "unknown"), "nfdb"),
-                                            fireCauseCodes(c("natural", "unknown"), "nbac"))))
-  expect_error(fireCauseCodes("lightning"), "unknown fire cause group")
-})
-
 test_that("pointsOfCauses: natural keeps L and N; adding unknown keeps U, blank and missing", {
   pts <- terra::vect(cbind(1:7, 1), crs = "EPSG:3978")
   pts$CAUSE <- c("L", "N", "H", "U", "", NA, "H-PB")
@@ -24,10 +14,10 @@ test_that("pointsOfCauses: natural keeps L and N; adding unknown keeps U, blank 
 
 test_that("polysOfCauses keeps the polygons of the given causes, and none without a value", {
   polys <- terra::vect(sqWkt(c(0, 200, 400, 600), 0, 100), crs = "EPSG:3978")
-  polys$FIRECAUS <- c("Natural", "Human", "Unknown", NA)
+  polys$FIRECAUS <- c("Natural", "Human", "Undetermined", NA)
   expect_identical(polysOfCauses(polys, "Natural")$FIRECAUS, "Natural")
-  expect_identical(polysOfCauses(polys, fireCauseCodes(c("natural", "unknown"), "nbac"))$FIRECAUS,
-                   c("Natural", "Unknown", NA))
+  expect_identical(polysOfCauses(polys, fireSenseUtils::fireCauseCodes(c("natural", "unknown"), "nbac"))$FIRECAUS,
+                   c("Natural", "Undetermined", NA))
   expect_identical(polysOfCauses(polys, c("Natural", "Human"))$FIRECAUS, c("Natural", "Human"))
   expect_null(polysOfCauses(polys, "Lightning"))
   expect_null(polysOfCauses(NULL, "Natural"))
@@ -40,7 +30,7 @@ test_that("prepare_SpreadFitFire_Vector: NULL spreadFitCauses leaves the fires a
   polys$YEAR <- 2000L
   polys$NFIREID <- c(1, 2, 3)
   polys$POLY_HA <- 100
-  polys$FIRECAUS <- c("Natural", "Human", "Unknown")
+  polys$FIRECAUS <- c("Natural", "Human", "Undetermined")
   pts <- terra::centroids(polys)
 
   run <- function(causes) {
@@ -83,7 +73,7 @@ test_that("prepare_IgnitionFit: an unknown-cause polygon with no point adds an i
   skip_if_not_installed("fireSenseUtils")
   polys <- terra::vect(sqWkt(c(100, 3100, 6100), 100, 800), crs = "EPSG:3978")
   polys$YEAR <- 2000L
-  polys$FIRECAUS <- c("Natural", "Unknown", "Human")
+  polys$FIRECAUS <- c("Natural", "Undetermined", "Human")
   polys$NFIREID <- c(1, 2, 3)
   starts <- terra::vect(cbind(c(500, 3500, 6500), 500), crs = "EPSG:3978")
   starts$YEAR <- 2000L
