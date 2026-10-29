@@ -95,7 +95,7 @@ test_that("parameters are the expected names", {
     sort(md$parameters$paramName),
     sort(c(".neverCache", ".studyAreaName",
            ".useCache", ".useCacheArgs", "areaMultiplier", "bufferForFireRaster", "cutoffForYoungAge",
-           "dataYears", "doFit", "escapeSizeHa", "estimateFuelClasses", "fireYears", "flammabilityThreshold",
+           "dataYears", "doFit", "escapeSizeHa", "estimateFuelClasses", "fireCauses", "fireYears", "flammabilityThreshold",
            "forestedLCC", "fuelClassCol", "fuelCovariates", "heldOutFold", "igAggFactor",
            "minBufferSize", "minBurnableFireSizeHa", "minCovariateProp", "nonflammableLCC",
            "nonForestCanBeYoungAge", "scanfiVersion", "sppEquivCol", "spreadFitFilename",
