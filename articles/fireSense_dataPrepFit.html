@@ -73,7 +73,7 @@
       <h1 data-toc-skip>fireSense_dataPrepFit Manual</h1>
             <h3 data-toc-skip class="subtitle">v.1.3.0.9018</h3>
             
-            <h4 data-toc-skip class="date">Last updated: 2026-10-26</h4>
+            <h4 data-toc-skip class="date">Last updated: 2026-10-29</h4>
       
 
       <div class="hidden name"><code>fireSense_dataPrepFit.Rmd</code></div>
@@ -940,6 +940,29 @@ TRUE
 </tr>
 <tr>
 <td style="text-align:left;">
+minBurnableFireSizeHa
+</td>
+<td style="text-align:left;">
+numeric
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+A fire’s spread-fit target size is its burned area on burnable pixels (<code>landcoverDTs</code>), the only pixels the fit can burn, not its polygon area. A fire with less than this (ha) on burnable pixels is left out of the spread fit (<code>fireBufferedListDT</code>); it stays in the escape data. <code>NA</code> (default) is <code>escapeSizeHa</code>: the spread objective scores only fires of at least <code>escapeSizeHa</code> (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/escapeSizePixels.html" class="external-link">fireSenseUtils::escapeSizePixels()</a></code>), so smaller ones would only add unscored buffers.
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
 minCovariateProp
 </td>
 <td style="text-align:left;">
@@ -1508,7 +1531,7 @@ fireBufferedListDT
 list
 </td>
 <td style="text-align:left;">
-list of data.tables with fire id, <code>pixelID</code>, and buffer status
+list of data.tables with fire id, <code>pixelID</code>, and buffer status, of the fires the spread model is fitted to: those with at least <code>minBurnableFireSizeHa</code> on burnable pixels.
 </td>
 </tr>
 <tr>
@@ -1739,7 +1762,7 @@ spreadFirePoints
 list
 </td>
 <td style="text-align:left;">
-List of ignition points, one per fire year, for fires larger than one pixel, harmonized with <code>spreadFirePolys</code>.
+List of ignition points, one per fire year, for fires larger than one pixel, harmonized with <code>spreadFirePolys</code>. Column <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fireSenseUtils-constants.html" class="external-link">fireSenseUtils::burnableHaTxt</a></code> is each fire’s burned area (ha) on burnable pixels, the spread fit’s target size.
 </td>
 </tr>
 <tr>

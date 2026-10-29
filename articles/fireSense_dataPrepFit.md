@@ -1,7 +1,7 @@
 ---
 title: "fireSense_dataPrepFit Manual"
 subtitle: "v.1.3.0.9018"
-date: "Last updated: 2026-10-26"
+date: "Last updated: 2026-10-29"
 output:
   bookdown::html_document2:
     toc: true
@@ -425,6 +425,15 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
+   <td style="text-align:left;"> minBurnableFireSizeHa </td>
+   <td style="text-align:left;"> numeric </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> 0 </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> A fire's spread-fit target size is its burned area on burnable pixels (`landcoverDTs`), the only pixels the fit can burn, not its polygon area. A fire with less than this (ha) on burnable pixels is left out of the spread fit (`fireBufferedListDT`); it stays in the escape data. `NA` (default) is `escapeSizeHa`: the spread objective scores only fires of at least `escapeSizeHa` (`fireSenseUtils::escapeSizePixels()`), so smaller ones would only add unscored buffers. </td>
+   <td style="text-align:left;"> TRUE </td>
+  </tr>
+  <tr>
    <td style="text-align:left;"> minCovariateProp </td>
    <td style="text-align:left;"> numeric </td>
    <td style="text-align:left;"> 0.05 </td>
@@ -685,7 +694,7 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-dataP
   <tr>
    <td style="text-align:left;"> fireBufferedListDT </td>
    <td style="text-align:left;"> list </td>
-   <td style="text-align:left;"> list of data.tables with fire id, `pixelID`, and buffer status </td>
+   <td style="text-align:left;"> list of data.tables with fire id, `pixelID`, and buffer status, of the fires the spread model is fitted to: those with at least `minBurnableFireSizeHa` on burnable pixels. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> fuelClassTable </td>
@@ -790,7 +799,7 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-dataP
   <tr>
    <td style="text-align:left;"> spreadFirePoints </td>
    <td style="text-align:left;"> list </td>
-   <td style="text-align:left;"> List of ignition points, one per fire year, for fires larger than one pixel, harmonized with `spreadFirePolys`. </td>
+   <td style="text-align:left;"> List of ignition points, one per fire year, for fires larger than one pixel, harmonized with `spreadFirePolys`. Column `fireSenseUtils::burnableHaTxt` is each fire's burned area (ha) on burnable pixels, the spread fit's target size. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> propFlammable </td>

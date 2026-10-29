@@ -12,6 +12,7 @@
 <url><loc>/reference/addAnnualYoungAge.html</loc></url>
 <url><loc>/reference/addFitClimateVariables.html</loc></url>
 <url><loc>/reference/allFirePixelsByYear.html</loc></url>
+<url><loc>/reference/burnablePixelsByFireYear.html</loc></url>
 <url><loc>/reference/canClimateProjectedYears.html</loc></url>
 <url><loc>/reference/checkClimateYears.html</loc></url>
 <url><loc>/reference/cleanUpMod.html</loc></url>
@@ -24,6 +25,7 @@
 <url><loc>/reference/dot-inputObjects.html</loc></url>
 <url><loc>/reference/dropRepeatedFirePoints.html</loc></url>
 <url><loc>/reference/fireClimateLayers.html</loc></url>
+<url><loc>/reference/fireIDColumn.html</loc></url>
 <url><loc>/reference/firePolysByYear.html</loc></url>
 <url><loc>/reference/fireRecordShapefile.html</loc></url>
 <url><loc>/reference/fitDecisionYear.html</loc></url>
@@ -32,6 +34,7 @@
 <url><loc>/reference/joinFireBuffersToVeg.html</loc></url>
 <url><loc>/reference/lccShareForYear.html</loc></url>
 <url><loc>/reference/ledgerColumns.html</loc></url>
+<url><loc>/reference/minBurnableFireSizeHa.html</loc></url>
 <url><loc>/reference/moduleCodeDigest.html</loc></url>
 <url><loc>/reference/nfdbFirePoints.html</loc></url>
 <url><loc>/reference/nonEscapedFireSizes.html</loc></url>
@@ -46,10 +49,12 @@
 <url><loc>/reference/readSpreadFitLedger.html</loc></url>
 <url><loc>/reference/runBorealDP_forCohortData.html</loc></url>
 <url><loc>/reference/selectSpreadClimateVariable.html</loc></url>
+<url><loc>/reference/spreadFitBurnableFires.html</loc></url>
 <url><loc>/reference/spreadFormula.html</loc></url>
 <url><loc>/reference/stopIfNonForestCannotBeYoung.html</loc></url>
 <url><loc>/reference/vegetationDataYear.html</loc></url>
 <url><loc>/reference/withIDsIn.html</loc></url>
 <url><loc>/reference/yearGroups.html</loc></url>
+<url><loc>/reference/yearGroupsWithFire.html</loc></url>
 </urlset>
 
