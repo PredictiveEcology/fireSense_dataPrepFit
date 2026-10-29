@@ -73,12 +73,13 @@ defineModule(sim, list(
                           "is fitted to. The escape model's response is the ignitions that became a fire polygon",
                           "of at least this size (`fireSenseUtils::escapedIgnitions()`). Smaller fires' sizes",
                           "become `nonEscapedFireSizesHa`.")),
-    defineParameter("spreadFitCauses", "character", NULL, NA, NA,
-                    paste("Causes of the fire polygons the spread model is fitted to, as in the NBAC polygons' `FIRECAUS`",
-                          "(`\"Natural\"`, `\"Human\"`, ...). `NULL` (default) keeps every fire; `\"Natural\"` fits natural-cause",
-                          "fires only, the fires the ignition and escape models and the hindcast count. A polygon with no",
-                          "`FIRECAUS` value is not natural, as in `fireSenseUtils::polygonIgnitions()`. Fits change: use a",
-                          "new `fitFileSuffix`.")),
+    defineParameter("fireCauses", "character", NULL, NA, NA,
+                    paste("Cause groups of the fires all three models use: `\"natural\"`, `\"unknown\"`, `\"human\"`, `\"other\"`",
+                          "(`fireCauseCodes()` maps them to NFDB `CAUSE` and NBAC `FIRECAUS` values; a missing cause is",
+                          "`\"unknown\"`). Sets the ignition points, the polygons that add an ignition and an escape, and the",
+                          "polygons the spread model is fitted to. `NULL` (default) is the original behaviour: ignition points",
+                          "of `CAUSE` L or N, polygon ignitions from `FIRECAUS` `\"Natural\"`, and spread fires of every cause.",
+                          "Use a new `fitFileSuffix` when setting it.")),
     defineParameter("fuelClassCol", "character", fireSenseUtils::fireSenseFuelClassCol, NA, NA,
                     "the column in `sppEquiv` that defines unique fuel classes. A column ",
                     "named `FuelClass` exists in the `LandR::sppEquivalencies_CA` and will be used ",
@@ -1172,13 +1173,13 @@ prepare_SpreadFitFire_Vector <- function(sim) {
   }
 
   ## fires of the requested causes only (NULL: every fire); the start points follow their polygons
-  if (!is.null(Par$spreadFitCauses)) {
-    ofCauses <- lapply(sim$spreadFirePolys, polysOfCauses, causes = Par$spreadFitCauses)
+  if (!is.null(Par$fireCauses)) {
+    ofCauses <- lapply(sim$spreadFirePolys, polysOfCauses, causes = fireCauseCodes(Par$fireCauses, "nbac"))
     sim$spreadFirePolys <- ofCauses[!sapply(ofCauses, is.null)]
     sim$spreadFirePoints <- Map(pts = sim$spreadFirePoints[names(sim$spreadFirePolys)], polys = sim$spreadFirePolys,
                                 function(pts, polys) withIDsIn(pts, polys, IDvar))
     if (length(sim$spreadFirePolys) == 0) {
-      stop("no fire polygons of cause ", paste(Par$spreadFitCauses, collapse = ", "), " (spreadFitCauses)")
+      stop("no fire polygons of cause ", paste(Par$fireCauses, collapse = ", "), " (fireCauses)")
     }
   }
 
@@ -1272,7 +1273,8 @@ prepare_IgnitionFit <- function(sim) {
     added <- fireSenseUtils::polygonIgnitions(
       sim$ignitionFirePoints, sim$spreadFirePolys, sim$spreadFirePoints,
       idCol = grep("ID$", names(sim$spreadFirePolys[[1]]), value = TRUE)[1],
-      escapeSizeHa = Par$escapeSizeHa, pixSizeHa = prod(res(sim$flammableRTMs[[1]])) / 10000)
+      escapeSizeHa = Par$escapeSizeHa, pixSizeHa = prod(res(sim$flammableRTMs[[1]])) / 10000,
+      naturalPolyCauses = fireCauseCodes(Par$fireCauses %||% "natural", "nbac"))
     sim$ignitionFirePoints <- rbind(sim$ignitionFirePoints, clipPointsToStudyArea(added, mod$studyAreaUnion))
   }
 
@@ -1823,9 +1825,9 @@ runBorealDP_forCohortData <- function(sim) {
       Cache(omitArgs = "shp", .cacheExtra = basename(nfdbShp),
             userTags = c("ignitionFirePoints", P(sim)$.studyAreaName)) |>
       postProcessTo(projectTo = sim$rasterToMatch)
-    sim$ignitionFirePoints <- dropRepeatedFirePoints(ignitionFirePoints[ignitionFirePoints$CAUSE %in% c("L", "N"), ])
+    sim$ignitionFirePoints <- dropRepeatedFirePoints(pointsOfCauses(ignitionFirePoints, P(sim)$fireCauses %||% "natural"))
     if (nrow(sim$ignitionFirePoints) == 0) {
-      stop("no lightning- or natural-caused (CAUSE L or N) NFDB fire points in the study area during fireYears")
+      stop("no NFDB fire points of the wanted cause (natural: CAUSE L or N) in the study area during fireYears")
     }
   }
 
