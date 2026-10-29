@@ -396,6 +396,15 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
+   <td style="text-align:left;"> fireCauses </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;">  </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Cause groups of the fires all three models use: `"natural"`, `"unknown"`, `"human"`, `"other"` (`fireSenseUtils::fireCauseCodes()` maps them to NFDB `CAUSE` and NBAC `FIRECAUS` values; a missing cause is `"unknown"`). Sets the ignition points, the polygons that add an ignition and an escape, and the polygons the spread model is fitted to. `NULL` (default) is the original behaviour: ignition points of `CAUSE` L or N, polygon ignitions from `FIRECAUS` `"Natural"`, and spread fires of every cause. Use a new `fitFileSuffix` when setting it. </td>
+   <td style="text-align:left;"> TRUE </td>
+  </tr>
+  <tr>
    <td style="text-align:left;"> fuelClassCol </td>
    <td style="text-align:left;"> character </td>
    <td style="text-align:left;"> FuelClass </td>
