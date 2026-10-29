@@ -73,6 +73,12 @@ defineModule(sim, list(
                           "is fitted to. The escape model's response is the ignitions that became a fire polygon",
                           "of at least this size (`fireSenseUtils::escapedIgnitions()`). Smaller fires' sizes",
                           "become `nonEscapedFireSizesHa`.")),
+    defineParameter("spreadFitCauses", "character", NULL, NA, NA,
+                    paste("Causes of the fire polygons the spread model is fitted to, as in the NBAC polygons' `FIRECAUS`",
+                          "(`\"Natural\"`, `\"Human\"`, ...). `NULL` (default) keeps every fire; `\"Natural\"` fits natural-cause",
+                          "fires only, the fires the ignition and escape models and the hindcast count. A polygon with no",
+                          "`FIRECAUS` value is not natural, as in `fireSenseUtils::polygonIgnitions()`. Fits change: use a",
+                          "new `fitFileSuffix`.")),
     defineParameter("fuelClassCol", "character", fireSenseUtils::fireSenseFuelClassCol, NA, NA,
                     "the column in `sppEquiv` that defines unique fuel classes. A column ",
                     "named `FuelClass` exists in the `LandR::sppEquivalencies_CA` and will be used ",
@@ -1163,6 +1169,17 @@ prepare_SpreadFitFire_Vector <- function(sim) {
     sim$spreadFirePoints <- Map(x = PointsAndPolys, function(x) x[["points"]])
     sim$spreadFirePolys <- Map(x = PointsAndPolys, function(x) x[["polys"]])
     rm(PointsAndPolys)
+  }
+
+  ## fires of the requested causes only (NULL: every fire); the start points follow their polygons
+  if (!is.null(Par$spreadFitCauses)) {
+    ofCauses <- lapply(sim$spreadFirePolys, polysOfCauses, causes = Par$spreadFitCauses)
+    sim$spreadFirePolys <- ofCauses[!sapply(ofCauses, is.null)]
+    sim$spreadFirePoints <- Map(pts = sim$spreadFirePoints[names(sim$spreadFirePolys)], polys = sim$spreadFirePolys,
+                                function(pts, polys) withIDsIn(pts, polys, IDvar))
+    if (length(sim$spreadFirePolys) == 0) {
+      stop("no fire polygons of cause ", paste(Par$spreadFitCauses, collapse = ", "), " (spreadFitCauses)")
+    }
   }
 
   ## the spread model is fitted to escaped fires only: at least escapeSizeHa, and more than one pixel

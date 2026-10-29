@@ -65,6 +65,22 @@ withIDsIn <- function(x, y, IDvar) {
   x[terra::values(x)[[IDvar]] %in% terra::values(y)[[IDvar]], ]
 }
 
+#' Fire polygons of the given causes
+#'
+#' The cause is the polygon's `FIRECAUS` (`fireSenseUtils::polygonIgnitions()` reads the same column). A polygon with
+#' no value is not of any cause asked for.
+#'
+#' @param polys `SpatVector` of fire polygons.
+#' @param causes `FIRECAUS` values to keep.
+#' @param causeCol Name of the cause column.
+#' @return `polys` without the other rows; `NULL` if none is left.
+polysOfCauses <- function(polys, causes, causeCol = "FIRECAUS") {
+  if (is.null(polys)) return(NULL)
+  if (!causeCol %in% names(polys)) stop("fire polygons have no '", causeCol, "' column: cannot select by cause")
+  polys <- polys[terra::values(polys)[[causeCol]] %in% causes, ]
+  if (nrow(polys) > 0) polys else NULL
+}
+
 #' NFDB fire points with one row per fire
 #'
 #' Some NFDB rows repeat another row's date (`YEAR`, `MONTH`, `DAY`) and location exactly, nearly always under
