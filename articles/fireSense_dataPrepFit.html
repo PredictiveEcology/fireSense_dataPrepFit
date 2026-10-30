@@ -73,7 +73,7 @@
       <h1 data-toc-skip>fireSense_dataPrepFit Manual</h1>
             <h3 data-toc-skip class="subtitle">v.1.3.0.9021</h3>
             
-            <h4 data-toc-skip class="date">Last updated: 2026-10-29</h4>
+            <h4 data-toc-skip class="date">Last updated: 2026-10-30</h4>
       
 
       <div class="hidden name"><code>fireSense_dataPrepFit.Rmd</code></div>
@@ -406,7 +406,7 @@ ignitionFirePoints
 SpatVector
 </td>
 <td style="text-align:left;">
-Points of annual ignitions, of every fire size, with columns <code>YEAR</code> and <code>SIZE_HA</code>. The default is the lightning- and natural-caused fires of the current NFDB release, without rows that repeat another row’s date and location (<code><a href="../reference/dropRepeatedFirePoints.html">dropRepeatedFirePoints()</a></code>).
+Points of annual ignitions, of every fire size, with columns <code>YEAR</code> and <code>SIZE_HA</code>. The default is the fires of the current NFDB release with the <code>fireCauses</code> causes, without rows that repeat another row’s date and location (<code><a href="../reference/dropRepeatedFirePoints.html">dropRepeatedFirePoints()</a></code>).
 </td>
 <td style="text-align:left;">
 NA
@@ -877,6 +877,7 @@ fireCauses
 character
 </td>
 <td style="text-align:left;">
+natural,….
 </td>
 <td style="text-align:left;">
 NA
@@ -885,7 +886,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Cause groups of the fires all three models use: <code>"natural"</code>, <code>"unknown"</code>, <code>"human"</code>, <code>"other"</code> (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fireCauseCodes.html" class="external-link">fireSenseUtils::fireCauseCodes()</a></code> maps them to NFDB <code>CAUSE</code> and NBAC <code>FIRECAUS</code> values; a missing cause is <code>"unknown"</code>). Sets the ignition points, the polygons that add an ignition and an escape, and the polygons the spread model is fitted to. <code>NULL</code> (default) is the original behaviour: ignition points of <code>CAUSE</code> L or N, polygon ignitions from <code>FIRECAUS</code> <code>"Natural"</code>, and spread fires of every cause. Use a new <code>fitFileSuffix</code> when setting it.
+Cause groups of the fires all three models use: <code>"natural"</code>, <code>"unknown"</code>, <code>"human"</code>, <code>"other"</code> (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fireCauseCodes.html" class="external-link">fireSenseUtils::fireCauseCodes()</a></code> maps them to NFDB <code>CAUSE</code> and NBAC <code>FIRECAUS</code> values; a missing cause is <code>"unknown"</code>). Sets the ignition points, the polygons that add an ignition and an escape, and the polygons the spread model is fitted to. Checked against <code>fireCauses</code> of the other modules (<code><a href="https://spades-core.predictiveecology.org/reference/paramCheckOtherMods.html" class="external-link">SpaDES.core::paramCheckOtherMods()</a></code>), which must match. Use a new <code>fitFileSuffix</code> when changing it.
 </td>
 <td style="text-align:left;">
 TRUE

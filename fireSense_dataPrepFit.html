@@ -701,6 +701,26 @@ Size (ha) a fire must reach to count as escaped, and the smallest fire the sprea
 TRUE
 </td>
 </tr><tr><td style="text-align:left;">
+fireCauses
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Cause groups of the fires all three models use: <code>"natural"</code>, <code>"unknown"</code>, <code>"human"</code>, <code>"other"</code> (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fireCauseCodes.html" class="external-link">fireSenseUtils::fireCauseCodes()</a></code> maps them to NFDB <code>CAUSE</code> and NBAC <code>FIRECAUS</code> values; a missing cause is <code>"unknown"</code>). Sets the ignition points, the polygons that add an ignition and an escape, and the polygons the spread model is fitted to. <code>NULL</code> (default) is the original behaviour: ignition points of <code>CAUSE</code> L or N, polygon ignitions from <code>FIRECAUS</code> <code>"Natural"</code>, and spread fires of every cause. Use a new <code>fitFileSuffix</code> when setting it.
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+</tr><tr><td style="text-align:left;">
 fuelClassCol
 </td>
 <td style="text-align:left;">
