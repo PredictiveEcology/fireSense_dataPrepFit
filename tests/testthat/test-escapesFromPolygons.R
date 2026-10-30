@@ -71,7 +71,7 @@ test_that("prepare_IgnitionFit adds an ignition for a natural polygon without a 
                                                     ymax = 10000, crs = "EPSG:3978"))
   env <- new.env(parent = environment(prepare_IgnitionFit))
   env$sim <- sim
-  env$Par <- list(escapeSizeHa = 50)
+  env$Par <- list(escapeSizeHa = 50, fireCauses = "natural")
   env$mod <- new.env()
   env$mod$studyAreaUnion <- terra::as.polygons(terra::ext(0, 10000, 0, 10000), crs = "EPSG:3978")
   stmts <- as.list(body(prepare_IgnitionFit))[-1]
