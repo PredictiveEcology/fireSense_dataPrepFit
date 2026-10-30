@@ -73,13 +73,12 @@ defineModule(sim, list(
                           "is fitted to. The escape model's response is the ignitions that became a fire polygon",
                           "of at least this size (`fireSenseUtils::escapedIgnitions()`). Smaller fires' sizes",
                           "become `nonEscapedFireSizesHa`.")),
-    defineParameter("fireCauses", "character", NULL, NA, NA,
+    defineParameter("fireCauses", "character", fireSenseUtils::fireSenseFireCauses, NA, NA,
                     paste("Cause groups of the fires all three models use: `\"natural\"`, `\"unknown\"`, `\"human\"`, `\"other\"`",
                           "(`fireSenseUtils::fireCauseCodes()` maps them to NFDB `CAUSE` and NBAC `FIRECAUS` values; a missing cause is",
                           "`\"unknown\"`). Sets the ignition points, the polygons that add an ignition and an escape, and the",
-                          "polygons the spread model is fitted to. `NULL` (default) is the original behaviour: ignition points",
-                          "of `CAUSE` L or N, polygon ignitions from `FIRECAUS` `\"Natural\"`, and spread fires of every cause.",
-                          "Use a new `fitFileSuffix` when setting it.")),
+                          "polygons the spread model is fitted to. Checked against `fireCauses` of the other modules",
+                          "(`SpaDES.core::paramCheckOtherMods()`), which must match. Use a new `fitFileSuffix` when changing it.")),
     defineParameter("fuelClassCol", "character", fireSenseUtils::fireSenseFuelClassCol, NA, NA,
                     "the column in `sppEquiv` that defines unique fuel classes. A column ",
                     "named `FuelClass` exists in the `LandR::sppEquivalencies_CA` and will be used ",
@@ -243,7 +242,7 @@ defineModule(sim, list(
                        "with layers named `year<year>`. Must be supplied, and must cover `fireYears`.")),
     expectsInput("ignitionFirePoints", "SpatVector", sourceURL = NA,
                  paste("Points of annual ignitions, of every fire size, with columns `YEAR` and `SIZE_HA`.",
-                       "The default is the lightning- and natural-caused fires of the current NFDB release, without",
+                       "The default is the fires of the current NFDB release with the `fireCauses` causes, without",
                        "rows that repeat another row's date and location (`dropRepeatedFirePoints()`).")),
     expectsInput("missingLCCgroup", "character", sourceURL = NA,
                  paste("The `nonForestedLCCGroups` name given to forested pixels that are absent from `cohortData`.",
@@ -439,6 +438,9 @@ doEvent.fireSense_dataPrepFit = function(sim, eventTime, eventType) {
 #' @param sim a `simList`.
 #' @return the `simList`, invisibly, with `mod$haveSpreadFit` and `mod$userSuppliedFuelObjs` set.
 Init <- function(sim) {
+
+  ## the cause set must be the one the other modules (e.g. fireSense_summary) use
+  SpaDES.core::paramCheckOtherMods(sim, "fireCauses", ifSetButDifferent = "error")
 
   sim$nonEscapedFireSizesHa <- nonEscapedFireSizes(sim$ignitionFirePoints, Par$escapeSizeHa)
 
@@ -1172,15 +1174,13 @@ prepare_SpreadFitFire_Vector <- function(sim) {
     rm(PointsAndPolys)
   }
 
-  ## fires of the requested causes only (NULL: every fire); the start points follow their polygons
-  if (!is.null(Par$fireCauses)) {
-    ofCauses <- lapply(sim$spreadFirePolys, polysOfCauses, causes = fireSenseUtils::fireCauseCodes(Par$fireCauses, "nbac"))
-    sim$spreadFirePolys <- ofCauses[!sapply(ofCauses, is.null)]
-    sim$spreadFirePoints <- Map(pts = sim$spreadFirePoints[names(sim$spreadFirePolys)], polys = sim$spreadFirePolys,
-                                function(pts, polys) withIDsIn(pts, polys, IDvar))
-    if (length(sim$spreadFirePolys) == 0) {
-      stop("no fire polygons of cause ", paste(Par$fireCauses, collapse = ", "), " (fireCauses)")
-    }
+  ## fires of the requested causes only; the start points follow their polygons
+  ofCauses <- lapply(sim$spreadFirePolys, polysOfCauses, causes = fireSenseUtils::fireCauseCodes(Par$fireCauses, "nbac"))
+  sim$spreadFirePolys <- ofCauses[!sapply(ofCauses, is.null)]
+  sim$spreadFirePoints <- Map(pts = sim$spreadFirePoints[names(sim$spreadFirePolys)], polys = sim$spreadFirePolys,
+                              function(pts, polys) withIDsIn(pts, polys, IDvar))
+  if (length(sim$spreadFirePolys) == 0) {
+    stop("no fire polygons of cause ", paste(Par$fireCauses, collapse = ", "), " (fireCauses)")
   }
 
   ## the spread model is fitted to escaped fires only: at least escapeSizeHa, and more than one pixel
@@ -1274,7 +1274,7 @@ prepare_IgnitionFit <- function(sim) {
       sim$ignitionFirePoints, sim$spreadFirePolys, sim$spreadFirePoints,
       idCol = grep("ID$", names(sim$spreadFirePolys[[1]]), value = TRUE)[1],
       escapeSizeHa = Par$escapeSizeHa, pixSizeHa = prod(res(sim$flammableRTMs[[1]])) / 10000,
-      naturalPolyCauses = fireSenseUtils::fireCauseCodes(Par$fireCauses %||% "natural", "nbac"))
+      naturalPolyCauses = fireSenseUtils::fireCauseCodes(Par$fireCauses, "nbac"))
     sim$ignitionFirePoints <- rbind(sim$ignitionFirePoints, clipPointsToStudyArea(added, mod$studyAreaUnion))
   }
 
@@ -1825,9 +1825,9 @@ runBorealDP_forCohortData <- function(sim) {
       Cache(omitArgs = "shp", .cacheExtra = basename(nfdbShp),
             userTags = c("ignitionFirePoints", P(sim)$.studyAreaName)) |>
       postProcessTo(projectTo = sim$rasterToMatch)
-    sim$ignitionFirePoints <- dropRepeatedFirePoints(pointsOfCauses(ignitionFirePoints, P(sim)$fireCauses %||% "natural"))
+    sim$ignitionFirePoints <- dropRepeatedFirePoints(pointsOfCauses(ignitionFirePoints, P(sim)$fireCauses))
     if (nrow(sim$ignitionFirePoints) == 0) {
-      stop("no NFDB fire points of the wanted cause (natural: CAUSE L or N) in the study area during fireYears")
+      stop("no NFDB fire points of the wanted `fireCauses` in the study area during fireYears")
     }
   }
 

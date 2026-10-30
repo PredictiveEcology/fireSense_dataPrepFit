@@ -1,5 +1,22 @@
-## fireCauses: NULL is the original behaviour in all three models (ignition points L/N, polygon ignitions
-## "Natural", spread fires of every cause); a value switches all three to those cause groups together.
+## fireCauses: one value (default natural + unknown) sets the causes of the ignition points, the polygon
+## ignitions and the spread-fit fires together.
+
+defaultFireCauses <- function() {
+  md <- SpaDES.core::moduleMetadata(module = moduleName, path = modulePath)
+  md$parameters$default[md$parameters$paramName == "fireCauses"][[1]]
+}
+
+test_that("fireCauses defaults to fireSenseUtils::fireSenseFireCauses (natural + unknown)", {
+  expect_identical(defaultFireCauses(), fireSenseUtils::fireSenseFireCauses)
+})
+
+test_that("Init errors when another module's fireCauses differs", {
+  sim <- methods::new("simList")
+  sim@current <- data.table::data.table(moduleName = "fireSense_dataPrepFit")
+  SpaDES.core::params(sim) <- list(fireSense_dataPrepFit = list(fireCauses = fireSenseUtils::fireSenseFireCauses),
+                                   fireSense_summary = list(fireCauses = "natural"))
+  expect_error(Init(sim), "multiple values for fireCauses")
+})
 
 sqWkt <- function(x0, y0, w) sprintf("POLYGON ((%f %f, %f %f, %f %f, %f %f, %f %f))",
                                      x0, y0, x0 + w, y0, x0 + w, y0 + w, x0, y0 + w, x0, y0)
@@ -25,7 +42,7 @@ test_that("polysOfCauses keeps the polygons of the given causes, and none withou
   expect_error(polysOfCauses(polys, "Natural"), "FIRECAUS")
 })
 
-test_that("prepare_SpreadFitFire_Vector: NULL spreadFitCauses leaves the fires as they are, 'Natural' drops the rest", {
+test_that("prepare_SpreadFitFire_Vector: the default fireCauses keeps natural + unknown fires, 'natural' only natural", {
   polys <- terra::vect(sqWkt(c(0, 2000, 4000), 0, 1000), crs = "EPSG:3978") # 100 ha each
   polys$YEAR <- 2000L
   polys$NFIREID <- c(1, 2, 3)
@@ -54,9 +71,9 @@ test_that("prepare_SpreadFitFire_Vector: NULL spreadFitCauses leaves the fires a
     sim
   }
 
-  all <- run(NULL)
-  expect_identical(all$spreadFirePolys$year2000$NFIREID, c(1, 2, 3))
-  expect_identical(all$spreadFirePoints$year2000$NFIREID, c(1, 2, 3))
+  dflt <- run(defaultFireCauses())
+  expect_identical(dflt$spreadFirePolys$year2000$NFIREID, c(1, 3))
+  expect_identical(dflt$spreadFirePoints$year2000$NFIREID, c(1, 3))
 
   nat <- run("natural")
   expect_identical(nat$spreadFirePolys$year2000$NFIREID, 1)
@@ -96,7 +113,7 @@ test_that("prepare_IgnitionFit: an unknown-cause polygon with no point adds an i
     eval(as.list(body(prepare_IgnitionFit))[-1][[1]], env)
     sim$ignitionFirePoints
   }
-  expect_equal(NROW(run(NULL)), 1)                          # as before: only "Natural" polygons add an ignition
+  expect_equal(NROW(run(defaultFireCauses())), 2)           # the default counts the unknown-cause polygon
   expect_equal(NROW(run("natural")), 1)
   expect_equal(NROW(run(c("natural", "unknown"))), 2)       # polygon 2 adds one; the human polygon never does
   expect_equal(unname(terra::crds(run(c("natural", "unknown")))[2, ]), c(3500, 500))
