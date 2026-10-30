@@ -1,7 +1,7 @@
 ---
 title: "fireSense_dataPrepFit Manual"
 subtitle: "v.1.3.0.9021"
-date: "Last updated: 2026-10-29"
+date: "Last updated: 2026-10-30"
 output:
   bookdown::html_document2:
     toc: true
@@ -199,7 +199,7 @@ Table \@ref(tab:moduleInputs-fireSense-dataPrepFit) shows the full list of modul
   <tr>
    <td style="text-align:left;"> ignitionFirePoints </td>
    <td style="text-align:left;"> SpatVector </td>
-   <td style="text-align:left;"> Points of annual ignitions, of every fire size, with columns `YEAR` and `SIZE_HA`. The default is the lightning- and natural-caused fires of the current NFDB release, without rows that repeat another row's date and location (`dropRepeatedFirePoints()`). </td>
+   <td style="text-align:left;"> Points of annual ignitions, of every fire size, with columns `YEAR` and `SIZE_HA`. The default is the fires of the current NFDB release with the `fireCauses` causes, without rows that repeat another row's date and location (`dropRepeatedFirePoints()`). </td>
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
@@ -398,10 +398,10 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
   <tr>
    <td style="text-align:left;"> fireCauses </td>
    <td style="text-align:left;"> character </td>
-   <td style="text-align:left;">  </td>
+   <td style="text-align:left;"> natural,.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Cause groups of the fires all three models use: `"natural"`, `"unknown"`, `"human"`, `"other"` (`fireSenseUtils::fireCauseCodes()` maps them to NFDB `CAUSE` and NBAC `FIRECAUS` values; a missing cause is `"unknown"`). Sets the ignition points, the polygons that add an ignition and an escape, and the polygons the spread model is fitted to. `NULL` (default) is the original behaviour: ignition points of `CAUSE` L or N, polygon ignitions from `FIRECAUS` `"Natural"`, and spread fires of every cause. Use a new `fitFileSuffix` when setting it. </td>
+   <td style="text-align:left;"> Cause groups of the fires all three models use: `"natural"`, `"unknown"`, `"human"`, `"other"` (`fireSenseUtils::fireCauseCodes()` maps them to NFDB `CAUSE` and NBAC `FIRECAUS` values; a missing cause is `"unknown"`). Sets the ignition points, the polygons that add an ignition and an escape, and the polygons the spread model is fitted to. Checked against `fireCauses` of the other modules (`SpaDES.core::paramCheckOtherMods()`), which must match. Use a new `fitFileSuffix` when changing it. </td>
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
