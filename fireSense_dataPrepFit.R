@@ -73,7 +73,7 @@ defineModule(sim, list(
                           "is fitted to. The escape model's response is the ignitions that became a fire polygon",
                           "of at least this size (`fireSenseUtils::escapedIgnitions()`). Smaller fires' sizes",
                           "become `nonEscapedFireSizesHa`.")),
-    defineParameter("fireCauses", "character", c("natural", "unknown"), NA, NA,
+    defineParameter("fireCauses", "character", fireSenseUtils::fireSenseFireCauses, NA, NA,
                     paste("Cause groups of the fires all three models use: `\"natural\"`, `\"unknown\"`, `\"human\"`, `\"other\"`",
                           "(`fireSenseUtils::fireCauseCodes()` maps them to NFDB `CAUSE` and NBAC `FIRECAUS` values; a missing cause is",
                           "`\"unknown\"`). Sets the ignition points, the polygons that add an ignition and an escape, and the",

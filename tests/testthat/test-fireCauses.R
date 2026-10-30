@@ -6,14 +6,14 @@ defaultFireCauses <- function() {
   md$parameters$default[md$parameters$paramName == "fireCauses"][[1]]
 }
 
-test_that("fireCauses defaults to natural + unknown", {
-  expect_identical(defaultFireCauses(), c("natural", "unknown"))
+test_that("fireCauses defaults to fireSenseUtils::fireSenseFireCauses (natural + unknown)", {
+  expect_identical(defaultFireCauses(), fireSenseUtils::fireSenseFireCauses)
 })
 
 test_that("Init errors when another module's fireCauses differs", {
   sim <- methods::new("simList")
   sim@current <- data.table::data.table(moduleName = "fireSense_dataPrepFit")
-  SpaDES.core::params(sim) <- list(fireSense_dataPrepFit = list(fireCauses = c("natural", "unknown")),
+  SpaDES.core::params(sim) <- list(fireSense_dataPrepFit = list(fireCauses = fireSenseUtils::fireSenseFireCauses),
                                    fireSense_summary = list(fireCauses = "natural"))
   expect_error(Init(sim), "multiple values for fireCauses")
 })
