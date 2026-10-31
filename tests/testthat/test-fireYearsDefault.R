@@ -12,24 +12,36 @@ test_that("the default fire years run from the year after the first data year to
   expect_identical(min(fireYears), 1986L)
   expect_identical(max(fireYears), climateData::latestHistoricalYear())
   expect_identical(fireYears, min(fireYears):max(fireYears))
-  expect_identical(dataYears, c(1985L, 1990L, 2000L, 2010L, 2020L))
+  ## every SCANFI V2 year with a fire year after it: 1985, 1990, ..., 2020 (not the old five years)
+  expect_identical(dataYears, fireSenseUtils::defaultDataYears())
+  expect_identical(dataYears, seq(1985L, max(dataYears), 5L))
+  expect_lt(max(dataYears), max(fireYears))
   ## the defaults satisfy the module's own constraints: every fire year after the first data year,
   ## and every data year has fire years
   expect_no_error(yearGroups(dataYears, fireYears))
 })
 
-test_that("the default is fireSenseUtils::defaultFireYears(), which fireSense_ELFs shares", {
-  ## the default is defined once, in fireSenseUtils, so the ELF merging and the fit count the same years
+## the default expression of a parameter, as written in the module's `defineParameter()` call
+defaultExpr <- function(param) {
   exprs <- parse(file.path(modulePath, moduleName, paste0(moduleName, ".R")), keep.source = FALSE)
   found <- list()
   walk <- function(x) {
     if (is.call(x)) {
-      if (identical(x[[1]], as.name("defineParameter")) && identical(x[[2]], "fireYears"))
+      if (identical(x[[1]], as.name("defineParameter")) && identical(x[[2]], param))
         found[[length(found) + 1L]] <<- x
       for (i in seq_along(x)[-1L]) walk(x[[i]])
     }
   }
   for (e in exprs) walk(e)
   expect_length(found, 1L)
-  expect_identical(found[[1]][[4]], quote(fireSenseUtils::defaultFireYears()))
+  found[[1]][[4]]
+}
+
+test_that("the default is fireSenseUtils::defaultFireYears(), which fireSense_ELFs shares", {
+  ## the default is defined once, in fireSenseUtils, so the ELF merging and the fit count the same years
+  expect_identical(defaultExpr("fireYears"), quote(fireSenseUtils::defaultFireYears()))
+})
+
+test_that("the default dataYears is fireSenseUtils::defaultDataYears(), defined once with the fire years", {
+  expect_identical(defaultExpr("dataYears"), quote(fireSenseUtils::defaultDataYears()))
 })

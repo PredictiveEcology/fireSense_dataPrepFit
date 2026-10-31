@@ -50,7 +50,7 @@ Prepares the data needed to fit `fireSense_ignitionFit` (ignition and escape) an
 
 The module combines historical fire records, vegetation, land cover and climate into the covariate tables used to fit the three `fireSense` processes [@Marchal:2017a; @Marchal:2017b; @Marchal:2019]: ignition, escape (an ignition that grows beyond one pixel) and spread.
 
-Vegetation, land cover and stand age are snapshots, one per year in `P(sim)$dataYears` (default 2000, 2010, 2020).
+Vegetation, land cover and stand age are snapshots, one per year in `P(sim)$dataYears` (default every SCANFI V2 year with a later fire year: 1985, 1990, ..., 2020).
 Each year in `P(sim)$fireYears` uses the latest snapshot strictly before it (a year's satellite vegetation already shows part of that year's fires), so every fire year must be after the first data year, and every data year needs at least one fire year.
 Climate is annual and is matched to the year of each fire.
 Ignition and escape share climate variables (`sim$climateVariablesForFire$ignition`); spread can use others (`$spread`).
@@ -127,10 +127,7 @@ out <- SpaDES.project::setupProject(
   modules = c("PredictiveEcology/canClimateData@development", # needs its own parameters
               "PredictiveEcology/fireSense_dataPrepFit@development"),
   times = list(start = 2020, end = 2020),
-  studyArea = mySA, # buffered to limit edge effects
-  params = list(fireSense_dataPrepFit = list(
-    .useCache = c(".inputObjects", "dataPrepBuild", "prepIgnitionFitData",
-                  "prepEscapeFitData", "prepSpreadFitData")))
+  studyArea = mySA # buffered to limit edge effects
 )
 sim <- do.call(SpaDES.core::simInitAndSpades, out)
 ```
@@ -167,7 +164,7 @@ Checks Google Drive for a previous SpreadFit (see above). It cannot be cached, b
 Runs straight after `init`, before other modules' `init`.
 Puts `rstLCCs` on `rasterToMatch`, and builds, per data year, `flammableRTMs`, `landcoverDTs` and `nonForest_timeSinceDisturbances`.
 Fuel classes are estimated here.
-Can be cached: add `"dataPrepBuild"` to `.useCache`.
+Cached by default: `.useCache` names `.inputObjects` and the four data preparation events, not `init`.
 
 ##### prepIgnitionFitData
 
