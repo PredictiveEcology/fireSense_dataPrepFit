@@ -463,11 +463,15 @@ Init <- function(sim) {
   mod$haveSpreadFit <- is(sim$spreadFitPreRun, "sf") || is(sim$spreadFitPreRun, "data.frame")
   ## doFit FALSE (the default) never fits: without a ledger fit for this ELF, stop now, before hours of data
   ## preparation for a fit that fireSense_spreadFit would refuse. A held-out fold fits without the ledger.
-  if (isTRUE(is.na(heldOutFold)))
+  ## Over a studyAreaLarge, `.ELFind` names several ELFs (fireSense_ELFs), and each needs its fit.
+  if (isTRUE(is.na(heldOutFold))) {
+    ids <- as.character(sim$.ELFind)
     fireSenseUtils::mustFit(Par$doFit,
-                            mod$haveSpreadFit && !is.na(ownLedgerRow(sim$.ELFind,
-                                                                     sim$spreadFitPreRun[[fireSenseUtils::polygonIDTxt]])),
-                            sim$.ELFind, fitFileSuffix = SpaDES.core::paramCheckOtherMods(sim, "fitFileSuffix"))
+                            mod$haveSpreadFit && length(ids) > 0L && !anyNA(ids) &&
+                              all(ids %in% as.character(sim$spreadFitPreRun[[fireSenseUtils::polygonIDTxt]])),
+                            paste(ids, collapse = ", "),
+                            fitFileSuffix = SpaDES.core::paramCheckOtherMods(sim, "fitFileSuffix"))
+  }
   if (mod$haveSpreadFit) {
     sim$studyAreaWithSpreadParams <- sim$spreadFitPreRun
 
@@ -484,10 +488,12 @@ Init <- function(sim) {
     keepCols <- setdiff(colnames(outs2[[1]]$sppEquiv), P(sim)$fuelClassCol)
 
     ## The single-ELF objects (sppEquiv, sppNameVector, colours, non-forest groups) are this run's own
-    ## ELF's. The ledger also holds neighbour ELFs' rows; without an own row (non-ELF run) use them all.
+    ## ELF's (ELFs': over a studyAreaLarge, `.ELFind` names several). The ledger also holds neighbour ELFs'
+    ## rows; without an own row (non-ELF run) use them all.
     ledgerIDs <- sim$spreadFitPreRun[[fireSenseUtils::polygonIDTxt]]
     ownRow <- ownLedgerRow(sim$.ELFind, ledgerIDs)
-    ownRows <- if (is.na(ownRow)) seq_along(outs2) else ownRow
+    ownRows <- which(as.character(ledgerIDs) %in% as.character(sim$.ELFind))
+    if (!length(ownRows)) ownRows <- seq_along(outs2)
     outsOwn <- outs2[ownRows]
 
     # sppEquiv
