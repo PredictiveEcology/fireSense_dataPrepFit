@@ -523,8 +523,7 @@ Init <- function(sim) {
     ## Each ELF's fit names its own spread climate variable(s): with spread = "auto" two ELFs can
     ## differ. Prepare the union, which prediction needs as it blends neighbour ELFs. Variables already
     ## being prepared keep their definition (and years); only missing ones are added, like the rest.
-    fitClimVars <- unique(unlist(Map(x = outs2, function(x) x[["theseClimVars"]]), use.names = FALSE))
-    fitClimVarsNoUnderscore <- gsub("_", "", fitClimVars)
+    fitClimVars <- spreadFitClimateVariables(outs2)
     sim$climateVariables <- addFitClimateVariables(sim$climateVariables, fitClimVars,
                                                    historicalYears = P(sim)$fireYears,
                                                    projectedYears = canClimateProjectedYears(sim))
@@ -534,10 +533,8 @@ Init <- function(sim) {
     reuseOwnFit <- !is.na(ownRow) && !isTRUE(Par$doFit)
     mod$spreadFormulaClimate <- if (reuseOwnFit) outs2[[ownRow]][["theseClimVarsNoUnderscore"]] else
       sim$climateVariablesForFire[["spread"]]
-    sim$climateVariablesForFire[["spread"]] <- fitClimVarsNoUnderscore
-    ## ignition (xgboost) can use every one of them
-    sim$climateVariablesForFire[["ignition"]] <-
-      sort(unique(c(sim$climateVariablesForFire[["ignition"]], fitClimVarsNoUnderscore)))
+    ## spread: the union, for prediction; ignition (xgboost) can use every one of them
+    sim$climateVariablesForFire <- addFitClimateVariablesForFire(sim$climateVariablesForFire, fitClimVars)
   
   }
   
