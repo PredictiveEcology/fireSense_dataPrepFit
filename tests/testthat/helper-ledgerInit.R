@@ -1,4 +1,4 @@
-## Runs the module's own Init() with stand-ins for Drive, LandR and climate (test-ledgerFuelGroups.R,
+## Runs the module's own Init() with stand-ins for Drive and climate (test-ledgerFuelGroups.R,
 ## test-spreadClimateOwnELF.R).
 
 initBody <- function() {
@@ -30,13 +30,7 @@ ledgerInitEnv <- function(ledger) {
   e$nonEscapedFireSizes <- function(...) NULL
   e$inputPath <- function(sim) tempdir()
   e$readSpreadFitLedger <- function(...) ledger
-  e$sppHarmonize <- function(sppEquiv, sppNameVector, sppEquivCol, ...)
-    list(sppEquiv = sppEquiv, sppNameVector = sppNameVector, sppEquivCol = sppEquivCol,
-         sppColorVect = c(Pice_mar = "#000001", Popu_tre = "#000002", Mixed = "#000003"))
   e$addFitClimateVariables <- function(climateVariables, ...) climateVariables
-  e$ledgerColumns <- function(ledger, colNames) ledger[intersect(colNames, names(ledger))]
-  e$outputObjects <- function(sim) data.frame(objectName = c("sppEquiv", "sppNameVector", "sppColorVect",
-                                                             "nonForestedLCCGroups", "missingLCCgroup"))
   e
 }
 
