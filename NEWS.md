@@ -1,5 +1,7 @@
 # fireSense_dataPrepFit 1.3.0.9011 (development version)
 
+* `doFit` defaults to FALSE (was NA), as in `fireSense_spreadFit` and `fireSense_ignitionFit`: a run never fits unless asked. With no SpreadFit ledger row for the ELF (under `fitFileSuffix`), `Init()` stops before any data preparation, with an error naming the ELF and the ledger suffix and saying how to fit (`doFit = NA` or `TRUE`). A user who adds fireSense to a project only to predict can no longer start a fit by accident. A held-out fold (`heldOutFold` 1 or 2) does not stop.
+
 * `Init()` builds the per-ELF species, land-cover and climate inputs of the SpreadFit ledger rows with `fireSenseUtils::spreadFitLedgerInputs()` and `spreadFitLedgerInputLists()`, the same functions `fireSense_spreadFit` uses to rebuild them after it writes its row. The objects it sets are unchanged; the module's `ledgerColumns()` moved into that function.
 
 * `fireCauses` now defaults to `fireSenseUtils::fireSenseFireCauses` (`c("natural", "unknown")`) and drives the ignition points, the polygon ignitions and escapes, and the spread-fit polygons together. Before, the default `NULL` used natural fires for ignitions and escapes but every cause for the spread fit, so the spread model was fitted to more fires than the escape model and the observed record counted (hindcast escapes were 0.6-0.75 of the fit's). `NULL` is no longer a value. `Init` checks `fireCauses` against the other modules with `SpaDES.core::paramCheckOtherMods()` and errors if they differ. Default fits change: refit with a new `fitFileSuffix`.

@@ -129,12 +129,14 @@ defineModule(sim, list(
                                  "the species, fuel and climate objects itself, as for an unfitted study area.",
                                  "Set it for every fireSense module at once with `.globals = list(heldOutFold = 1L)`;",
                                  "`Init()` stops if `fireSense_spreadFit` has a different value. Any other value is an error.")),
-    defineParameter("doFit", "logical", default = NA,
-                    desc = paste("The same parameter as in `fireSense_spreadFit`: NA (default) fits only an ELF without",
-                                 "a ledger fit, TRUE always refits. When this ELF's ledger fit is reused (NA with a",
-                                 "ledger row, or FALSE), the spread formula takes that fit's climate variable(s);",
-                                 "when it is fitted, `climateVariablesForFire$spread` as given (`\"auto\"`: chosen",
-                                 "afresh). Set it for every fireSense module at once with `.globals = list(doFit = ...)`.")),
+    defineParameter("doFit", "logical", default = FALSE,
+                    desc = paste("The same parameter as in `fireSense_spreadFit`: FALSE (default) never fits, and `Init()`",
+                                 "stops, before any data preparation, when the SpreadFit ledger (`fitFileSuffix`) has no",
+                                 "fit for this ELF; NA fits only an ELF without a ledger fit; TRUE always refits. When",
+                                 "this ELF's ledger fit is reused (FALSE, or NA with a ledger row), the spread formula",
+                                 "takes that fit's climate variable(s); when it is fitted, `climateVariablesForFire$spread`",
+                                 "as given (`\"auto\"`: chosen afresh). Set it for every fireSense module at once with",
+                                 "`.globals = list(doFit = ...)`.")),
     defineParameter("fitFileSuffix", "character", "", NA, NA,
                     paste("Text put after the model tag in the ledger file names, e.g. `\"_boundfix_rep81\"`, so a test run",
                           "writes and reads (`\"latest\"`) only its own files, never the production ones. `\"\"` (the",
@@ -459,6 +461,13 @@ Init <- function(sim) {
                         fitFileSuffix = SpaDES.core::paramCheckOtherMods(sim, "fitFileSuffix"))
   }
   mod$haveSpreadFit <- is(sim$spreadFitPreRun, "sf") || is(sim$spreadFitPreRun, "data.frame")
+  ## doFit FALSE (the default) never fits: without a ledger fit for this ELF, stop now, before hours of data
+  ## preparation for a fit that fireSense_spreadFit would refuse. A held-out fold fits without the ledger.
+  if (isTRUE(is.na(heldOutFold)))
+    fireSenseUtils::mustFit(Par$doFit,
+                            mod$haveSpreadFit && !is.na(ownLedgerRow(sim$.ELFind,
+                                                                     sim$spreadFitPreRun[[fireSenseUtils::polygonIDTxt]])),
+                            sim$.ELFind, fitFileSuffix = SpaDES.core::paramCheckOtherMods(sim, "fitFileSuffix"))
   if (mod$haveSpreadFit) {
     sim$studyAreaWithSpreadParams <- sim$spreadFitPreRun
 
