@@ -2,7 +2,7 @@
 ## `sim$nonForestedLCCGroups` and `sim$missingLCCgroup` (dataPrepBuild). fireSense_dataPrepPredict builds the
 ## prediction covariates from the ledger's groups, so the fit must use them too. Before, they stayed the
 ## module default (`nf`), and fireSense_ignitionPredict stopped with "column not found: [nf]" (carbon run,
-## ELF 4.2.2, 2026-09-29). This runs the module's own Init() with stand-ins for Drive, LandR and climate.
+## ELF 4.2.2, 2026-09-29). This runs the module's own Init() with stand-ins for Drive and climate.
 
 test_that("with one fitted ELF in the ledger, Init() uses that ELF's non-forest groups for this run's fit", {
   ledger <- oneELFLedger()

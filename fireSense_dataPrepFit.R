@@ -462,48 +462,14 @@ Init <- function(sim) {
   if (mod$haveSpreadFit) {
     sim$studyAreaWithSpreadParams <- sim$spreadFitPreRun
 
-    # remove the column called "params" ... this just allows for partial matching, with or without "s"
-    #   in case somebody uses `parameters`, `param`, or `params`
-    colNames <- setdiff(sim$spreadFitAdditionalColNames,
-                        grep(value = TRUE, "param", sim$spreadFitAdditionalColNames))
-    df <- ledgerColumns(sim$spreadFitPreRun, colNames)
-    
-    assignToSim <- outputObjects(sim)$objectName
-    outs2 <- Map(nam = sim$spreadFitPreRun[[fireSenseUtils::polygonIDTxt]], ind = seq_len(NROW(df)), function(ind, nam) {
-      dfList <- lapply(df, function(x) x[[ind]]) # Take only first entry, which if within 1 ELF, will be correct
-      list2env(dfList, environment()) # nolint: vars numIterations objFunVal sppEquiv nonForestedLCCGroups missingLCCgroup geometry
-      sim$sppNameVector <- unique(sppEquiv[[Par$sppEquivCol]])
-      sppOuts <- sppHarmonize(sppEquiv, sim$sppNameVector, P(sim)$sppEquivCol, sppColorVect = NULL,
-                              vegLeadingProportion = NULL, studyArea = sim$studyArea)
-      list2env(sppOuts, envir = environment())  # nolint: vars sppEquiv sppNameVector sppEquivCol sppColorVect
-
-      pars <- sim$spreadFitPreRun$params[[ind]]
-      lpn <- fireSenseUtils::logisticParamNames
-      allMatched <- sapply(lpn, function(lpn) all(lpn %in% colnames(pars)))
-      numMatches <- sapply(lpn, function(lpn) sum(colnames(pars) %in% lpn))
-      whLogistic <- which(allMatched & numMatches == max(numMatches))  
-      
-      FuelNames <- c(sim$sppEquiv[[P(sim)$fuelClassCol]], names(nonForestedLCCGroups))
-      hasYoungAge <- youngAgeTxt %in% colnames(pars)
-      if (isTRUE(hasYoungAge))
-        FuelNames <- c(youngAgeTxt, FuelNames)
-      
-      ClimateNames <- setdiff(setdiff(colnames(pars), lpn[[whLogistic]]), FuelNames)
-      
-      allVars <- unique(getFromNamespace(".allowedClimateVars", ns = asNamespace("climateData"))) # it lists CMD twice
-      allVarsNoUnderscore <- gsub("_", "", allVars)
-      whClimateVar <- which(allVarsNoUnderscore %in% ClimateNames)
-      theseClimVars <- allVars[whClimateVar]
-      theseClimVarsNoUnderscore <- allVarsNoUnderscore[whClimateVar]
-      
-      # Append the ones needed in FireSense_spreadFit to whatever was supplied by user
-      if (is.null(sim$climateVariables)) {
-        stop("You need to provide sim$climateVariables; perhaps try adding the PredictiveEcology/canClimateData module")
-      }
-      keepObjs <- intersect(ls(), assignToSim)
-      append(mget(keepObjs), 
-             list(theseClimVars = theseClimVars, theseClimVarsNoUnderscore = theseClimVarsNoUnderscore))
-    })
+    # Append the ones needed in FireSense_spreadFit to whatever was supplied by user
+    if (is.null(sim$climateVariables)) {
+      stop("You need to provide sim$climateVariables; perhaps try adding the PredictiveEcology/canClimateData module")
+    }
+    outs2 <- fireSenseUtils::spreadFitLedgerInputs(sim$spreadFitPreRun, sppEquivCol = Par$sppEquivCol,
+                                                   fuelClassCol = P(sim)$fuelClassCol, studyArea = sim$studyArea,
+                                                   colNames = sim$spreadFitAdditionalColNames)
+    ledgerLists <- fireSenseUtils::spreadFitLedgerInputLists(outs2)
 
     # Ok. With the multi-ELF reality, many objects must become lists --> the names of objects will become plural if we need them    
     keepCols <- setdiff(colnames(outs2[[1]]$sppEquiv), P(sim)$fuelClassCol)
@@ -520,9 +486,7 @@ Init <- function(sim) {
       rbindlist(use.names = TRUE) |> 
       unique(by = keepCols) |> 
       setorderv(Par$sppEquivCol)
-    sim$sppEquivs <- Map(o = outs2, function(o) o[["sppEquiv"]])
-    sim$sppColorVects <- Map(o = outs2, function(o) o[["sppColorVect"]])
-    sim$sppNameVectors <- Map(o = outs2, function(o) o[["sppNameVector"]]) 
+    for (nm in names(ledgerLists)) sim[[nm]] <- ledgerLists[[nm]]
     for (ind in seq_len(NROW(sim$spreadFitPreRun$sppEquiv))) {
       if (!isTRUE(all.equal(sim$spreadFitPreRun$sppEquiv[[ind]], sim$sppEquivs[[ind]], check.attributes = FALSE)  )) {
         sim$spreadFitPreRun$sppEquiv[[ind]] <- sim$sppEquivs[[ind]]
@@ -539,8 +503,6 @@ Init <- function(sim) {
     sim$sppColorVect <- mergeSppColorVects(sim$sppColorVects[ownRows], sim$.ELFind,
                                            ledgerIDs[ownRows])
     
-    sim$nonForestedLCCGroupsList <- Map(x = outs2, function(x) x[["nonForestedLCCGroups"]])
-    sim$missingLCCgroupList <- Map(x = outs2, function(x) x[["missingLCCgroup"]])
     ## This run still builds the ignition and escape covariates (dataPrepBuild) from nonForestedLCCGroups
     ## and missingLCCgroup, and fireSense_dataPrepPredict builds the prediction covariates from the ELF's
     ## groups in the lists above. With one ELF, fit with those groups too, not the module default (`nf`).
