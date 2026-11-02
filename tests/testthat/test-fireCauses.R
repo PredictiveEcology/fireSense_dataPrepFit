@@ -21,14 +21,6 @@ test_that("Init errors when another module's fireCauses differs", {
 sqWkt <- function(x0, y0, w) sprintf("POLYGON ((%f %f, %f %f, %f %f, %f %f, %f %f))",
                                      x0, y0, x0 + w, y0, x0 + w, y0 + w, x0, y0 + w, x0, y0)
 
-test_that("pointsOfCauses: natural keeps L and N; adding unknown keeps U, blank and missing", {
-  pts <- terra::vect(cbind(1:7, 1), crs = "EPSG:3978")
-  pts$CAUSE <- c("L", "N", "H", "U", "", NA, "H-PB")
-  expect_identical(pointsOfCauses(pts, "natural")$CAUSE, c("L", "N"))
-  expect_equal(NROW(pointsOfCauses(pts, c("natural", "unknown"))), 5)
-  expect_identical(pointsOfCauses(pts, c("natural", "unknown"))$CAUSE[1:4], c("L", "N", "U", ""))
-})
-
 test_that("polysOfCauses keeps the polygons of the given causes, and none without a value", {
   polys <- terra::vect(sqWkt(c(0, 200, 400, 600), 0, 100), crs = "EPSG:3978")
   polys$FIRECAUS <- c("Natural", "Human", "Undetermined", NA)

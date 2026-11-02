@@ -1792,14 +1792,14 @@ runBorealDP_forCohortData <- function(sim) {
     nfdbShp <- fireRecordShapefile(
       "https://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_pnt/current_version/NFDB_point_shp.zip",
       destinationPath = dPath)
-    ignitionFirePoints <- nfdbFirePoints(
+    sim$ignitionFirePoints <- nfdbFirePointsOfCauses(
       shp = nfdbShp,
+      studyArea = sim$studyArea,
       years = P(sim)$fireYears,
-      studyArea = sim$studyArea) |>
-      Cache(omitArgs = "shp", .cacheExtra = basename(nfdbShp),
+      causes = P(sim)$fireCauses) |>
+      Cache(omitArgs = "shp", .cacheExtra = list(basename(nfdbShp), nfdbFirePoints, pointsOfCauses, dropRepeatedFirePoints),
             userTags = c("ignitionFirePoints", P(sim)$.studyAreaName)) |>
       postProcessTo(projectTo = sim$rasterToMatch)
-    sim$ignitionFirePoints <- dropRepeatedFirePoints(pointsOfCauses(ignitionFirePoints, P(sim)$fireCauses))
     if (nrow(sim$ignitionFirePoints) == 0) {
       stop("no NFDB fire points of the wanted `fireCauses` in the study area during fireYears")
     }

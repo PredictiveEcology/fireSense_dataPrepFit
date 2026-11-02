@@ -1,5 +1,8 @@
 # fireSense_dataPrepFit 1.3.0.9011 (development version)
 
+* `readSpreadFitLedger()`, the climate-variable helpers (`defaultClimateVariablesForFire`, `climateNAnames()`, `fireClimateLayers()`, `addFitClimateVariables()`, `canClimateProjectedYears()`), `nfdbFirePoints()`, `pointsOfCauses()`, `dropRepeatedFirePoints()` and `nonEscapedFireSizes()` moved to fireSenseUtils, with their tests, so `fireSense_dataPrepPredict` and `fireSense_burn` can do the same in a run without this module. `Init()` uses `fireSenseUtils::addFitClimateVariablesForFire()`, and `ignitionFirePoints` comes from `fireSenseUtils::nfdbFirePointsOfCauses()`.
+* Over several ELFs (`.ELFind` of a `studyAreaLarge`), `Init()` needs a stored fit for each, and takes the species and fuel objects from all their ledger rows (it took the first ELF's only).
+
 * `doFit` defaults to FALSE (was NA), as in `fireSense_spreadFit` and `fireSense_ignitionFit`: a run never fits unless asked. With no SpreadFit ledger row for the ELF (under `fitFileSuffix`), `Init()` stops before any data preparation, with an error naming the ELF and the ledger suffix and saying how to fit (`doFit = NA` or `TRUE`). A user who adds fireSense to a project only to predict can no longer start a fit by accident. A held-out fold (`heldOutFold` 1 or 2) does not stop.
 
 * `Init()` builds the per-ELF species, land-cover and climate inputs of the SpreadFit ledger rows with `fireSenseUtils::spreadFitLedgerInputs()` and `spreadFitLedgerInputLists()`, the same functions `fireSense_spreadFit` uses to rebuild them after it writes its row. The objects it sets are unchanged; the module's `ledgerColumns()` moved into that function.
