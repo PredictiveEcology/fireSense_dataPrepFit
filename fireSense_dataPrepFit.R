@@ -17,7 +17,7 @@ defineModule(sim, list(
   reqdPkgs = list("data.table", "fastDummies", "Require",
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9042)", # CacheGeo re-reads a changed local file
                   "PredictiveEcology/climateData@development (>= 2.2.3.9006)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9141)", # 9141: spreadFitLedgerInputs(), spreadFitLedgerInputLists(); 9135: fireSenseFireCauses; 9131: fireCauseCodes(); 9130: climateRasterToDataTable(Index) reads only those cells; 9128: burnableHaTxt
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9142)", # 9141: spreadFitLedgerInputs(), spreadFitLedgerInputLists(); 9135: fireSenseFireCauses; 9131: fireCauseCodes(); 9130: climateRasterToDataTable(Index) reads only those cells; 9128: burnableHaTxt
                   "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
                   "ggplot2", "methods", "parallel", "purrr", "raster", "sf", "sp", "stats", "utils",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9015)",
@@ -129,16 +129,19 @@ defineModule(sim, list(
                                  "the species, fuel and climate objects itself, as for an unfitted study area.",
                                  "Set it for every fireSense module at once with `.globals = list(heldOutFold = 1L)`;",
                                  "`Init()` stops if `fireSense_spreadFit` has a different value. Any other value is an error.")),
-    defineParameter("doFit", "logical", default = NA,
-                    desc = paste("The same parameter as in `fireSense_spreadFit`: NA (default) fits only an ELF without",
-                                 "a ledger fit, TRUE always refits. When this ELF's ledger fit is reused (NA with a",
-                                 "ledger row, or FALSE), the spread formula takes that fit's climate variable(s);",
-                                 "when it is fitted, `climateVariablesForFire$spread` as given (`\"auto\"`: chosen",
-                                 "afresh). Set it for every fireSense module at once with `.globals = list(doFit = ...)`.")),
+    defineParameter("doFit", "logical", default = FALSE,
+                    desc = paste("The same parameter as in `fireSense_spreadFit`: FALSE (default) never fits, and `Init()`",
+                                 "stops, before any data preparation, when the SpreadFit ledger (`fitFileSuffix`) has no",
+                                 "fit for this ELF; NA fits only an ELF without a ledger fit; TRUE always refits. When",
+                                 "this ELF's ledger fit is reused (FALSE, or NA with a ledger row), the spread formula",
+                                 "takes that fit's climate variable(s); when it is fitted, `climateVariablesForFire$spread`",
+                                 "as given (`\"auto\"`: chosen afresh). Set it for every fireSense module at once with",
+                                 "`.globals = list(doFit = ...)`.")),
     defineParameter("fitFileSuffix", "character", "", NA, NA,
                     paste("Text put after the model tag in the ledger file names, e.g. `\"_boundfix_rep81\"`, so a test run",
                           "writes and reads (`\"latest\"`) only its own files, never the production ones. `\"\"` (the",
-                          "default) is the production ledger. The same parameter of `fireSense_spreadFit`, `fireSense_ignitionFit` and `fireSense_ELFs`;",
+                          "default) writes the unsuffixed file and reads (`\"latest\"`) every file of the model tag, newest by the date in its",
+                          "suffix (`fireSenseUtils::ledgerFileOrder()`); experiment fits belong in `spreadFitLedgerFolder(testing = TRUE)`. The same parameter of `fireSense_spreadFit`, `fireSense_ignitionFit` and `fireSense_ELFs`;",
                           "set it for all with `.globals = list(fitFileSuffix = ...)`; modules that disagree stop",
                           "(`SpaDES.core::paramCheckOtherMods()`). Ignored when a file name is given.")),
     defineParameter("spreadFitGoogleDriveFolder", "character",
@@ -459,6 +462,17 @@ Init <- function(sim) {
                         fitFileSuffix = SpaDES.core::paramCheckOtherMods(sim, "fitFileSuffix"))
   }
   mod$haveSpreadFit <- is(sim$spreadFitPreRun, "sf") || is(sim$spreadFitPreRun, "data.frame")
+  ## doFit FALSE (the default) never fits: without a ledger fit for this ELF, stop now, before hours of data
+  ## preparation for a fit that fireSense_spreadFit would refuse. A held-out fold fits without the ledger.
+  ## Over a studyAreaLarge, `.ELFind` names several ELFs (fireSense_ELFs), and each needs its fit.
+  if (isTRUE(is.na(heldOutFold))) {
+    ids <- as.character(sim$.ELFind)
+    fireSenseUtils::mustFit(Par$doFit,
+                            mod$haveSpreadFit && length(ids) > 0L && !anyNA(ids) &&
+                              all(ids %in% as.character(sim$spreadFitPreRun[[fireSenseUtils::polygonIDTxt]])),
+                            paste(ids, collapse = ", "),
+                            fitFileSuffix = SpaDES.core::paramCheckOtherMods(sim, "fitFileSuffix"))
+  }
   if (mod$haveSpreadFit) {
     sim$studyAreaWithSpreadParams <- sim$spreadFitPreRun
 
@@ -475,10 +489,12 @@ Init <- function(sim) {
     keepCols <- setdiff(colnames(outs2[[1]]$sppEquiv), P(sim)$fuelClassCol)
 
     ## The single-ELF objects (sppEquiv, sppNameVector, colours, non-forest groups) are this run's own
-    ## ELF's. The ledger also holds neighbour ELFs' rows; without an own row (non-ELF run) use them all.
+    ## ELF's (ELFs': over a studyAreaLarge, `.ELFind` names several). The ledger also holds neighbour ELFs'
+    ## rows; without an own row (non-ELF run) use them all.
     ledgerIDs <- sim$spreadFitPreRun[[fireSenseUtils::polygonIDTxt]]
     ownRow <- ownLedgerRow(sim$.ELFind, ledgerIDs)
-    ownRows <- if (is.na(ownRow)) seq_along(outs2) else ownRow
+    ownRows <- which(as.character(ledgerIDs) %in% as.character(sim$.ELFind))
+    if (!length(ownRows)) ownRows <- seq_along(outs2)
     outsOwn <- outs2[ownRows]
 
     # sppEquiv
@@ -514,8 +530,7 @@ Init <- function(sim) {
     ## Each ELF's fit names its own spread climate variable(s): with spread = "auto" two ELFs can
     ## differ. Prepare the union, which prediction needs as it blends neighbour ELFs. Variables already
     ## being prepared keep their definition (and years); only missing ones are added, like the rest.
-    fitClimVars <- unique(unlist(Map(x = outs2, function(x) x[["theseClimVars"]]), use.names = FALSE))
-    fitClimVarsNoUnderscore <- gsub("_", "", fitClimVars)
+    fitClimVars <- spreadFitClimateVariables(outs2)
     sim$climateVariables <- addFitClimateVariables(sim$climateVariables, fitClimVars,
                                                    historicalYears = P(sim)$fireYears,
                                                    projectedYears = canClimateProjectedYears(sim))
@@ -525,10 +540,8 @@ Init <- function(sim) {
     reuseOwnFit <- !is.na(ownRow) && !isTRUE(Par$doFit)
     mod$spreadFormulaClimate <- if (reuseOwnFit) outs2[[ownRow]][["theseClimVarsNoUnderscore"]] else
       sim$climateVariablesForFire[["spread"]]
-    sim$climateVariablesForFire[["spread"]] <- fitClimVarsNoUnderscore
-    ## ignition (xgboost) can use every one of them
-    sim$climateVariablesForFire[["ignition"]] <-
-      sort(unique(c(sim$climateVariablesForFire[["ignition"]], fitClimVarsNoUnderscore)))
+    ## spread: the union, for prediction; ignition (xgboost) can use every one of them
+    sim$climateVariablesForFire <- addFitClimateVariablesForFire(sim$climateVariablesForFire, fitClimVars)
   
   }
   
@@ -1780,14 +1793,14 @@ runBorealDP_forCohortData <- function(sim) {
     nfdbShp <- fireRecordShapefile(
       "https://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_pnt/current_version/NFDB_point_shp.zip",
       destinationPath = dPath)
-    ignitionFirePoints <- nfdbFirePoints(
+    sim$ignitionFirePoints <- nfdbFirePointsOfCauses(
       shp = nfdbShp,
+      studyArea = sim$studyArea,
       years = P(sim)$fireYears,
-      studyArea = sim$studyArea) |>
-      Cache(omitArgs = "shp", .cacheExtra = basename(nfdbShp),
+      causes = P(sim)$fireCauses) |>
+      Cache(omitArgs = "shp", .cacheExtra = list(basename(nfdbShp), nfdbFirePoints, pointsOfCauses, dropRepeatedFirePoints),
             userTags = c("ignitionFirePoints", P(sim)$.studyAreaName)) |>
       postProcessTo(projectTo = sim$rasterToMatch)
-    sim$ignitionFirePoints <- dropRepeatedFirePoints(pointsOfCauses(ignitionFirePoints, P(sim)$fireCauses))
     if (nrow(sim$ignitionFirePoints) == 0) {
       stop("no NFDB fire points of the wanted `fireCauses` in the study area during fireYears")
     }

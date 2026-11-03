@@ -40,16 +40,6 @@ firePolysByYear <- function(shp, years, studyArea) {
   out
 }
 
-#' NFDB fire points in a study area, of every size and cause
-#'
-#' @param shp path of the NFDB point shapefile.
-#' @param years integer years to keep.
-#' @param studyArea polygon to crop to; the result is in its CRS.
-#' @return spatial points, with `YEAR` and `SIZE_HA` harmonized by fireregimetools.
-nfdbFirePoints <- function(shp, years, studyArea) {
-  fireregimetools::load_nfdb_points(shp, study_area = studyArea, fire_years = years, min_size_ha = 0)
-}
-
 #' Rows of `x` whose ID is among the IDs of `y`
 #'
 #' `x[[IDvar]]` on a `SpatVector` is a one-column `data.frame`, and `%in%` between two `data.frame`s compares
@@ -63,15 +53,6 @@ nfdbFirePoints <- function(shp, years, studyArea) {
 #' @return `x` without the rows whose ID is not in `y`.
 withIDsIn <- function(x, y, IDvar) {
   x[terra::values(x)[[IDvar]] %in% terra::values(y)[[IDvar]], ]
-}
-
-#' NFDB fire points of the given cause groups
-#'
-#' @param points NFDB fire points (`SpatVector`) with column `CAUSE`.
-#' @param groups Cause groups, see `fireSenseUtils::fireCauseCodes()`.
-#' @return The rows of `points` whose `CAUSE` is in `groups`.
-pointsOfCauses <- function(points, groups) {
-  points[points$CAUSE %in% fireSenseUtils::fireCauseCodes(groups, "nfdb"), ]
 }
 
 #' Fire polygons of the given causes
@@ -88,19 +69,4 @@ polysOfCauses <- function(polys, causes, causeCol = "FIRECAUS") {
   if (!causeCol %in% names(polys)) stop("fire polygons have no '", causeCol, "' column: cannot select by cause")
   polys <- polys[terra::values(polys)[[causeCol]] %in% causes, ]
   if (nrow(polys) > 0) polys else NULL
-}
-
-#' NFDB fire points with one row per fire
-#'
-#' Some NFDB rows repeat another row's date (`YEAR`, `MONTH`, `DAY`) and location exactly, nearly always under
-#' a different `FIRE_ID`: 554 of the 134,007 natural fires of 1986-2025 in release 20260811, 319 of them in BC.
-#' Each such group is taken as one fire recorded more than once, and the row with the largest `SIZE_HA` is kept.
-#'
-#' @param pts `SpatVector` of NFDB points with `YEAR`, `MONTH`, `DAY` and `SIZE_HA`.
-#' @return `pts` without the repeated rows, in their original order.
-dropRepeatedFirePoints <- function(pts) {
-  xy <- terra::crds(pts)
-  key <- paste(pts$YEAR, pts$MONTH, pts$DAY, xy[, 1], xy[, 2])
-  ord <- order(pts$SIZE_HA, decreasing = TRUE)
-  pts[sort(ord[!duplicated(key[ord])]), ]
 }

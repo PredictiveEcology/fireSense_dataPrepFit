@@ -1,52 +1,5 @@
-## Which climate variables the fire models use, and the climate layers that requires.
-##
-## `climateVariablesForFire` names the variables for each process: IgnitionFit (xgboost) takes all of
-## `ignition`, as it copes with correlated covariates; SpreadFit takes `spread`. Unless a user supplies
-## them, this module sets both it and `climateVariables` (what canClimateData prepares) from the
-## default below, so the two always agree and a user need not choose. canClimateData leaves
-## `climateVariables` to this module whenever both are loaded (this module lists it as an output), and
-## keeps its own default otherwise.
-
-#' Default climate variables for the fire models
-#'
-#' ClimateNA names; `"cumMDC"` is derived by `climateData::calcCumMDC()`. `spread = "auto"` picks,
-#' per study area, the `ignition` variable that best tracks annual area burned
-#' ([selectSpreadClimateVariable()]).
-#' @keywords internal
-defaultClimateVariablesForFire <- list(ignition = c("CMD", "cumMDC", "CMD_sm", "CMD_sp"),
-                                       spread = "auto")
-
-#' ClimateNA names of climate variables given with or without underscores
-#'
-#' The fire modules name climate layers without underscores (`"CMDsm"`), ClimateNA with them
-#' (`"CMD_sm"`). Both forms map to the ClimateNA name.
-#'
-#' @param x Character vector of variable names.
-#' @return Character vector of ClimateNA names, same length as `x`.
-#' @keywords internal
-climateNAnames <- function(x) {
-  allowed <- getFromNamespace(".allowedClimateVars", ns = asNamespace("climateData"))
-  out <- allowed[match(gsub("_", "", x), gsub("_", "", allowed))]
-  if (anyNA(out))
-    stop("Unknown climate variable(s): ", paste(x[is.na(out)], collapse = ", "),
-         ". Use ClimateNA names (e.g., CMD_sm) or climateData's derived variables (e.g., cumMDC).")
-  out
-}
-
-#' Climate layers needed by the fire models
-#'
-#' @param climateVariablesForFire List with `ignition` and `spread` character vectors.
-#' @param historicalYears Years for fitting (`P(sim)$fireYears`).
-#' @param projectedYears Projected years, from `canClimateProjectedYears()`. Projected climate is
-#'   requested for these years only; none (`NULL` or empty) requests no projected climate.
-#' @return A list for `sim$climateVariables`, as built by `climateData::climateLayers()`.
-#' @keywords internal
-fireClimateLayers <- function(climateVariablesForFire, historicalYears, projectedYears = NULL) {
-  vars <- unlist(climateVariablesForFire[c("ignition", "spread")], use.names = FALSE)
-  vars <- unique(climateNAnames(setdiff(vars, "auto")))    # "auto" chooses among the ignition variables
-  climateData::climateLayers(vars, fun = quote(calcAsIs), historicalYears = historicalYears,
-                             projected = length(projectedYears) > 0, projectedYears = projectedYears)
-}
+## The spread climate variable chosen for a fit (`spread = "auto"`). The fire models' default climate
+## variables and the climate layers they need are in fireSenseUtils (fireClimateVariables.R).
 
 #' Pick the spread climate variable that best separates the bad fire years
 #'
@@ -102,34 +55,3 @@ selectSpreadClimateVariable <- function(climateRasters, burnedByYear, candidates
   scores[]
 }
 
-#' Add the climate variables of existing fits to what is being prepared
-#'
-#' For prediction from existing fits, possibly of several ELFs that chose different spread variables
-#' (`spread = "auto"`): every variable a fit uses must be prepared. Variables already in
-#' `climateVariables` keep their definition (and years); only missing ones are added.
-#'
-#' @param climateVariables The list for `sim$climateVariables` (names like `historical_CMDsm`).
-#' @param fitClimVars Climate variables the fits use, ClimateNA names.
-#' @inheritParams fireClimateLayers
-#' @return `climateVariables`, with any missing variable added.
-#' @keywords internal
-addFitClimateVariables <- function(climateVariables, fitClimVars, historicalYears, projectedYears = NULL) {
-  prepared <- unique(sub("^[^_]+_", "", names(climateVariables)))
-  toAdd <- fitClimVars[!gsub("_", "", fitClimVars) %in% prepared]
-  if (!length(toAdd)) return(climateVariables)
-  c(climateVariables, fireClimateLayers(list(ignition = toAdd), historicalYears = historicalYears,
-                                        projectedYears = projectedYears))
-}
-
-#' The years of projected climate that canClimateData prepares
-#'
-#' canClimateData's `projectedClimateYears` is the one place these are set (its default is
-#' 2011:2100). Empty, or without canClimateData in the run, means no projected climate: runs that
-#' sample past climate (NRV) set it empty.
-#'
-#' @param sim A `simList`.
-#' @return Integer/numeric years; `NULL` if canClimateData is not in the run.
-#' @keywords internal
-canClimateProjectedYears <- function(sim) {
-  tryCatch(P(sim, module = "canClimateData")$projectedClimateYears, error = function(e) NULL)
-}
