@@ -25,10 +25,6 @@ always_allow_html: true
 
 
 
-[![made-with-Markdown](figures/markdownBadge.png)](https://commonmark.org)
-
-<!-- if knitting to pdf remember to add the pandoc_args: ["--extract-media", "."] option to yml in order to get the badge images -->
-
 #### Authors:
 
 Ian Eddy <ian.eddy@nrcan-rncan.gc.ca> [aut, cre], Eliot McIntire <eliot.mcintire@nrcan-rncan.gc.ca> [aut], Alex M Chubaty <achubaty@for-cast.ca> [ctb] <!-- ideally separate authors with new lines, '\n' not working -->
