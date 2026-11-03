@@ -73,7 +73,7 @@
       <h1 data-toc-skip>fireSense_dataPrepFit Manual</h1>
             <h3 data-toc-skip class="subtitle">v.1.3.0.9024</h3>
             
-            <h4 data-toc-skip class="date">Last updated: 2026-11-02</h4>
+            <h4 data-toc-skip class="date">Last updated: 2026-11-03</h4>
       
 
       <div class="hidden name"><code>fireSense_dataPrepFit.Rmd</code></div>
@@ -406,7 +406,7 @@ ignitionFirePoints
 SpatVector
 </td>
 <td style="text-align:left;">
-Points of annual ignitions, of every fire size, with columns <code>YEAR</code> and <code>SIZE_HA</code>. The default is the fires of the current NFDB release with the <code>fireCauses</code> causes, without rows that repeat another row’s date and location (<code><a href="../reference/dropRepeatedFirePoints.html">dropRepeatedFirePoints()</a></code>).
+Points of annual ignitions, of every fire size, with columns <code>YEAR</code> and <code>SIZE_HA</code>. The default is the fires of the current NFDB release with the <code>fireCauses</code> causes, without rows that repeat another row’s date and location (<code>dropRepeatedFirePoints()</code>).
 </td>
 <td style="text-align:left;">
 NA
@@ -1130,7 +1130,7 @@ doFit
 logical
 </td>
 <td style="text-align:left;">
-NA
+FALSE
 </td>
 <td style="text-align:left;">
 NA
@@ -1139,7 +1139,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-The same parameter as in <code>fireSense_spreadFit</code>: NA (default) fits only an ELF without a ledger fit, TRUE always refits. When this ELF’s ledger fit is reused (NA with a ledger row, or FALSE), the spread formula takes that fit’s climate variable(s); when it is fitted, <code>climateVariablesForFire$spread</code> as given (<code>"auto"</code>: chosen afresh). Set it for every fireSense module at once with <code>.globals = list(doFit = ...)</code>.
+The same parameter as in <code>fireSense_spreadFit</code>: FALSE (default) never fits, and <code><a href="../reference/Init.html">Init()</a></code> stops, before any data preparation, when the SpreadFit ledger (<code>fitFileSuffix</code>) has no fit for this ELF; NA fits only an ELF without a ledger fit; TRUE always refits. When this ELF’s ledger fit is reused (FALSE, or NA with a ledger row), the spread formula takes that fit’s climate variable(s); when it is fitted, <code>climateVariablesForFire$spread</code> as given (<code>"auto"</code>: chosen afresh). Set it for every fireSense module at once with <code>.globals = list(doFit = ...)</code>.
 </td>
 <td style="text-align:left;">
 TRUE
@@ -1161,7 +1161,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Text put after the model tag in the ledger file names, e.g. <code>"_boundfix_rep81"</code>, so a test run writes and reads (<code>"latest"</code>) only its own files, never the production ones. <code>""</code> (the default) is the production ledger. The same parameter of <code>fireSense_spreadFit</code>, <code>fireSense_ignitionFit</code> and <code>fireSense_ELFs</code>; set it for all with <code>.globals = list(fitFileSuffix = ...)</code>; modules that disagree stop (<code><a href="https://spades-core.predictiveecology.org/reference/paramCheckOtherMods.html" class="external-link">SpaDES.core::paramCheckOtherMods()</a></code>). Ignored when a file name is given.
+Text put after the model tag in the ledger file names, e.g. <code>"_boundfix_rep81"</code>, so a test run writes and reads (<code>"latest"</code>) only its own files, never the production ones. <code>""</code> (the default) writes the unsuffixed file and reads (<code>"latest"</code>) every file of the model tag, newest by the date in its suffix (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/ledgerFileOrder.html" class="external-link">fireSenseUtils::ledgerFileOrder()</a></code>); experiment fits belong in <code>spreadFitLedgerFolder(testing = TRUE)</code>. The same parameter of <code>fireSense_spreadFit</code>, <code>fireSense_ignitionFit</code> and <code>fireSense_ELFs</code>; set it for all with <code>.globals = list(fitFileSuffix = ...)</code>; modules that disagree stop (<code><a href="https://spades-core.predictiveecology.org/reference/paramCheckOtherMods.html" class="external-link">SpaDES.core::paramCheckOtherMods()</a></code>). Ignored when a file name is given.
 </td>
 <td style="text-align:left;">
 TRUE

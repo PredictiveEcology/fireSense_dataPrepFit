@@ -1,7 +1,7 @@
 ---
 title: "fireSense_dataPrepFit Manual"
 subtitle: "v.1.3.0.9024"
-date: "Last updated: 2026-11-02"
+date: "Last updated: 2026-11-03"
 output:
   bookdown::html_document2:
     toc: true
@@ -499,10 +499,10 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
   <tr>
    <td style="text-align:left;"> doFit </td>
    <td style="text-align:left;"> logical </td>
+   <td style="text-align:left;"> FALSE </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> The same parameter as in `fireSense_spreadFit`: NA (default) fits only an ELF without a ledger fit, TRUE always refits. When this ELF's ledger fit is reused (NA with a ledger row, or FALSE), the spread formula takes that fit's climate variable(s); when it is fitted, `climateVariablesForFire$spread` as given (`"auto"`: chosen afresh). Set it for every fireSense module at once with `.globals = list(doFit = ...)`. </td>
+   <td style="text-align:left;"> The same parameter as in `fireSense_spreadFit`: FALSE (default) never fits, and `Init()` stops, before any data preparation, when the SpreadFit ledger (`fitFileSuffix`) has no fit for this ELF; NA fits only an ELF without a ledger fit; TRUE always refits. When this ELF's ledger fit is reused (FALSE, or NA with a ledger row), the spread formula takes that fit's climate variable(s); when it is fitted, `climateVariablesForFire$spread` as given (`"auto"`: chosen afresh). Set it for every fireSense module at once with `.globals = list(doFit = ...)`. </td>
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
@@ -511,7 +511,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;">  </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Text put after the model tag in the ledger file names, e.g. `"_boundfix_rep81"`, so a test run writes and reads (`"latest"`) only its own files, never the production ones. `""` (the default) is the production ledger. The same parameter of `fireSense_spreadFit`, `fireSense_ignitionFit` and `fireSense_ELFs`; set it for all with `.globals = list(fitFileSuffix = ...)`; modules that disagree stop (`SpaDES.core::paramCheckOtherMods()`). Ignored when a file name is given. </td>
+   <td style="text-align:left;"> Text put after the model tag in the ledger file names, e.g. `"_boundfix_rep81"`, so a test run writes and reads (`"latest"`) only its own files, never the production ones. `""` (the default) writes the unsuffixed file and reads (`"latest"`) every file of the model tag, newest by the date in its suffix (`fireSenseUtils::ledgerFileOrder()`); experiment fits belong in `spreadFitLedgerFolder(testing = TRUE)`. The same parameter of `fireSense_spreadFit`, `fireSense_ignitionFit` and `fireSense_ELFs`; set it for all with `.globals = list(fitFileSuffix = ...)`; modules that disagree stop (`SpaDES.core::paramCheckOtherMods()`). Ignored when a file name is given. </td>
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
