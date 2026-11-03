@@ -11,3 +11,4 @@ fireSense_dataPrepFit2.Rmd
 # testthat failure snapshots
 tests/testthat/_problems/
 tests/testthat/testthat-problems.rds
+/fireSense_dataPrepFit.html
