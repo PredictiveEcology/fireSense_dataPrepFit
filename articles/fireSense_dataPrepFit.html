@@ -73,7 +73,7 @@
       <h1 data-toc-skip>fireSense_dataPrepFit Manual</h1>
             <h3 data-toc-skip class="subtitle">v.1.3.0.9025</h3>
             
-            <h4 data-toc-skip class="date">Last updated: 2026-11-05</h4>
+            <h4 data-toc-skip class="date">Last updated: 2026-11-07</h4>
       
 
       <div class="hidden name"><code>fireSense_dataPrepFit.Rmd</code></div>
@@ -1282,6 +1282,29 @@ TRUE
 </tr>
 <tr>
 <td style="text-align:left;">
+wholeLandscapeSpreadCovariates
+</td>
+<td style="text-align:left;">
+logical
+</td>
+<td style="text-align:left;">
+FALSE
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+If <code>TRUE</code>, <code>fireSense_annualSpreadFitCovariates</code> and <code>fireSense_nonAnnualSpreadFitCovariates</code> have every flammable pixel of the study area, not only the fire buffers (same names and columns), so that <code>fireSense_spreadFit</code> can re-simulate fires cut at a buffer edge at their true size. The buffer tables are then not made. <code>fireBufferedListDT</code> and the fire objects are unchanged. Costs minutes and 0.5-1.5 GB per ELF in the event cache. The parameter is in the <code>prepSpreadFitData</code> cache key, so that event runs once more after this module version even when it is <code>FALSE</code>.
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
 whichModulesToPrepare
 </td>
 <td style="text-align:left;">
@@ -1585,7 +1608,7 @@ fireSense_annualSpreadFitCovariates
 list
 </td>
 <td style="text-align:left;">
-List of data.tables, one per fire year, of <code>pixelID</code> and the spread climate covariates in the fire buffers.
+List of data.tables, one per fire year, of <code>pixelID</code> and the spread climate covariates in the fire buffers (every flammable pixel with <code>wholeLandscapeSpreadCovariates</code>).
 </td>
 </tr>
 <tr>
@@ -1640,7 +1663,7 @@ fireSense_nonAnnualSpreadFitCovariates
 list
 </td>
 <td style="text-align:left;">
-List of data.tables, one per <code>dataYears</code>, of <code>pixelID</code> and the fuel covariates in the fire buffers.
+List of data.tables, one per <code>dataYears</code>, of <code>pixelID</code> and the fuel covariates in the fire buffers (every flammable pixel with <code>wholeLandscapeSpreadCovariates</code>).
 </td>
 </tr>
 <tr>

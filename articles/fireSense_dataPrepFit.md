@@ -1,7 +1,7 @@
 ---
 title: "fireSense_dataPrepFit Manual"
 subtitle: "v.1.3.0.9025"
-date: "Last updated: 2026-11-05"
+date: "Last updated: 2026-11-07"
 output:
   bookdown::html_document2:
     toc: true
@@ -556,6 +556,15 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
+   <td style="text-align:left;"> wholeLandscapeSpreadCovariates </td>
+   <td style="text-align:left;"> logical </td>
+   <td style="text-align:left;"> FALSE </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> If `TRUE`, `fireSense_annualSpreadFitCovariates` and `fireSense_nonAnnualSpreadFitCovariates` have every flammable pixel of the study area, not only the fire buffers (same names and columns), so that `fireSense_spreadFit` can re-simulate fires cut at a buffer edge at their true size. The buffer tables are then not made. `fireBufferedListDT` and the fire objects are unchanged. Costs minutes and 0.5-1.5 GB per ELF in the event cache. The parameter is in the `prepSpreadFitData` cache key, so that event runs once more after this module version even when it is `FALSE`. </td>
+   <td style="text-align:left;"> TRUE </td>
+  </tr>
+  <tr>
    <td style="text-align:left;"> whichModulesToPrepare </td>
    <td style="text-align:left;"> character </td>
    <td style="text-align:left;"> fireSens.... </td>
@@ -714,7 +723,7 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-dataP
   <tr>
    <td style="text-align:left;"> fireSense_annualSpreadFitCovariates </td>
    <td style="text-align:left;"> list </td>
-   <td style="text-align:left;"> List of data.tables, one per fire year, of `pixelID` and the spread climate covariates in the fire buffers. </td>
+   <td style="text-align:left;"> List of data.tables, one per fire year, of `pixelID` and the spread climate covariates in the fire buffers (every flammable pixel with `wholeLandscapeSpreadCovariates`). </td>
   </tr>
   <tr>
    <td style="text-align:left;"> fireSense_escapeCovariates </td>
@@ -739,7 +748,7 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-dataP
   <tr>
    <td style="text-align:left;"> fireSense_nonAnnualSpreadFitCovariates </td>
    <td style="text-align:left;"> list </td>
-   <td style="text-align:left;"> List of data.tables, one per `dataYears`, of `pixelID` and the fuel covariates in the fire buffers. </td>
+   <td style="text-align:left;"> List of data.tables, one per `dataYears`, of `pixelID` and the fuel covariates in the fire buffers (every flammable pixel with `wholeLandscapeSpreadCovariates`). </td>
   </tr>
   <tr>
    <td style="text-align:left;"> fireSense_spreadFormula </td>
