@@ -165,6 +165,14 @@ defineModule(sim, list(
     defineParameter("useRasterizedFireForSpread", "logical", FALSE, NA, NA,
                     paste("Use `historicalFireRaster` in place of fire polygons for spread?",
                           "Not currently supported: `TRUE` stops with an error when preparing SpreadFit.")),
+    defineParameter("wholeLandscapeSpreadCovariates", "logical", FALSE, NA, NA,
+                    paste("If `TRUE`, `fireSense_annualSpreadFitCovariates` and `fireSense_nonAnnualSpreadFitCovariates`",
+                          "have every flammable pixel of the study area, not only the fire buffers (same names and columns),",
+                          "so that `fireSense_spreadFit` can re-simulate fires cut at a buffer edge at their true size.",
+                          "The buffer tables are then not made. `fireBufferedListDT` and the fire objects are unchanged.",
+                          "Costs minutes and 0.5-1.5 GB per ELF in the event cache. The parameter is in the",
+                          "`prepSpreadFitData` cache key, so that event runs once more after this module version",
+                          "even when it is `FALSE`.")),
     defineParameter("whichModulesToPrepare", "character",
                     c("fireSense_ignitionFit", "fireSense_spreadFit"),
                     NA, NA, paste("Which fireSense fit modules to prep? defaults to both. Preparing",
@@ -324,7 +332,7 @@ defineModule(sim, list(
     createsOutput("spreadFirePolys", "list",
                   "List of annual fire polygons used for SpreadFit: larger than one pixel and matched to `spreadFirePoints`."),
     createsOutput("fireSense_annualSpreadFitCovariates", "list",
-                  "List of data.tables, one per fire year, of `pixelID` and the spread climate covariates in the fire buffers."),
+                  "List of data.tables, one per fire year, of `pixelID` and the spread climate covariates in the fire buffers (every flammable pixel with `wholeLandscapeSpreadCovariates`)."),
     createsOutput("fireSense_escapeCovariates", "data.table",
                   "ignition covariates with added column of escapes"),
     createsOutput("nonEscapedFireSizesHa", "numeric",
@@ -335,7 +343,7 @@ defineModule(sim, list(
     createsOutput("fireSense_ignitionCovariates", "data.table",
                   "table of aggregated ignition covariates with annual ignitions"),
     createsOutput("fireSense_nonAnnualSpreadFitCovariates", "list",
-                  "List of data.tables, one per `dataYears`, of `pixelID` and the fuel covariates in the fire buffers."),
+                  "List of data.tables, one per `dataYears`, of `pixelID` and the fuel covariates in the fire buffers (every flammable pixel with `wholeLandscapeSpreadCovariates`)."),
     createsOutput("fireSense_spreadFormula", "character",
                   "formula for spread, using climate and vegetation covariates, as character"),
     createsOutput("fuelClassRoles", "list",
@@ -769,7 +777,7 @@ dataPrepBuild <- function(sim) {
 #'
 #' @param sim a `simList`.
 #' @return the `simList`, invisibly, with `fireSense_annualSpreadFitCovariates`,
-#'   `fireSense_nonAnnualSpreadFitCovariates`, `fireSense_spreadFormula`, `fireBufferedListDT`,
+#'   `fireSense_nonAnnualSpreadFitCovariates` `fireSense_spreadFormula`, `fireBufferedListDT`,
 #'   `spreadFirePoints` and `spreadFirePolys`.
 prepare_SpreadFit <- function(sim) {
 
@@ -873,8 +881,12 @@ prepare_SpreadFit <- function(sim) {
   ## join fire and veg data
   fireSenseVegData <- joinFireBuffersToVeg(sim$fireBufferedListDT, vegData, mod$allYears)
 
-  rm(vegData)
-  gc()
+  ## with wholeLandscapeSpreadCovariates the non-annual tables below are made from vegData, so it is kept until then
+  wholeSpreadCovariates <- isTRUE(P(sim)$wholeLandscapeSpreadCovariates)
+  if (!wholeSpreadCovariates) {
+    rm(vegData)
+    gc()
+  }
 
   ## TODO: lines from creation of vegData onwards should be reviewed. Seems redundant.
   ## TODO: should column ids be in vegData? currently pixels appear > 1 time, within a fire period
@@ -945,43 +957,22 @@ prepare_SpreadFit <- function(sim) {
     x <- terra::subset(x, subset = names(x) %in% paste0(fireSenseUtils::yearTxt, P(sim)$fireYears))
   })
 
-  ## only the fire-buffer pixels of each year are read from the rasters; the join below keeps no others
-  climateDT <- climateRasterToDataTable(historicalClimateRasters = spreadClimate,
-                                        Index = sim$fireBufferedListDT) |>
-    Cache(userTags = c("climateRasterToDataTable", names(spreadClimate)))
-
-  fbl <- rbindlist(sim$fireBufferedListDT, idcol = fireSenseUtils::yearTxt)
-  rmCols <- setdiff(colnames(fbl), c("pixelID", fireSenseUtils::yearTxt))
-  set(fbl, NULL, rmCols, NULL)
-  fbl <- climateDT[fbl, on = c(fireSenseUtils::yearTxt, "pixelID"), nomatch = NULL]
-
-  fireSense_annualSpreadFitCovariates <- split(fbl, by = fireSenseUtils::yearTxt, keep.by = FALSE)
-
-  # keep an (empty) annual table for years that have no fires, so the colnames stay
-  missingYears <- setdiff(unlist(mod$allYears), names(fireSense_annualSpreadFitCovariates))
-  for (my in missingYears) # keep the colnames even though NROW is 0
-    fireSense_annualSpreadFitCovariates[[my]] <-  fireSense_annualSpreadFitCovariates[[1]][0]
-  fireSense_annualSpreadFitCovariates <- fireSense_annualSpreadFitCovariates[order(names(fireSense_annualSpreadFitCovariates))]
-
   colsToExtract <- c("pixelID", vegCols)
+  firePixels <- allFirePixelsByYear(sim)
+
+  ## the pixels of each fire year the tables are made for: the fire buffers, or with
+  ## wholeLandscapeSpreadCovariates every burnable pixel of the ELF (the fires stay those of fireBufferedListDT)
+  pixelsByYear <- if (wholeSpreadCovariates) {
+    lapply(burnablePixels[unlist(mod$allYears)], function(p) data.table(pixelID = p))
+  } else {
+    sim$fireBufferedListDT
+  }
 
   ## group the annual covariates by data year
-  annualCovariates <- Map(yrsChar = mod$allYears, function(yrsChar) {
-    fireSense_annualSpreadFitCovariates[yrsChar]
-  })
-
-  ## get rid of nonflammable pixels (their time since disturbance is NA, which is never young)
-  annualCovariates <- lapply(annualCovariates, function(ac) {
-    Map(x = ac, fy = names(ac), function(x, fy) x[pixelID %in% burnablePixels[[fy]], ])
-  })
-
-  ## youngAge of each fire year's pixels: the data year's time since disturbance aged to that year,
-  ## reset by every fire since (all fires, not only those fitted). spreadFit clears fuel, non-forest
-  ## land cover and treed wetland where it is 1, after joining these annual tables to the fuels.
-  annualCovariates <- addAnnualYoungAge(annualCovariates,
-                                        tsds = sim$nonForest_timeSinceDisturbances,
-                                        firePixelsByYear = allFirePixelsByYear(sim),
-                                        cutoffForYoungAge = P(sim)$cutoffForYoungAge)
+  annualCovariates <- annualSpreadCovariates(
+    pixelsByYear, spreadClimate, mod$allYears, burnablePixels,
+    tsds = sim$nonForest_timeSinceDisturbances, firePixelsByYear = firePixels,
+    cutoffForYoungAge = P(sim)$cutoffForYoungAge)
 
   # Confirm that YoungAge is the right amount. If there are "normal" amount of fires,
   #  then it should be < 0.2
@@ -999,18 +990,84 @@ prepare_SpreadFit <- function(sim) {
   # nonAnnuals are the fuels (per data year) and fire occurrence; youngAge and climate are in the annual tables
   nonAnnuals <- Map(yrsChar = mod$allYears, yrGroup = names(mod$allYears), function(yrsChar, yrGroup) {
     yrsNum <- gsub("[^0-9]", "", yrsChar) |> as.integer()
-    fireSenseVegData[year < max(yrsNum) & year >= as.integer(yrGroup), .SD, .SDcols = colsToExtract] %>%
-      na.omit(.) %>%
-      as.data.table(.) %>%
-      .[!duplicated(pixelID), ]
+    veg <- if (wholeSpreadCovariates) {
+      vegData[year == as.integer(yrGroup)]
+    } else {
+      fireSenseVegData[year < max(yrsNum) & year >= as.integer(yrGroup)]
+    }
+    nonAnnualSpreadCovariates(veg, colsToExtract)
   })
   sim$fireSense_nonAnnualSpreadFitCovariates <- nonAnnuals
+  if (wholeSpreadCovariates) {
+    rm(vegData)
+    gc()
+  }
 
   if (is.null(sim$fireSense_spreadFormula)) {
     sim$fireSense_spreadFormula <- spreadFormula(RHS, Par$spreadIntercept)
   }
 
   return(invisible(sim))
+}
+
+#' The annual spread covariates of the given pixels
+#'
+#' Climate of each fire year's pixels, then `youngAge`, grouped by data year. `prepare_SpreadFit()` calls it
+#' with the fire-buffer pixels for the fit and, if `wholeLandscapeSpreadCovariates`, with every burnable
+#' pixel, so both have the same names and columns.
+#'
+#' @param pixelsByYear list named `year<year>` of data.tables with `pixelID`, the pixels wanted in each fire year.
+#' @param spreadClimate list of climate `SpatRaster`s, named by variable, with a layer per fire year.
+#' @param allYears list named by data year of the `year<year>` fire years that use it, as `mod$allYears`.
+#' @param burnablePixels from [burnablePixelsByFireYear()]: only these pixels are kept.
+#' @param tsds,firePixelsByYear,cutoffForYoungAge see [addAnnualYoungAge()].
+#' @return list named by data year of lists named `year<year>` (every year of `allYears`, empty if no pixels)
+#'   of data.tables of `pixelID`, the climate variables and `youngAge`.
+annualSpreadCovariates <- function(pixelsByYear, spreadClimate, allYears, burnablePixels, tsds,
+                                   firePixelsByYear, cutoffForYoungAge) {
+  ## only these pixels of each year are read from the rasters; the join below keeps no others
+  climateDT <- climateRasterToDataTable(historicalClimateRasters = spreadClimate,
+                                        Index = pixelsByYear) |>
+    Cache(userTags = c("climateRasterToDataTable", names(spreadClimate)))
+
+  fbl <- rbindlist(pixelsByYear, idcol = fireSenseUtils::yearTxt)
+  rmCols <- setdiff(colnames(fbl), c("pixelID", fireSenseUtils::yearTxt))
+  set(fbl, NULL, rmCols, NULL)
+  fbl <- climateDT[fbl, on = c(fireSenseUtils::yearTxt, "pixelID"), nomatch = NULL]
+
+  annuals <- split(fbl, by = fireSenseUtils::yearTxt, keep.by = FALSE)
+
+  # keep an (empty) annual table for years that have no pixels, so the colnames stay
+  missingYears <- setdiff(unlist(allYears), names(annuals))
+  for (my in missingYears) # keep the colnames even though NROW is 0
+    annuals[[my]] <-  annuals[[1]][0]
+  annuals <- annuals[order(names(annuals))]
+
+  annualCovariates <- Map(yrsChar = allYears, function(yrsChar) annuals[yrsChar])
+
+  ## get rid of nonflammable pixels (their time since disturbance is NA, which is never young)
+  annualCovariates <- lapply(annualCovariates, function(ac) {
+    Map(x = ac, fy = names(ac), function(x, fy) x[pixelID %in% burnablePixels[[fy]], ])
+  })
+
+  ## youngAge of each fire year's pixels: the data year's time since disturbance aged to that year,
+  ## reset by every fire since (all fires, not only those fitted). spreadFit clears fuel, non-forest
+  ## land cover and treed wetland where it is 1, after joining these annual tables to the fuels.
+  addAnnualYoungAge(annualCovariates, tsds = tsds, firePixelsByYear = firePixelsByYear,
+                    cutoffForYoungAge = cutoffForYoungAge)
+}
+
+#' The non-annual (fuel) spread covariates of one data year
+#'
+#' @param veg data.table with `pixelID` and the covariates, the rows of one data year (a fire-buffer join,
+#'   or the whole landscape's covariates).
+#' @param colsToExtract character, `pixelID` and the covariate columns to keep.
+#' @return data.table of `colsToExtract`, without `NA` rows, one row per pixel.
+nonAnnualSpreadCovariates <- function(veg, colsToExtract) {
+  veg[, .SD, .SDcols = colsToExtract] %>%
+    na.omit(.) %>%
+    as.data.table(.) %>%
+    .[!duplicated(pixelID), ]
 }
 
 #' Land-cover shares of flammable pixels, for one year
