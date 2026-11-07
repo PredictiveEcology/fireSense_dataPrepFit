@@ -54,10 +54,12 @@ test_that("outputs are the expected names and classes", {
       climateVariablesForFire                = "list",
       fireBufferedListDT                     = "list",
       fireSense_annualSpreadFitCovariates    = "list",
+      fireSense_annualSpreadFitCovariatesWhole = "list",
       fireSense_escapeCovariates             = "data.table",
       fireSense_escapeFormula                = "character",
       fireSense_ignitionCovariates           = "data.table",
       fireSense_nonAnnualSpreadFitCovariates = "list",
+      fireSense_nonAnnualSpreadFitCovariatesWhole = "list",
       fireSense_spreadFormula                = "character",
       flammableRTM                           = "SpatRaster",
       flammableRTMs                          = "list",
@@ -100,7 +102,7 @@ test_that("parameters are the expected names", {
            "minBufferSize", "minBurnableFireSizeHa", "minCovariateProp", "nonflammableLCC",
            "nonForestCanBeYoungAge", "scanfiVersion", "sppEquivCol", "spreadFitFilename",
            "spreadFitGoogleDriveFolder", "fitFileSuffix", "spreadIntercept", "targetFuelClasses",
-           "useRasterizedFireForSpread", "whichModulesToPrepare"))
+           "useRasterizedFireForSpread", "wholeLandscapeSpreadCovariates", "whichModulesToPrepare"))
   )
 })
 
