@@ -1,7 +1,7 @@
-## wholeLandscapeSpreadCovariates makes the spread-fit covariate tables for every burnable pixel, with the
-## module's own functions (annualSpreadCovariates(), nonAnnualSpreadCovariates()) on a superset of pixels.
-## fireSenseUtils' whole-landscape re-simulation needs the same names and structure as the buffer tables, and
-## the same values on the buffer pixels.
+## With wholeLandscapeSpreadCovariates the spread-fit covariate tables have every burnable pixel, made by the
+## same functions (annualSpreadCovariates(), nonAnnualSpreadCovariates()) called with all burnable pixels
+## instead of the buffer pixels. They must have the buffer tables' names and columns, and the same values
+## on the buffer pixels.
 
 wholeFixture <- function() {
   r <- terra::rast(nrows = 4, ncols = 5)
@@ -62,9 +62,12 @@ test_that("whole non-annual tables have the buffer tables' names and rows on the
   }
 })
 
-test_that("the module declares the parameter (default FALSE) and the two outputs", {
+test_that("prepare_SpreadFit picks the buffer or the burnable pixels by the parameter, into the existing outputs", {
   md <- SpaDES.core::moduleMetadata(module = moduleName, path = modulePath)
   expect_false(md$parameters$default[md$parameters$paramName == "wholeLandscapeSpreadCovariates"][[1]])
-  expect_true(all(c("fireSense_annualSpreadFitCovariatesWhole", "fireSense_nonAnnualSpreadFitCovariatesWhole") %in%
-                    md$outputObjects$objectName))
+  expect_false(any(grepl("Whole$", md$outputObjects$objectName)))
+  body <- paste(deparse(body(prepare_SpreadFit)), collapse = " ")
+  expect_match(body, "wholeLandscapeSpreadCovariates", fixed = TRUE)
+  expect_match(body, "pixelsByYear <- if (wholeSpreadCovariates)", fixed = TRUE)
+  expect_equal(lengths(regmatches(body, gregexpr("annualSpreadCovariates(", body, fixed = TRUE))), 1L) # one call, whichever pixels
 })

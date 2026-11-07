@@ -166,12 +166,13 @@ defineModule(sim, list(
                     paste("Use `historicalFireRaster` in place of fire polygons for spread?",
                           "Not currently supported: `TRUE` stops with an error when preparing SpreadFit.")),
     defineParameter("wholeLandscapeSpreadCovariates", "logical", FALSE, NA, NA,
-                    paste("Also make `fireSense_annualSpreadFitCovariatesWhole` and `fireSense_nonAnnualSpreadFitCovariatesWhole`:",
-                          "the spread-fit covariate tables for every flammable pixel of the study area, not only the fire",
-                          "buffers, so that `fireSense_spreadFit` can re-simulate fires cut at a buffer edge at their true",
-                          "size. Costs minutes and 0.5-1.5 GB per ELF in the event cache. `FALSE` makes neither table.",
-                          "The parameter is in the `prepSpreadFitData` cache key, so that event runs once more after this",
-                          "module version even when it is `FALSE`.")),
+                    paste("If `TRUE`, `fireSense_annualSpreadFitCovariates` and `fireSense_nonAnnualSpreadFitCovariates`",
+                          "have every flammable pixel of the study area, not only the fire buffers (same names and columns),",
+                          "so that `fireSense_spreadFit` can re-simulate fires cut at a buffer edge at their true size.",
+                          "The buffer tables are then not made. `fireBufferedListDT` and the fire objects are unchanged.",
+                          "Costs minutes and 0.5-1.5 GB per ELF in the event cache. The parameter is in the",
+                          "`prepSpreadFitData` cache key, so that event runs once more after this module version",
+                          "even when it is `FALSE`.")),
     defineParameter("whichModulesToPrepare", "character",
                     c("fireSense_ignitionFit", "fireSense_spreadFit"),
                     NA, NA, paste("Which fireSense fit modules to prep? defaults to both. Preparing",
@@ -331,10 +332,7 @@ defineModule(sim, list(
     createsOutput("spreadFirePolys", "list",
                   "List of annual fire polygons used for SpreadFit: larger than one pixel and matched to `spreadFirePoints`."),
     createsOutput("fireSense_annualSpreadFitCovariates", "list",
-                  "List of data.tables, one per fire year, of `pixelID` and the spread climate covariates in the fire buffers."),
-    createsOutput("fireSense_annualSpreadFitCovariatesWhole", "list",
-                  paste("Only if `wholeLandscapeSpreadCovariates`: as `fireSense_annualSpreadFitCovariates` (same",
-                        "names) for every flammable pixel of each fire year, not only the fire buffers.")),
+                  "List of data.tables, one per fire year, of `pixelID` and the spread climate covariates in the fire buffers (every flammable pixel with `wholeLandscapeSpreadCovariates`)."),
     createsOutput("fireSense_escapeCovariates", "data.table",
                   "ignition covariates with added column of escapes"),
     createsOutput("nonEscapedFireSizesHa", "numeric",
@@ -345,10 +343,7 @@ defineModule(sim, list(
     createsOutput("fireSense_ignitionCovariates", "data.table",
                   "table of aggregated ignition covariates with annual ignitions"),
     createsOutput("fireSense_nonAnnualSpreadFitCovariates", "list",
-                  "List of data.tables, one per `dataYears`, of `pixelID` and the fuel covariates in the fire buffers."),
-    createsOutput("fireSense_nonAnnualSpreadFitCovariatesWhole", "list",
-                  paste("Only if `wholeLandscapeSpreadCovariates`: as `fireSense_nonAnnualSpreadFitCovariates` (same",
-                        "names) for every flammable pixel of each data year, not only the fire buffers.")),
+                  "List of data.tables, one per `dataYears`, of `pixelID` and the fuel covariates in the fire buffers (every flammable pixel with `wholeLandscapeSpreadCovariates`)."),
     createsOutput("fireSense_spreadFormula", "character",
                   "formula for spread, using climate and vegetation covariates, as character"),
     createsOutput("fuelClassRoles", "list",
@@ -782,7 +777,7 @@ dataPrepBuild <- function(sim) {
 #'
 #' @param sim a `simList`.
 #' @return the `simList`, invisibly, with `fireSense_annualSpreadFitCovariates`,
-#'   `fireSense_nonAnnualSpreadFitCovariates` (and the `...Whole` pair if `wholeLandscapeSpreadCovariates`), `fireSense_spreadFormula`, `fireBufferedListDT`,
+#'   `fireSense_nonAnnualSpreadFitCovariates` `fireSense_spreadFormula`, `fireBufferedListDT`,
 #'   `spreadFirePoints` and `spreadFirePolys`.
 prepare_SpreadFit <- function(sim) {
 
@@ -886,7 +881,7 @@ prepare_SpreadFit <- function(sim) {
   ## join fire and veg data
   fireSenseVegData <- joinFireBuffersToVeg(sim$fireBufferedListDT, vegData, mod$allYears)
 
-  ## the whole-landscape tables below are made from vegData, so it is kept until then
+  ## with wholeLandscapeSpreadCovariates the non-annual tables below are made from vegData, so it is kept until then
   wholeSpreadCovariates <- isTRUE(P(sim)$wholeLandscapeSpreadCovariates)
   if (!wholeSpreadCovariates) {
     rm(vegData)
@@ -965,9 +960,17 @@ prepare_SpreadFit <- function(sim) {
   colsToExtract <- c("pixelID", vegCols)
   firePixels <- allFirePixelsByYear(sim)
 
+  ## the pixels of each fire year the tables are made for: the fire buffers, or with
+  ## wholeLandscapeSpreadCovariates every burnable pixel of the ELF (the fires stay those of fireBufferedListDT)
+  pixelsByYear <- if (wholeSpreadCovariates) {
+    lapply(burnablePixels[unlist(mod$allYears)], function(p) data.table(pixelID = p))
+  } else {
+    sim$fireBufferedListDT
+  }
+
   ## group the annual covariates by data year
   annualCovariates <- annualSpreadCovariates(
-    sim$fireBufferedListDT, spreadClimate, mod$allYears, burnablePixels,
+    pixelsByYear, spreadClimate, mod$allYears, burnablePixels,
     tsds = sim$nonForest_timeSinceDisturbances, firePixelsByYear = firePixels,
     cutoffForYoungAge = P(sim)$cutoffForYoungAge)
 
@@ -987,24 +990,16 @@ prepare_SpreadFit <- function(sim) {
   # nonAnnuals are the fuels (per data year) and fire occurrence; youngAge and climate are in the annual tables
   nonAnnuals <- Map(yrsChar = mod$allYears, yrGroup = names(mod$allYears), function(yrsChar, yrGroup) {
     yrsNum <- gsub("[^0-9]", "", yrsChar) |> as.integer()
-    nonAnnualSpreadCovariates(fireSenseVegData[year < max(yrsNum) & year >= as.integer(yrGroup)], colsToExtract)
+    veg <- if (wholeSpreadCovariates) {
+      vegData[year == as.integer(yrGroup)]
+    } else {
+      fireSenseVegData[year < max(yrsNum) & year >= as.integer(yrGroup)]
+    }
+    nonAnnualSpreadCovariates(veg, colsToExtract)
   })
   sim$fireSense_nonAnnualSpreadFitCovariates <- nonAnnuals
-
-  ## The same tables for every flammable pixel of the ELF, not only the fire buffers: the same functions
-  ## on a superset of pixels, with the same names and structure, so a fire cut at a buffer edge can be
-  ## re-simulated on the whole landscape (fireSenseUtils::.objfunSpreadFit(annualDTx1000Whole = ))
   if (wholeSpreadCovariates) {
-    annualWhole <- annualSpreadCovariates(
-      lapply(burnablePixels[unlist(mod$allYears)], function(p) data.table(pixelID = p)),
-      spreadClimate, mod$allYears, burnablePixels,
-      tsds = sim$nonForest_timeSinceDisturbances, firePixelsByYear = firePixels,
-      cutoffForYoungAge = P(sim)$cutoffForYoungAge)
-    sim$fireSense_annualSpreadFitCovariatesWhole <- do.call(c, unname(annualWhole))
-    sim$fireSense_nonAnnualSpreadFitCovariatesWhole <- Map(yrGroup = names(mod$allYears), function(yrGroup) {
-      nonAnnualSpreadCovariates(vegData[year == as.integer(yrGroup)], colsToExtract)
-    })
-    rm(vegData, annualWhole)
+    rm(vegData)
     gc()
   }
 
