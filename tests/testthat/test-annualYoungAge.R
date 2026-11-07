@@ -53,10 +53,11 @@ test_that("prepare_SpreadFit and prepare_IgnitionFit take youngAge from the per-
   spread <- paste(deparse(body(prepare_SpreadFit)), collapse = " ")
   ## fuels are built without youngAge, so they are not zeroed at the data year
   expect_match(spread, "youngAge = FALSE", fixed = TRUE)
-  expect_match(spread, "addAnnualYoungAge(", fixed = TRUE)
+  expect_match(spread, "annualSpreadCovariates(", fixed = TRUE)
+  expect_match(paste(deparse(body(annualSpreadCovariates)), collapse = " "), "addAnnualYoungAge(", fixed = TRUE)
   expect_match(spread, "stopIfNonForestCannotBeYoung(", fixed = TRUE)
   ## the annual tables get youngAge before they are combined
-  expect_lt(regexpr("addAnnualYoungAge(", spread, fixed = TRUE),
+  expect_lt(regexpr("annualSpreadCovariates(", spread, fixed = TRUE),
             regexpr("fireSense_annualSpreadFitCovariates <- do.call", spread, fixed = TRUE))
 
   ignition <- paste(deparse(body(prepare_IgnitionFit)), collapse = " ")
