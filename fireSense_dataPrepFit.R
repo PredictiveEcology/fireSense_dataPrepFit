@@ -145,6 +145,15 @@ defineModule(sim, list(
                           "suffix (`fireSenseUtils::ledgerFileOrder()`); experiment fits belong in `spreadFitLedgerFolder(testing = TRUE)`. The same parameter of `fireSense_spreadFit`, `fireSense_ignitionFit` and `fireSense_ELFs`;",
                           "set it for all with `.globals = list(fitFileSuffix = ...)`; modules that disagree stop",
                           "(`SpaDES.core::paramCheckOtherMods()`). Ignored when a file name is given.")),
+    defineParameter("spreadClimateCandidates", "character",
+                    c(fireSenseUtils::defaultClimateVariablesForFire$ignition, "Tmax_sm", "PPT_sm"), NA, NA,
+                    paste("The climate variables `climateVariablesForFire$spread = \"auto\"` chooses among (ClimateNA names,",
+                          "with or without underscores). Not the ignition variables: those are `climateVariablesForFire$ignition`,",
+                          "which IgnitionFit uses whole. Their layers are prepared with the others (`.inputObjects`), but only the",
+                          "chosen one enters the spread tables. Ignored unless `spread` is \"auto\". Each must increase with",
+                          "dryness, except precipitation (`PPT*`), which decreases. Changing it re-runs the cached events,",
+                          "like any other parameter. Default: the default ignition variables, summer maximum temperature",
+                          "(`Tmax_sm`) and summer precipitation (`PPT_sm`).")),
     defineParameter("spreadFitGoogleDriveFolder", "character",
                     fireSenseUtils::spreadFitLedgerFolder(),
                     NA, NA, paste("URL of the Google Drive folder holding the ledger of previous SpreadFit results",
@@ -226,8 +235,8 @@ defineModule(sim, list(
                  paste("List with elements `ignition` and `spread`, each a character vector of climate variable",
                        "names, with or without underscores (e.g., `CMD_sm` or `CMDsm`). IgnitionFit uses all of",
                        "`ignition`; SpreadFit uses `spread`. Default: `ignition = c('CMD', 'cumMDC', 'CMD_sm', 'CMD_sp')`,",
-                       "`spread = 'auto'`: the `ignition` variable that best separates the study area's worst fire years",
-                       "(see `spreadClimateSelection`). Unless supplied, `climateVariables` is built from these.")),
+                       "`spread = 'auto'`: the `spreadClimateCandidates` variable that best separates the study area's worst fire",
+                       "years (see `spreadClimateSelection`). Unless supplied, `climateVariables` is built from these.")),
     expectsInput("cohortDatas", "list", sourceURL = NA,
                  paste("List of `cohortData` data.tables, one per `dataYears`, named `year<year>`.",
                        "If not supplied, built by running Biomass_borealDataPrep for each data year.")),
@@ -331,8 +340,8 @@ defineModule(sim, list(
                   events = "prepSpreadFitData"),
     createsOutput("climateVariables", "list",
                   paste("Climate variable definitions, as used by `climateData::prepClimateLayers` (canClimateData).",
-                        "Unless supplied, built from `climateVariablesForFire` for `fireYears` (and canClimateData's",
-                        "`projectedClimateYears`, if any). If a previous SpreadFit exists, the",
+                        "Unless supplied, built from `climateVariablesForFire` (and, when `spread` is \"auto\", `spreadClimateCandidates`)",
+                        "for `fireYears` (and canClimateData's `projectedClimateYears`, if any). If a previous SpreadFit exists, the",
                         "variables of that fit are added."),
                   events = c(".inputObjects", "init")),
     createsOutput("fireBufferedListDT", "list",
@@ -980,13 +989,9 @@ prepare_SpreadFit <- function(sim) {
   ## spread = "auto": the climate variable that best separates this study area's bad fire years
   ## (R/fireClimateVariables.R)
   if (identical(spreadVars, "auto")) {
-    fy <- paste0(fireSenseUtils::yearTxt, P(sim)$fireYears)
-    burned <- setNames(numeric(length(fy)), fy)
-    b <- vapply(sim$fireBufferedListDT, function(d) as.numeric(sum(d$buffer == 1)), numeric(1))
-    b <- b[names(b) %in% fy]
-    burned[names(b)] <- b
-    sim$spreadClimateSelection <- selectSpreadClimateVariable(sim$historicalClimateRasters, burned,
-                                                              candidates = sim$climateVariablesForFire$ignition)
+    sim$spreadClimateSelection <- autoSpreadClimate(sim$historicalClimateRasters, sim$fireBufferedListDT,
+                                                    fireYears = P(sim)$fireYears,
+                                                    candidates = P(sim)$spreadClimateCandidates)
     spreadVars <- sim$spreadClimateSelection[chosen == TRUE, var]
     message("Spread climate variable (auto): ", spreadVars,
             "; bad-fire-year AUC: ", paste0(sim$spreadClimateSelection$var, " ",
@@ -1763,8 +1768,9 @@ runBorealDP_forCohortData <- function(sim) {
     sim$climateVariablesForFire <- defaultClimateVariablesForFire
   }
   if (!suppliedElsewhere("climateVariables", sim, where = c("sim", "user"))) {
-    sim$climateVariables <- fireClimateLayers(sim$climateVariablesForFire, historicalYears = P(sim)$fireYears,
-                                              projectedYears = canClimateProjectedYears(sim))
+    sim$climateVariables <- fireClimateLayers(
+      withSpreadCandidates(sim$climateVariablesForFire, P(sim)$spreadClimateCandidates),
+      historicalYears = P(sim)$fireYears, projectedYears = canClimateProjectedYears(sim))
   }
   ## the rest of the module names climate layers without underscores ("CMDsm")
   sim$climateVariablesForFire <- lapply(sim$climateVariablesForFire, function(v) gsub("_", "", v))
