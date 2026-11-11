@@ -1,10 +1,10 @@
 ## 2026-10-25 (Eliot): "The escape model is about the transition from point to polygon." An escape is an
-## ignition that became a fire polygon (`spreadFirePolys`, the fires the spread model is fitted to) of at least
-## escapeSizeHa, one per polygon; before, it was an NFDB point whose reported SIZE_HA reached escapeSizeHa.
+## ignition that became a fire polygon of at least escapeSizeHa, one per polygon; before, it was an NFDB point
+## whose reported SIZE_HA reached escapeSizeHa. Since 2026-11-10 `prepare_IgnitionFit()` marks them (`escaped`,
+## `fireSenseUtils::escapeIgnitionPoints()`; see test-coreEscapeFires.R) and `prepare_EscapeFit()` counts them.
 
-test_that("prepare_EscapeFit counts one escape per fire polygon of at least escapeSizeHa, not point sizes", {
+test_that("prepare_EscapeFit counts the escaped ignition points, one per escape", {
   skip_if_not_installed("fireSenseUtils")
-  skip_if_not("escapedIgnitions" %in% getNamespaceExports("fireSenseUtils"))
   ras <- terra::rast(nrows = 10, ncols = 10, xmin = 0, xmax = 10000, ymin = 0, ymax = 10000,
                      crs = "EPSG:3978", vals = 1)  # coarse cells of 100 ha
   sq <- function(x0, y0, w) sprintf("POLYGON ((%f %f, %f %f, %f %f, %f %f, %f %f))",
@@ -17,6 +17,7 @@ test_that("prepare_EscapeFit counts one escape per fire polygon of at least esca
   pts$YEAR <- 2000L
   pts$CAUSE <- "L"
   pts$SIZE_HA <- c(10, 30, 60, 80)
+  pts$escaped <- c(TRUE, FALSE, FALSE, FALSE) # one escape: the 64 ha polygon, matched once for its two points
   cells <- terra::cellFromXY(ras, terra::crds(pts))
 
   sim <- new.env()
@@ -37,52 +38,9 @@ test_that("prepare_EscapeFit counts one escape per fire polygon of at least esca
   suppressWarnings(f(sim))
 
   esc <- sim$fireSense_escapeCovariates
-  expect_identical(esc[pixelID == cells[1], escapes], 1L)   # the 64 ha polygon, once for its two points
-  expect_identical(sum(esc$escapes), 1L)                    # the old rule had 2: the 60 and 80 ha points
+  expect_identical(esc[pixelID == cells[1], escapes], 1L)
+  expect_identical(sum(esc$escapes), 1L)                    # the point-size rule had 2: the 60 and 80 ha points
 
   sim$spreadFirePolys <- NULL
   expect_error(f(sim), "needs firePolys")
-})
-
-## Eliot, 2026-10-25: a natural-cause polygon of at least escapeSizeHa with no natural ignition point is added as
-## an ignition, at the fire's start point from the spread data (its centroid moved into the fire), and escapes.
-test_that("prepare_IgnitionFit adds an ignition for a natural polygon without a point, and it escapes", {
-  skip_if_not_installed("fireSenseUtils")
-  skip_if_not("polygonIgnitions" %in% getNamespaceExports("fireSenseUtils"))
-  sq <- function(x0, y0, w) sprintf("POLYGON ((%f %f, %f %f, %f %f, %f %f, %f %f))",
-                                    x0, y0, x0 + w, y0, x0 + w, y0 + w, x0, y0 + w, x0, y0)
-  polys <- terra::vect(c(sq(100, 100, 800), sq(6100, 6100, 800), sq(3100, 6100, 800)), crs = "EPSG:3978")
-  polys$YEAR <- 2000L
-  polys$FIRECAUS <- c("Natural", "Natural", "Human")
-  polys$NFIREID <- c(1, 2, 3)
-  starts <- terra::vect(cbind(c(500, 6200, 3500), c(500, 6200, 6500)), crs = "EPSG:3978") # the spread fit's
-  starts$YEAR <- 2000L
-  starts$NFIREID <- c(1, 2, 3)
-  pts <- terra::vect(cbind(c(300, 5000), c(300, 2000)), crs = "EPSG:3978")   # one in polygon 1, one in none
-  pts$YEAR <- 2000L
-  pts$CAUSE <- "L"
-  pts$SIZE_HA <- c(10, 80)
-
-  sim <- new.env()
-  sim$ignitionFirePoints <- pts
-  sim$spreadFirePolys <- list(year2000 = polys)
-  sim$spreadFirePoints <- list(year2000 = starts)
-  sim$flammableRTMs <- list(year1985 = terra::rast(nrows = 40, ncols = 40, xmin = 0, xmax = 10000, ymin = 0,
-                                                    ymax = 10000, crs = "EPSG:3978"))
-  env <- new.env(parent = environment(prepare_IgnitionFit))
-  env$sim <- sim
-  env$Par <- list(escapeSizeHa = 50, fireCauses = "natural")
-  env$mod <- new.env()
-  env$mod$studyAreaUnion <- terra::as.polygons(terra::ext(0, 10000, 0, 10000), crs = "EPSG:3978")
-  stmts <- as.list(body(prepare_IgnitionFit))[-1]
-  first <- stmts[[1]]
-  expect_match(paste(deparse(first), collapse = " "), "polygonIgnitions", fixed = TRUE)
-  eval(first, env)
-
-  ## polygon 2 (natural, no point) adds one ignition at its start point; polygon 3 is human-caused
-  expect_equal(NROW(sim$ignitionFirePoints), 3)
-  expect_equal(unname(terra::crds(sim$ignitionFirePoints)[3, ]), c(6200, 6200))
-  expect_identical(sim$ignitionFirePoints$CAUSE[3], "N")
-  e <- fireSenseUtils::escapedIgnitions(sim$ignitionFirePoints, sim$spreadFirePolys, 50, 6.25)
-  expect_identical(e, c(TRUE, FALSE, TRUE))
 })

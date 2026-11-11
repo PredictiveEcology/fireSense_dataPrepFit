@@ -56,7 +56,8 @@ test_that("prepare_SpreadFitFire_Vector: the default fireCauses keeps natural + 
     env$Cache <- function(x, ...) x
     ## the harmonization is tested elsewhere: pass the fires through
     env$harmonizeFireData <- function(firePolys, spreadFirePoints, ...)
-      list(fireBufferedListDT = Map(function(x) 1, firePolys), spreadFirePoints = spreadFirePoints, firePolys = firePolys)
+      list(fireBufferedListDT = Map(function(p) data.table::data.table(ids = p$NFIREID, buffer = 1L), firePolys),
+           spreadFirePoints = spreadFirePoints, firePolys = firePolys)
     f <- prepare_SpreadFitFire_Vector
     environment(f) <- env
     suppressMessages(f(sim))
@@ -92,11 +93,14 @@ test_that("prepare_IgnitionFit: an unknown-cause polygon with no point adds an i
 
   run <- function(causes) {
     sim <- new.env()
+    flam <- list(year1985 = terra::rast(nrows = 40, ncols = 40, xmin = 0, xmax = 10000, ymin = 0,
+                                        ymax = 10000, crs = "EPSG:3978"))
+    def <- fireSenseUtils::escapeDefinition(50, causes)
     sim$ignitionFirePoints <- pts
     sim$spreadFirePolys <- list(year2000 = polys)
-    sim$spreadFirePoints <- list(year2000 = starts)
-    sim$flammableRTMs <- list(year1985 = terra::rast(nrows = 40, ncols = 40, xmin = 0, xmax = 10000, ymin = 0,
-                                                      ymax = 10000, crs = "EPSG:3978"))
+    sim$escapeFireSet <- escapeStartsByDataYear(list(year2000 = polys), list(year2000 = starts), flam,
+                                                list(year1985 = "year2000"), NULL, def, "NFIREID", "POLY_HA")
+    sim$flammableRTMs <- flam
     env <- new.env(parent = environment(prepare_IgnitionFit))
     env$sim <- sim
     env$Par <- list(escapeSizeHa = 50, fireCauses = causes)

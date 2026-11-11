@@ -69,10 +69,11 @@ defineModule(sim, list(
     defineParameter("igAggFactor", "numeric", fireSenseUtils::fireSenseIgAggFactor, 1, NA,
                     "Aggregation factor (number of `rasterToMatch` cells per side) for the ignition and escape covariates."),
     defineParameter("escapeSizeHa", "numeric", 50, 0, NA,
-                    paste("Size (ha) a fire must reach to count as escaped, and the smallest fire the spread model",
-                          "is fitted to. The escape model's response is the ignitions that became a fire polygon",
-                          "of at least this size (`fireSenseUtils::escapedIgnitions()`). Smaller fires' sizes",
-                          "become `nonEscapedFireSizesHa`.")),
+                    paste("Size (ha) of the whole fire polygon at and above which a fire escaped, and the smallest fire",
+                          "the spread model is fitted to. The escape model's response is the core ignitions that became a",
+                          "fire polygon of at least this size (`fireSenseUtils::escapeIgnitionPoints()`). Smaller fires' sizes",
+                          "become `nonEscapedFireSizesHa`. Checked against `escapeSizeHa` of the other modules",
+                          "(`SpaDES.core::paramCheckOtherMods()`), which must match.")),
     defineParameter("fireCauses", "character", fireSenseUtils::fireSenseFireCauses, NA, NA,
                     paste("Cause groups of the fires all three models use: `\"natural\"`, `\"unknown\"`, `\"human\"`, `\"other\"`",
                           "(`fireSenseUtils::fireCauseCodes()` maps them to NFDB `CAUSE` and NBAC `FIRECAUS` values; a missing cause is",
@@ -192,12 +193,10 @@ defineModule(sim, list(
                       fireSenseUtils::dataYearFor, fireSenseUtils::fuelClassPrep,
                       fireSenseUtils::lccFlammableShare, fireSenseUtils::makeLandcoverDT,
                       fireSenseUtils::makeTSD, spreadFitPreRun = sim$spreadFitPreRun))),
-                         prepIgnitionFitData = list(.cacheExtra = quote(list(
-                      fireSenseUtils::escapedFires, fireSenseUtils::fireCauseCodes,
-                      fireSenseUtils::ignitionPolygonPairs, fireSenseUtils::polygonIgnitions, spreadFitPreRun = sim$spreadFitPreRun))),
-                         prepEscapeFitData = list(.cacheExtra = quote(list(
-                      fireSenseUtils::escapedFires, fireSenseUtils::escapedIgnitions,
-                      fireSenseUtils::ignitionPolygonPairs, spreadFitPreRun = sim$spreadFitPreRun))),
+                         prepIgnitionFitData = list(.cacheExtra = quote(c(
+                      list(spreadFitPreRun = sim$spreadFitPreRun), fireSenseUtils::escapeFireSetDeps()))),
+                         prepEscapeFitData = list(.cacheExtra = quote(c(
+                      list(spreadFitPreRun = sim$spreadFitPreRun), fireSenseUtils::escapeFireSetDeps()))),
                          prepSpreadFitData = list(.cacheExtra = quote(c(list(
                       fireSenseUtils::bufferToArea, fireSenseUtils::chooseDomSecFuelClasses,
                       fireSenseUtils::climateRasterToDataTable, fireSenseUtils::dataYearBefore,
@@ -208,7 +207,7 @@ defineModule(sim, list(
                       fireSenseUtils::makeMutuallyExclusive, fireSenseUtils::rasterFireBufferDT,
                       fireSenseUtils::rasterFireSpreadPoints, fireSenseUtils::youngAgeAtYear,
                       spreadFitPreRun = sim$spreadFitPreRun),
-                      fireSenseUtils::harmonizeFireDataDeps())))),
+                      fireSenseUtils::harmonizeFireDataDeps(), fireSenseUtils::escapeFireSetDeps())))),
                     NA, NA,
                     paste("Extra `reproducible::Cache()` arguments, by event. A cached event's digest covers",
                           "this module's code but not the package functions it calls, so `dataPrepBuild` and",
@@ -273,6 +272,11 @@ defineModule(sim, list(
                  paste("Optional larger template. If supplied it defines `studyArea_biomassParam`; if not,",
                        "`.inputObjects` sets it to `rasterToMatch` for Biomass_speciesData. Declared as an input",
                        "because `.inputObjects` sets it (a cached `.inputObjects` restores only declared inputs).")),
+    expectsInput("rasterToMatchLargeELF", "SpatRaster", sourceURL = NA,
+                 paste("Optional. `fireSense_ELFs`' raster of the ELF's core (value `fireSenseUtils::fireSenseELFCoreValue`,",
+                       "2) and buffer (1). The spread fit is fitted to the fires that start in the core, and the ignition",
+                       "and escape models to the core's ignitions; the buffer only removes edge effects. Without it every",
+                       "fire and ignition is in the core.")),
     expectsInput("rasterToMatch_biomassParam", "SpatRaster", sourceURL = NA,
                  "Template raster for `studyArea_biomassParam`, passed to Biomass_borealDataPrep. Expected to ",
                  "cover at least `rasterToMatch` (formerly `rasterToMatchLarge`)."),
@@ -326,11 +330,11 @@ defineModule(sim, list(
                         "variables of that fit are added.")),
     createsOutput("fireBufferedListDT", "list",
                   paste("list of data.tables with fire id, `pixelID`, and buffer status, of the fires the spread",
-                        "model is fitted to: those with at least `minBurnableFireSizeHa` on burnable pixels.")),
+                        "model is fitted to: those that start in the core with at least `minBurnableFireSizeHa` on burnable pixels.")),
     createsOutput("fuelClassTable", "data.table",
                   "Fuel class assigned to each tree species; only created if fuel classes are estimated."),
     createsOutput("spreadFirePolys", "list",
-                  "List of annual fire polygons used for SpreadFit: larger than one pixel and matched to `spreadFirePoints`."),
+                  "List of annual fire polygons of the escaped fires, core and buffer start, matched to their harmonized start points (`escapeFireSet`); `spreadFirePoints` and `fireBufferedListDT` have the core-start fires only."),
     createsOutput("fireSense_annualSpreadFitCovariates", "list",
                   "List of data.tables, one per fire year, of `pixelID` and the spread climate covariates in the fire buffers (every flammable pixel with `wholeLandscapeSpreadCovariates`)."),
     createsOutput("fireSense_escapeCovariates", "data.table",
@@ -351,9 +355,10 @@ defineModule(sim, list(
                         "the fuel classes chosen once for this ELF by `fireSenseUtils::chooseDomSecFuelClasses()`.",
                         "Both `NA` with `fuelCovariates = \"species\"` or when the ELF has no tree fuel class.")),
     createsOutput("ignitionFirePoints", "SpatVector",
-                  paste("The input, in the CRS of `rasterToMatch` and clipped to `studyArea`; `prepIgnitionFitData` adds",
-                        "an ignition for each natural-cause fire polygon that no ignition point matches",
-                        "(`fireSenseUtils::polygonIgnitions()`).")),
+                  paste("The input, in the CRS of `rasterToMatch` and clipped to `studyArea`; `prepIgnitionFitData` makes it",
+                        "the core's ignition points (`fireSenseUtils::escapeIgnitionPoints()`) with column `escaped`:",
+                        "the points of buffer-start fires are left out and each core-start escape polygon that no point",
+                        "matches adds one at its start.")),
     createsOutput("ignitionFitRTM", "SpatRaster",
                   paste("Template raster with the resolution and extent of `fireSense_ignitionCovariates`.",
                         "Attributes: `nonNAs`, the number of rows in that table, and `meanForestB`,",
@@ -374,10 +379,23 @@ defineModule(sim, list(
     createsOutput("flammableRTMs", "list", "List of binary SpatRasters of flammable land cover on `rasterToMatch`, one per `dataYears`."),
     createsOutput("sppEquiv", "data.table", "sppEquiv table potentially modified with new or overwritten fuel class"),
     createsOutput("spreadFirePoints", "list",
-                  paste("List of ignition points, one per fire year, for fires larger than one pixel,",
+                  paste("List of ignition points, one per fire year, for the fires larger than one pixel that start in the core,",
                         "harmonized with `spreadFirePolys`. Column `fireSenseUtils::burnableHaTxt` is each fire's",
                         "burned area (ha) on burnable pixels, the spread fit's target size.")),
     
+    createsOutput("escapeFireSet", "SpatVector",
+                  paste("The start of every escaped fire (`escapeSizeHa`, `fireCauses`), core and buffer, from",
+                        "`fireSenseUtils::escapeFireSet()` with `spreadFirePoints` as starts: `YEAR`, the fire ID,",
+                        "`polyHa`, `burnableHa`, `pixelID` and `core`. Only `core` fires are in `spreadFirePoints` and",
+                        "`fireBufferedListDT`; `spreadFirePolys` keeps all, so the ignition and escape data can leave out",
+                        "the NFDB points of buffer-start fires."),
+                  events = "prepSpreadFitData"),
+    createsOutput("fireSense_spreadFitCorePixels", "integer",
+                  paste("`pixelID`s (cells of `rasterToMatch`) in the ELF's core, where `rasterToMatchLargeELF` is",
+                        "`fireSenseUtils::fireSenseELFCoreValue`; every pixel without `rasterToMatchLargeELF`. The spread",
+                        "fit scores area burned on these."),
+                  events = "prepSpreadFitData"),
+
     # For fireSense_**Predict modules
     createsOutput("propFlammable", "SpatRaster",
                  "Last element of `propFlammables`."),
@@ -450,8 +468,9 @@ doEvent.fireSense_dataPrepFit = function(sim, eventTime, eventType) {
 #' @return the `simList`, invisibly, with `mod$haveSpreadFit` and `mod$userSuppliedFuelObjs` set.
 Init <- function(sim) {
 
-  ## the cause set must be the one the other modules (e.g. fireSense_summary) use
-  SpaDES.core::paramCheckOtherMods(sim, "fireCauses", ifSetButDifferent = "error")
+  ## the escape definition (size and causes) must be the one the other modules (e.g. fireSense_summary) use
+  for (p in c("escapeSizeHa", "fireCauses"))
+    SpaDES.core::paramCheckOtherMods(sim, p, ifSetButDifferent = "error")
 
   sim$nonEscapedFireSizesHa <- nonEscapedFireSizes(sim$ignitionFirePoints, Par$escapeSizeHa)
 
@@ -868,6 +887,9 @@ prepare_SpreadFit <- function(sim) {
     sim <- prepare_SpreadFitFire_Vector(sim)
   }
 
+  ## the pixels of the ELF's core, where the spread fit scores area burned
+  sim$fireSense_spreadFitCorePixels <- corePixelIDs(sim$rasterToMatch, sim$rasterToMatchLargeELF)
+
   ## each fire's target size is its burned area on the pixels the fit can burn, not its polygon area
   burnablePixels <- burnablePixelsByFireYear(sim$landcoverDTs, mod$allYears)
   burnableFires <- spreadFitBurnableFires(
@@ -1170,13 +1192,15 @@ prepare_SpreadFitFire_Raster <- function(sim) {
 
 #' Fire buffers and ignition points from fire polygons
 #'
-#' Drops fires of one pixel or less, then, per data year, buffers the fires and harmonizes polygons
-#' and points with `fireSenseUtils::harmonizeFireData`. Data years with no fires are dropped from
-#' `mod$allYears`.
+#' Drops fires that are not escapes (`escapeSizeHa`, `fireCauses`), then, per data year, buffers the fires and
+#' harmonizes polygons and points with `fireSenseUtils::harmonizeFireData`. Data years with no fires are dropped
+#' from `mod$allYears`. Then `fireSenseUtils::escapeFireSet()` gives each escape its start (the harmonized point)
+#' and whether it is in the core (`rasterToMatchLargeELF`); only core-start fires stay in `spreadFirePoints` and
+#' `fireBufferedListDT`, so the buffer-start fires are not fitted.
 #'
 #' @param sim a `simList`.
-#' @return the `simList`, invisibly, with `fireBufferedListDT`, `spreadFirePoints` and
-#'   `spreadFirePolys`.
+#' @return the `simList`, invisibly, with `fireBufferedListDT`, `spreadFirePoints`, `spreadFirePolys` and
+#'   `escapeFireSet`.
 prepare_SpreadFitFire_Vector <- function(sim) {
 
   # prep fire data -----------------------------------------------------------------
@@ -1217,7 +1241,7 @@ prepare_SpreadFitFire_Vector <- function(sim) {
 
   ## the spread model is fitted to escaped fires only: at least escapeSizeHa, and more than one pixel
   pixSizeHa <- prod(res(sim$flammableRTMs[[1]])) / 1e4
-  haColname <- grep("_HA$", names(sim$spreadFirePoints[[1]]), value = TRUE)[1] # has been SIZE_HA, POLY_HA
+  haColname <- fireSizeColumn(sim$spreadFirePoints[[1]]) # has been SIZE_HA, POLY_HA
 
   sim$spreadFirePoints <- lapply(sim$spreadFirePoints, function(x) {
     fireSenseUtils::escapedFires(x, Par$escapeSizeHa, pixSizeHa, sizeCol = haColname)
@@ -1244,7 +1268,7 @@ prepare_SpreadFitFire_Vector <- function(sim) {
   
   harmonizeds <- Map(yr = mod$allYears, nam = names(mod$allYears),
                      function(yr, nam) {
-    yrNam <- grep(nam, names(sim$flammableRTMs), value= TRUE)
+    yrNam <- flammableRTMName(sim$flammableRTMs, nam)
     harmonizeFireData(
       firePolys = sim$spreadFirePolys[names(sim$spreadFirePolys) %in% yr], ## protects from missing years
       flammableRTM = sim$flammableRTMs[[yrNam]],
@@ -1282,6 +1306,23 @@ prepare_SpreadFitFire_Vector <- function(sim) {
     poly <- withIDsIn(poly, point, IDvar)
     return(poly)
   })
+
+  ## A fire belongs to this ELF if its start (the harmonized point) is in the core, rasterToMatchLargeELF == 2;
+  ## the buffer only removes edge effects. Fires that start in the buffer are not fitted at all. They stay in
+  ## `escapeFireSet` and `spreadFirePolys`, so the ignition and escape data can leave their NFDB points out too.
+  sim$escapeFireSet <- escapeStartsByDataYear(sim$spreadFirePolys, sim$spreadFirePoints, sim$flammableRTMs,
+                                              mod$allYears, sim$rasterToMatchLargeELF, escapeDefinitionOf(Par),
+                                              IDvar, haColname)
+  coreIDs <- coreFireIDs(sim$escapeFireSet, IDvar)
+  sim$spreadFirePoints <- Map(pts = sim$spreadFirePoints, keep = coreIDs[names(sim$spreadFirePoints)],
+                              function(pts, keep) pts[terra::values(pts)[[IDvar]] %in% keep, ])
+  sim$fireBufferedListDT <- Map(fb = sim$fireBufferedListDT, keep = coreIDs[names(sim$fireBufferedListDT)],
+                                function(fb, keep) fb[fb$ids %in% keep, ])
+  noCore <- vapply(sim$spreadFirePoints, function(p) NROW(p) == 0L, logical(1))
+  sim$spreadFirePoints <- sim$spreadFirePoints[!noCore]
+  sim$fireBufferedListDT <- sim$fireBufferedListDT[names(sim$spreadFirePoints)]
+  if (!length(sim$spreadFirePoints))
+    stop("no fire starts in the core (rasterToMatchLargeELF == ", fireSenseUtils::fireSenseELFCoreValue, ")")
   return(invisible(sim))
 
 }
@@ -1289,25 +1330,31 @@ prepare_SpreadFitFire_Vector <- function(sim) {
 #' Prepare the covariates for fireSense_ignitionFit
 #'
 #' Aggregates fuel, climate and lightning covariates by `igAggFactor` and counts the ignitions in
-#' each coarse pixel and year. The ignitions are `ignitionFirePoints` plus, for each natural-cause fire polygon
-#' that no ignition point matches, one at the fire's start point (`fireSenseUtils::polygonIgnitions()` on
-#' `spreadFirePolys` and `spreadFirePoints`, so it runs after `prepare_SpreadFit()`). Sets `mod$allYears`. No formula is
-#' built: fireSense_ignitionFit fits with xgboost, which does not use one.
+#' each coarse pixel and year. The ignitions are the NFDB points that start in the core (`rasterToMatchLargeELF`),
+#' made by `fireSenseUtils::escapeIgnitionPoints()` from `ignitionFirePoints` and `escapeFireSet`, so it runs
+#' after `prepare_SpreadFit()`: the points of fires that start in the buffer are left out, and a core-start escape
+#' that no point matches adds one at its start. Sets `mod$allYears`. No formula is built: fireSense_ignitionFit
+#' fits with xgboost, which does not use one.
 #'
 #' @param sim a `simList`.
 #' @return the `simList`, invisibly, with `fireSense_ignitionCovariates`, `ignitionFitRTM` and
-#'   `lightningMaps`.
+#'   `lightningMaps`; `ignitionFirePoints` is now the core points, with column `escaped`.
 prepare_IgnitionFit <- function(sim) {
 
-  ## A natural-cause fire polygon of at least escapeSizeHa that no natural ignition point matches is an
-  ## ignition too (and an escape), at the start point the spread fit gives the fire (Eliot, 2026-10-25)
+  ## The ignition and escape models are trained on the NFDB points that start in the core, with the points of
+  ## escape polygons that start in the buffer left out, and an ignition (and an escape) at the start of each
+  ## core-start escape polygon that no point matches (Eliot, 2026-11-10).
   if (!is.null(sim$spreadFirePolys)) {
-    added <- fireSenseUtils::polygonIgnitions(
-      sim$ignitionFirePoints, sim$spreadFirePolys, sim$spreadFirePoints,
-      idCol = grep("ID$", names(sim$spreadFirePolys[[1]]), value = TRUE)[1],
-      escapeSizeHa = Par$escapeSizeHa, pixSizeHa = prod(res(sim$flammableRTMs[[1]])) / 10000,
-      naturalPolyCauses = fireSenseUtils::fireCauseCodes(Par$fireCauses, "nbac"))
-    sim$ignitionFirePoints <- rbind(sim$ignitionFirePoints, clipPointsToStudyArea(added, mod$studyAreaUnion))
+    definition <- escapeDefinitionOf(Par)
+    sizeCol <- fireSizeColumn(sim$spreadFirePolys[[1]])
+    ## without prepSpreadFitData (ignition only) the starts are the polygons' snapped centroids, as it makes them
+    fireSet <- sim$escapeFireSet %||%
+      escapeStartsByDataYear(sim$spreadFirePolys, NULL, sim$flammableRTMs, fitYearNames(Par),
+                             sim$rasterToMatchLargeELF, definition, NULL, sizeCol)
+    points <- fireSenseUtils::escapeIgnitionPoints(
+      sim$ignitionFirePoints, sim$spreadFirePolys, fireSet, sim$rasterToMatchLargeELF, definition = definition,
+      pixSizeHa = prod(res(sim$flammableRTMs[[1]])) / 10000, sizeCol = sizeCol)
+    sim$ignitionFirePoints <- clipPointsToStudyArea(points, mod$studyAreaUnion)
   }
 
   stopifnot(
@@ -1437,8 +1484,8 @@ prepEventsToSchedule <- function(which) {
 #'
 #' Adds to the ignition covariates the number of escapes: ignitions that became a fire polygon
 #' (`spreadFirePolys`, the fires the spread model is fitted to) of at least `escapeSizeHa` and larger than one
-#' `flammableRTMs` pixel, one per polygon (`fireSenseUtils::escapedIgnitions()`). Needs `prepare_IgnitionFit()`
-#' to have run (it adds the ignitions of polygons without an ignition point, which escape here).
+#' `flammableRTMs` pixel, one per polygon, that start in the core: the points of `ignitionFirePoints` with
+#' `escaped` (`fireSenseUtils::escapeIgnitionPoints()`). Needs `prepare_IgnitionFit()` to have run.
 #'
 #' @param sim a `simList`.
 #' @return the `simList`, invisibly, with `fireSense_escapeCovariates` and `fireSense_escapeFormula`.
@@ -1452,9 +1499,8 @@ prepare_EscapeFit <- function(sim) {
   if (is.null(sim$spreadFirePolys)) {
     stop("escapes are the ignitions that became a fire polygon: prepEscapeFitData needs firePolys")
   }
-  escaped <- fireSenseUtils::escapedIgnitions(sim$ignitionFirePoints, sim$spreadFirePolys, Par$escapeSizeHa,
-                                              pixSizeHa = prod(res(sim$flammableRTMs[[1]])) / 10000)
-  escapes <- sim$ignitionFirePoints[escaped, ]
+  ## the escapes among the core ignition points that `prepare_IgnitionFit()` made (`escaped`)
+  escapes <- sim$ignitionFirePoints[sim$ignitionFirePoints$escaped, ]
 
   ## make a template aggregated raster - values are irrelevant, only need pixelID
   aggregatedRas <- terra::aggregate(sim$historicalClimateRasters[[1]][[1]],
