@@ -16,4 +16,6 @@ test_that("withIDsIn keeps the rows whose ID is in the other vector, in any orde
   kept <- withIDsIn(polys, pts[pts$FIRE_ID != 22, ], "FIRE_ID")
   expect_identical(kept$FIRE_ID, c(11, 33))
   expect_identical(withIDsIn(pts, polys[1, ], "FIRE_ID")$FIRE_ID, 11)
+  ## a vector of IDs, as coreFireIDs() gives them
+  expect_identical(withIDsIn(pts, c(22, 33), "FIRE_ID")$FIRE_ID, c(33, 22))
 })

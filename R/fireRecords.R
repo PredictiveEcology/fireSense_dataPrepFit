@@ -48,11 +48,13 @@ firePolysByYear <- function(shp, years, studyArea) {
 #' points came back reordered lost every polygon (ELF 6.6.1: 64 of 127, all escapes of 9 years). This compares
 #' the ID values.
 #'
-#' @param x,y `SpatVector`s with an `IDvar` column.
+#' @param x `SpatVector` with an `IDvar` column.
+#' @param y `SpatVector` with an `IDvar` column, or a vector of IDs.
 #' @param IDvar Name of the ID column.
 #' @return `x` without the rows whose ID is not in `y`.
 withIDsIn <- function(x, y, IDvar) {
-  x[terra::values(x)[[IDvar]] %in% terra::values(y)[[IDvar]], ]
+  if (inherits(y, "SpatVector")) y <- terra::values(y)[[IDvar]]
+  x[terra::values(x)[[IDvar]] %in% y, ]
 }
 
 #' Fire polygons of the given causes
