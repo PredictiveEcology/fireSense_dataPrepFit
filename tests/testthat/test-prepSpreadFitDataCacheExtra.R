@@ -3,27 +3,10 @@
 ## makeMutuallyExclusive()) came back as the old spread-fit data. The event's `.cacheExtra` must name
 ## every LandR and fireSenseUtils function the event reaches, through the module functions it calls.
 
-moduleDefs <- function() {
-  files <- c(testthat::test_path("..", "..", "fireSense_dataPrepFit.R"),
-             list.files(testthat::test_path("..", "..", "R"), "\\.R$", full.names = TRUE))
-  isDef <- function(d) is.call(d) && as.character(d[[1]]) %in% c("<-", "=") && is.name(d[[2]]) &&
-    is.call(d[[3]]) && identical(d[[3]][[1]], as.name("function"))
-  defs <- Filter(isDef, unlist(lapply(files, function(f) as.list(parse(f, keep.source = FALSE))),
-                               recursive = FALSE))
-  stats::setNames(lapply(defs, function(d) d[[3]]), vapply(defs, function(d) as.character(d[[2]]), ""))
-}
-
 ## package functions reached from `start`, through the module's own functions
 packageCallsFrom <- function(start, pkgs = c("LandR", "fireSenseUtils")) {
   defs <- moduleDefs()
-  seen <- character()
-  todo <- start
-  out <- character()
-  while (length(todo)) {
-    f <- todo[1]
-    todo <- todo[-1]
-    if (f %in% seen) next
-    seen <- c(seen, f)
+  out <- unlist(lapply(moduleFunsFrom(start, defs), function(f) {
     txt <- paste(deparse(defs[[f]]), collapse = " ")
     qualified <- regmatches(txt, gregexpr("(LandR|fireSenseUtils):::?[A-Za-z0-9_.]+", txt))[[1]]
     nms <- all.names(defs[[f]])
@@ -31,9 +14,8 @@ packageCallsFrom <- function(start, pkgs = c("LandR", "fireSenseUtils")) {
       hits <- intersect(nms, getNamespaceExports(p))
       if (length(hits)) paste0(p, "::", hits)
     }))
-    out <- c(out, sub(":::", "::", qualified), bare)
-    todo <- c(todo, setdiff(intersect(nms, names(defs)), seen))
-  }
+    c(sub(":::", "::", qualified), bare)
+  }))
   out <- unique(out)
   out[vapply(out, function(f) is.function(eval(str2lang(f))), logical(1))] # not data
 }
