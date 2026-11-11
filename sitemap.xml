@@ -16,10 +16,12 @@
 <url><loc>/reference/checkClimateYears.html</loc></url>
 <url><loc>/reference/cleanUpMod.html</loc></url>
 <url><loc>/reference/clipPointsToStudyArea.html</loc></url>
+<url><loc>/reference/coreFireIDs.html</loc></url>
 <url><loc>/reference/correctMissingLCC.html</loc></url>
 <url><loc>/reference/dataPrepBuild.html</loc></url>
 <url><loc>/reference/doEvent.fireSense_dataPrepFit.html</loc></url>
 <url><loc>/reference/dot-inputObjects.html</loc></url>
+<url><loc>/reference/escapeStartsByDataYear.html</loc></url>
 <url><loc>/reference/fireIDColumn.html</loc></url>
 <url><loc>/reference/firePolysByYear.html</loc></url>
 <url><loc>/reference/fireRecordShapefile.html</loc></url>

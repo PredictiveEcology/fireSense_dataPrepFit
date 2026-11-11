@@ -1,7 +1,7 @@
 ---
 title: "fireSense_dataPrepFit Manual"
 subtitle: "v.1.3.0.9026"
-date: "Last updated: 2026-11-07"
+date: "Last updated: 2026-11-11"
 output:
   bookdown::html_document2:
     toc: true
@@ -237,6 +237,12 @@ Table \@ref(tab:moduleInputs-fireSense-dataPrepFit) shows the full list of modul
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
+   <td style="text-align:left;"> rasterToMatchLargeELF </td>
+   <td style="text-align:left;"> SpatRaster </td>
+   <td style="text-align:left;"> Optional. `fireSense_ELFs`' raster of the ELF's core (value `fireSenseUtils::fireSenseELFCoreValue`, 2) and buffer (1). The spread fit is fitted to the fires that start in the core, and the ignition and escape models to the core's ignitions; the buffer only removes edge effects. Without it every fire and ignition is in the core. </td>
+   <td style="text-align:left;"> NA </td>
+  </tr>
+  <tr>
    <td style="text-align:left;"> rasterToMatch_biomassParam </td>
    <td style="text-align:left;"> SpatRaster </td>
    <td style="text-align:left;"> Template raster for `studyArea_biomassParam`, passed to Biomass_borealDataPrep. Expected to cover at least `rasterToMatch` (formerly `rasterToMatchLarge`). </td>
@@ -390,7 +396,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> 50 </td>
    <td style="text-align:left;"> 0 </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Size (ha) a fire must reach to count as escaped, and the smallest fire the spread model is fitted to. The escape model's response is the ignitions that became a fire polygon of at least this size (`fireSenseUtils::escapedIgnitions()`). Smaller fires' sizes become `nonEscapedFireSizesHa`. </td>
+   <td style="text-align:left;"> Size (ha) of the whole fire polygon at and above which a fire escaped, and the smallest fire the spread model is fitted to. The escape model's response is the core ignitions that became a fire polygon of at least this size (`fireSenseUtils::escapeIgnitionPoints()`). Smaller fires' sizes become `nonEscapedFireSizesHa`. Checked against `escapeSizeHa` of the other modules (`SpaDES.core::paramCheckOtherMods()`), which must match. </td>
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
@@ -667,6 +673,7 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-dataP
    <th style="text-align:left;"> objectName </th>
    <th style="text-align:left;"> objectClass </th>
    <th style="text-align:left;"> desc </th>
+   <th style="text-align:left;"> events </th>
   </tr>
  </thead>
 <tbody>
@@ -674,181 +681,229 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-dataP
    <td style="text-align:left;"> climateVariablesForFire </td>
    <td style="text-align:left;"> list </td>
    <td style="text-align:left;"> As the input. If previous SpreadFits exist, `spread` becomes the climate variables of all of them (prediction blends neighbour ELFs) plus this ELF's own, and they are added to `ignition`. The spread formula has only this ELF's own (see `doFit`). </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> spreadFitPreRun </td>
    <td style="text-align:left;"> data.frame </td>
    <td style="text-align:left;"> Ledger rows of previous SpreadFit results that overlap `studyArea`, from `CacheGeo`: a geometry column (convert with `sf::st_as_sf`), plus `polygonID` and the columns in `spreadFitAdditionalColNames`. `NULL` if there is no previous fit. `Init()` always assigns it (`fireSense_ELFs` may have put the whole ledger there before). It is not an input: as one, it would be in the `.inputObjects` cache key and any ELF's new fit would redo the data preparation. The cached events after `init` key on it through `.useCacheArgs`, so a cached event cannot restore an old row over the one `Init()` just read. </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> studyAreaWithSpreadParams </td>
    <td style="text-align:left;"> sf </td>
    <td style="text-align:left;"> Same as `spreadFitPreRun`; not created if there is no previous fit. </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> sppColorVect </td>
    <td style="text-align:left;"> character </td>
    <td style="text-align:left;"> Named vector of hex colours, one per species. Only created if a previous SpreadFit exists, from the `sppEquiv` stored with it. </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> sppNameVector </td>
    <td style="text-align:left;"> character </td>
    <td style="text-align:left;"> Sorted species names (`sppEquivCol`) from the `sppEquiv` stored with a previous SpreadFit; only created if one exists. </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> spreadClimateSelection </td>
    <td style="text-align:left;"> data.table </td>
    <td style="text-align:left;"> With `climateVariablesForFire$spread = 'auto'`: each candidate's AUC for separating the worst quarter of fire years (by area burned), its Spearman correlation, and which was chosen. </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> climateVariables </td>
    <td style="text-align:left;"> list </td>
    <td style="text-align:left;"> Climate variable definitions, as used by `climateData::prepClimateLayers` (canClimateData). Unless supplied, built from `climateVariablesForFire` for `fireYears` (and canClimateData's `projectedClimateYears`, if any). If a previous SpreadFit exists, the variables of that fit are added. </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> fireBufferedListDT </td>
    <td style="text-align:left;"> list </td>
-   <td style="text-align:left;"> list of data.tables with fire id, `pixelID`, and buffer status, of the fires the spread model is fitted to: those with at least `minBurnableFireSizeHa` on burnable pixels. </td>
+   <td style="text-align:left;"> list of data.tables with fire id, `pixelID`, and buffer status, of the fires the spread model is fitted to: those that start in the core with at least `minBurnableFireSizeHa` on burnable pixels. </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> fuelClassTable </td>
    <td style="text-align:left;"> data.table </td>
    <td style="text-align:left;"> Fuel class assigned to each tree species; only created if fuel classes are estimated. </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> spreadFirePolys </td>
    <td style="text-align:left;"> list </td>
-   <td style="text-align:left;"> List of annual fire polygons used for SpreadFit: larger than one pixel and matched to `spreadFirePoints`. </td>
+   <td style="text-align:left;"> List of annual fire polygons of the escaped fires, core and buffer start, matched to their harmonized start points (`escapeFireSet`); `spreadFirePoints` and `fireBufferedListDT` have the core-start fires only. </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> fireSense_annualSpreadFitCovariates </td>
    <td style="text-align:left;"> list </td>
    <td style="text-align:left;"> List of data.tables, one per fire year, of `pixelID` and the spread climate covariates in the fire buffers (every flammable pixel with `wholeLandscapeSpreadCovariates`). </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> fireSense_escapeCovariates </td>
    <td style="text-align:left;"> data.table </td>
    <td style="text-align:left;"> ignition covariates with added column of escapes </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> nonEscapedFireSizesHa </td>
    <td style="text-align:left;"> numeric </td>
    <td style="text-align:left;"> Sizes (ha) of this study area's natural-cause fires (`ignitionFirePoints`) below `escapeSizeHa`, for giving a forecast's non-escaped ignitions a size. </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> fireSense_escapeFormula </td>
    <td style="text-align:left;"> character </td>
    <td style="text-align:left;"> formula for escape, using fuel classes and landcover, as character </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> fireSense_ignitionCovariates </td>
    <td style="text-align:left;"> data.table </td>
    <td style="text-align:left;"> table of aggregated ignition covariates with annual ignitions </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> fireSense_nonAnnualSpreadFitCovariates </td>
    <td style="text-align:left;"> list </td>
    <td style="text-align:left;"> List of data.tables, one per `dataYears`, of `pixelID` and the fuel covariates in the fire buffers (every flammable pixel with `wholeLandscapeSpreadCovariates`). </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> fireSense_spreadFormula </td>
    <td style="text-align:left;"> character </td>
    <td style="text-align:left;"> formula for spread, using climate and vegetation covariates, as character </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> fuelClassRoles </td>
    <td style="text-align:left;"> list </td>
    <td style="text-align:left;"> Only when `fuelCovariates = "domSecWetland"`: `list(domClass =, secClass =)`, the fuel classes chosen once for this ELF by `fireSenseUtils::chooseDomSecFuelClasses()`. Both `NA` with `fuelCovariates = "species"` or when the ELF has no tree fuel class. </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> ignitionFirePoints </td>
    <td style="text-align:left;"> SpatVector </td>
-   <td style="text-align:left;"> The input, in the CRS of `rasterToMatch` and clipped to `studyArea`; `prepIgnitionFitData` adds an ignition for each natural-cause fire polygon that no ignition point matches (`fireSenseUtils::polygonIgnitions()`). </td>
+   <td style="text-align:left;"> The input, in the CRS of `rasterToMatch` and clipped to `studyArea`; `prepIgnitionFitData` makes it the core's ignition points (`fireSenseUtils::escapeIgnitionPoints()`) with column `escaped`: the points of buffer-start fires are left out and each core-start escape polygon that no point matches adds one at its start. </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> ignitionFitRTM </td>
    <td style="text-align:left;"> SpatRaster </td>
    <td style="text-align:left;"> Template raster with the resolution and extent of `fireSense_ignitionCovariates`. Attributes: `nonNAs`, the number of rows in that table, and `meanForestB`, the mean forest biomass per pixel. </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> landcoverDTs </td>
    <td style="text-align:left;"> list </td>
    <td style="text-align:left;"> List of data.tables, one per `dataYears`, of `pixelID` and a 0/1 column per non-forest group, for flammable pixels. </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> lightningMaps </td>
    <td style="text-align:left;"> SpatRaster </td>
    <td style="text-align:left;"> A 4-layer SpatRaster of lightning: lightningDays, lightningDensity, positiveCG, positiveCGdensity </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> missingLCCgroup </td>
    <td style="text-align:left;"> character </td>
    <td style="text-align:left;"> As the input, or the estimated group if fuel classes are estimated. </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> nonForestedLCCGroups </td>
    <td style="text-align:left;"> list </td>
    <td style="text-align:left;"> As the input, or the estimated groups if fuel classes are estimated. </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> nonForest_timeSinceDisturbances </td>
    <td style="text-align:left;"> list </td>
    <td style="text-align:left;"> List of SpatRasters, one per `dataYears`, of years since disturbance in flammable pixels, forested or not. </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> rstLCCs </td>
    <td style="text-align:left;"> list </td>
    <td style="text-align:left;"> The input, on `rasterToMatch`. </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> flammableRTMs </td>
    <td style="text-align:left;"> list </td>
    <td style="text-align:left;"> List of binary SpatRasters of flammable land cover on `rasterToMatch`, one per `dataYears`. </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> sppEquiv </td>
    <td style="text-align:left;"> data.table </td>
    <td style="text-align:left;"> sppEquiv table potentially modified with new or overwritten fuel class </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> spreadFirePoints </td>
    <td style="text-align:left;"> list </td>
-   <td style="text-align:left;"> List of ignition points, one per fire year, for fires larger than one pixel, harmonized with `spreadFirePolys`. Column `fireSenseUtils::burnableHaTxt` is each fire's burned area (ha) on burnable pixels, the spread fit's target size. </td>
+   <td style="text-align:left;"> List of ignition points, one per fire year, for the fires larger than one pixel that start in the core, harmonized with `spreadFirePolys`. Column `fireSenseUtils::burnableHaTxt` is each fire's burned area (ha) on burnable pixels, the spread fit's target size. </td>
+   <td style="text-align:left;">  </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> escapeFireSet </td>
+   <td style="text-align:left;"> SpatVector </td>
+   <td style="text-align:left;"> The start of every escaped fire (`escapeSizeHa`, `fireCauses`), core and buffer, from `fireSenseUtils::escapeFireSet()` with `spreadFirePoints` as starts: `YEAR`, the fire ID, `polyHa`, `burnableHa`, `pixelID` and `core`. Only `core` fires are in `spreadFirePoints` and `fireBufferedListDT`; `spreadFirePolys` keeps all, so the ignition and escape data can leave out the NFDB points of buffer-start fires. </td>
+   <td style="text-align:left;"> prepSpre.... </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> fireSense_spreadFitCorePixels </td>
+   <td style="text-align:left;"> integer </td>
+   <td style="text-align:left;"> `pixelID`s (cells of `rasterToMatch`) in the ELF's core, where `rasterToMatchLargeELF` is `fireSenseUtils::fireSenseELFCoreValue`; every pixel without `rasterToMatchLargeELF`. The spread fit scores area burned on these. </td>
+   <td style="text-align:left;"> prepSpre.... </td>
   </tr>
   <tr>
    <td style="text-align:left;"> propFlammable </td>
    <td style="text-align:left;"> SpatRaster </td>
    <td style="text-align:left;"> Last element of `propFlammables`. </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> standAgeMap </td>
    <td style="text-align:left;"> SpatRaster </td>
    <td style="text-align:left;"> Last element of `standAgeMaps`. </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> rstLCC_RTM </td>
    <td style="text-align:left;"> SpatRaster </td>
    <td style="text-align:left;"> Last element of the output `rstLCCs`, i.e., on `rasterToMatch`. </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> rstLCC </td>
    <td style="text-align:left;"> SpatRaster </td>
    <td style="text-align:left;"> Last element of the input `rstLCCs`, i.e., on `rasterToMatch_biomassParam`. </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> flammableRTM </td>
    <td style="text-align:left;"> SpatRaster </td>
    <td style="text-align:left;"> Last element of `flammableRTMs`. </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> landcoverDT </td>
    <td style="text-align:left;"> data.table </td>
    <td style="text-align:left;"> Last element of `landcoverDTs`. </td>
+   <td style="text-align:left;">  </td>
   </tr>
   <tr>
    <td style="text-align:left;"> nonForest_timeSinceDisturbance </td>
    <td style="text-align:left;"> SpatRaster </td>
    <td style="text-align:left;"> Last element of `nonForest_timeSinceDisturbances`. </td>
+   <td style="text-align:left;">  </td>
   </tr>
 </tbody>
 </table>
