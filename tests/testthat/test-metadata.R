@@ -101,7 +101,7 @@ test_that("parameters are the expected names", {
            "dataYears", "doFit", "escapeSizeHa", "estimateFuelClasses", "fireCauses", "fireYears", "flammabilityThreshold",
            "forestedLCC", "fuelClassCol", "fuelCovariates", "heldOutFold", "igAggFactor",
            "minBufferSize", "minBurnableFireSizeHa", "minCovariateProp", "nonflammableLCC",
-           "nonForestCanBeYoungAge", "scanfiVersion", "sppEquivCol", "spreadFitFilename",
+           "nonForestCanBeYoungAge", "scanfiVersion", "sppEquivCol", "spreadClimateCandidates", "spreadFitFilename",
            "spreadFitGoogleDriveFolder", "fitFileSuffix", "spreadIntercept", "targetFuelClasses",
            "useRasterizedFireForSpread", "wholeLandscapeSpreadCovariates", "whichModulesToPrepare"))
   )

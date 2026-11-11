@@ -17,7 +17,8 @@
 #' @param climateRasters Named list of `SpatRaster`s, one per climate variable, layers `year<YYYY>`.
 #' @param burnedByYear Named numeric: pixels burned per fire year, names `year<YYYY>`; 0 for fire
 #'   years without fires.
-#' @param candidates Names in `climateRasters` to choose from; each must increase with dryness.
+#' @param candidates Names in `climateRasters` to choose from; each must increase with dryness, except
+#'   precipitation (names starting `PPT`), which is scored as decreasing with dryness.
 #' @param badYearFraction Share of fire years counted as bad (default 0.25).
 #' @param minAUC Below this best AUC, fall back to `candidates[1]` (default 0.6).
 #' @return `data.table` with `var`, `auc`, `rho`, `nYears`, `nBad`, and `chosen` (one `TRUE`).
@@ -31,6 +32,7 @@ selectSpreadClimateVariable <- function(climateRasters, burnedByYear, candidates
     out <- data.table::data.table(var = v, auc = NA_real_, rho = NA_real_, nYears = length(lyr), nBad = 0L)
     if (length(lyr) < 4) return(out)
     x <- unlist(terra::global(r[[lyr]], "mean", na.rm = TRUE), use.names = FALSE)
+    if (grepl("^PPT", v)) x <- -x            # precipitation: drier means less of it
     a <- unname(burnedByYear[lyr])
     k <- max(1L, round(badYearFraction * length(a)))
     bad <- a >= sort(a, decreasing = TRUE)[k] & a > 0
@@ -55,3 +57,41 @@ selectSpreadClimateVariable <- function(climateRasters, burnedByYear, candidates
   scores[]
 }
 
+
+#' The climate variables of `climateVariablesForFire`, with the spread candidates when `spread = "auto"`
+#'
+#' What `climateVariables` must prepare: the ignition and spread variables, and, when the spread
+#' variable is chosen ("auto"), every candidate it chooses among. `ignition` is not changed, so
+#' IgnitionFit still uses exactly its own list.
+#'
+#' @param climateVariablesForFire List with `ignition` and `spread`.
+#' @param spreadClimateCandidates Character: the module's `spreadClimateCandidates`.
+#' @return `climateVariablesForFire`, with `spread` replaced by the candidates if it was `"auto"`.
+#' @keywords internal
+withSpreadCandidates <- function(climateVariablesForFire, spreadClimateCandidates) {
+  if ("auto" %in% climateVariablesForFire[["spread"]])
+    climateVariablesForFire[["spread"]] <- union(setdiff(climateVariablesForFire[["spread"]], "auto"),
+                                                 spreadClimateCandidates)
+  climateVariablesForFire
+}
+
+#' Score the spread climate candidates against the fire years
+#'
+#' `spread = "auto"`: area burned per fire year is the number of buffer-1 pixels in
+#' `fireBufferedListDT`; the candidates, named without underscores as `historicalClimateRasters` is, are
+#' scored by [selectSpreadClimateVariable()].
+#'
+#' @param climateRasters `sim$historicalClimateRasters`.
+#' @param fireBufferedListDT `sim$fireBufferedListDT`: per fire year a table with `buffer`.
+#' @param fireYears Fire years.
+#' @param candidates `spreadClimateCandidates`, with or without underscores.
+#' @return As [selectSpreadClimateVariable()].
+#' @keywords internal
+autoSpreadClimate <- function(climateRasters, fireBufferedListDT, fireYears, candidates) {
+  fy <- paste0(fireSenseUtils::yearTxt, fireYears)
+  burned <- setNames(numeric(length(fy)), fy)
+  b <- vapply(fireBufferedListDT, function(d) as.numeric(sum(d$buffer == 1)), numeric(1))
+  b <- b[names(b) %in% fy]
+  burned[names(b)] <- b
+  selectSpreadClimateVariable(climateRasters, burned, candidates = gsub("_", "", candidates))
+}
