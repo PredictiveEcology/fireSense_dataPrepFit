@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">fireSense_dataPrepFit</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.0.9026</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.0.9027</span>
       </span>
     </div>
 
@@ -368,6 +368,18 @@ Optional larger template. If supplied it defines <code>studyArea_biomassParam</c
 NA
 </td>
 </tr><tr><td style="text-align:left;">
+rasterToMatchLargeELF
+</td>
+<td style="text-align:left;">
+SpatRaster
+</td>
+<td style="text-align:left;">
+Optional. <code>fireSense_ELFs</code>’ raster of the ELF’s core (value <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fireSenseSharedDefaults.html" class="external-link">fireSenseUtils::fireSenseELFCoreValue</a></code>, 2) and buffer (1). The spread fit is fitted to the fires that start in the core, and the ignition and escape models to the core’s ignitions; the buffer only removes edge effects. Without it every fire and ignition is in the core.
+</td>
+<td style="text-align:left;">
+NA
+</td>
+</tr><tr><td style="text-align:left;">
 rasterToMatch_biomassParam
 </td>
 <td style="text-align:left;">
@@ -693,7 +705,7 @@ numeric
 NA
 </td>
 <td style="text-align:left;">
-Size (ha) a fire must reach to count as escaped, and the smallest fire the spread model is fitted to. The escape model’s response is the ignitions that became a fire polygon of at least this size (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/escapedIgnitions.html" class="external-link">fireSenseUtils::escapedIgnitions()</a></code>). Smaller fires’ sizes become <code>nonEscapedFireSizesHa</code>.
+Size (ha) of the whole fire polygon at and above which a fire escaped, and the smallest fire the spread model is fitted to. The escape model’s response is the core ignitions that became a fire polygon of at least this size (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/escapeIgnitionPoints.html" class="external-link">fireSenseUtils::escapeIgnitionPoints()</a></code>). Smaller fires’ sizes become <code>nonEscapedFireSizesHa</code>. Checked against <code>escapeSizeHa</code> of the other modules (<code><a href="https://spades-core.predictiveecology.org/reference/paramCheckOtherMods.html" class="external-link">SpaDES.core::paramCheckOtherMods()</a></code>), which must match.
 </td>
 <td style="text-align:left;">
 TRUE
@@ -1245,6 +1257,9 @@ objectClass
 <th style="text-align:left;">
 desc
 </th>
+<th style="text-align:left;">
+events
+</th>
 </tr></thead><tbody><tr><td style="text-align:left;">
 climateVariablesForFire
 </td>
@@ -1253,6 +1268,8 @@ list
 </td>
 <td style="text-align:left;">
 As the input. If previous SpreadFits exist, <code>spread</code> becomes the climate variables of all of them (prediction blends neighbour ELFs) plus this ELF’s own, and they are added to <code>ignition</code>. The spread formula has only this ELF’s own (see <code>doFit</code>).
+</td>
+<td style="text-align:left;">
 </td>
 </tr><tr><td style="text-align:left;">
 spreadFitPreRun
@@ -1263,6 +1280,8 @@ data.frame
 <td style="text-align:left;">
 Ledger rows of previous SpreadFit results that overlap <code>studyArea</code>, from <code>CacheGeo</code>: a geometry column (convert with <code><a href="https://r-spatial.github.io/sf/reference/st_as_sf.html" class="external-link">sf::st_as_sf</a></code>), plus <code>polygonID</code> and the columns in <code>spreadFitAdditionalColNames</code>. <code>NULL</code> if there is no previous fit. <code><a href="reference/Init.html">Init()</a></code> always assigns it (<code>fireSense_ELFs</code> may have put the whole ledger there before). It is not an input: as one, it would be in the <code>.inputObjects</code> cache key and any ELF’s new fit would redo the data preparation. The cached events after <code>init</code> key on it through <code>.useCacheArgs</code>, so a cached event cannot restore an old row over the one <code><a href="reference/Init.html">Init()</a></code> just read.
 </td>
+<td style="text-align:left;">
+</td>
 </tr><tr><td style="text-align:left;">
 studyAreaWithSpreadParams
 </td>
@@ -1271,6 +1290,8 @@ sf
 </td>
 <td style="text-align:left;">
 Same as <code>spreadFitPreRun</code>; not created if there is no previous fit.
+</td>
+<td style="text-align:left;">
 </td>
 </tr><tr><td style="text-align:left;">
 sppColorVect
@@ -1281,6 +1302,8 @@ character
 <td style="text-align:left;">
 Named vector of hex colours, one per species. Only created if a previous SpreadFit exists, from the <code>sppEquiv</code> stored with it.
 </td>
+<td style="text-align:left;">
+</td>
 </tr><tr><td style="text-align:left;">
 sppNameVector
 </td>
@@ -1289,6 +1312,8 @@ character
 </td>
 <td style="text-align:left;">
 Sorted species names (<code>sppEquivCol</code>) from the <code>sppEquiv</code> stored with a previous SpreadFit; only created if one exists.
+</td>
+<td style="text-align:left;">
 </td>
 </tr><tr><td style="text-align:left;">
 spreadClimateSelection
@@ -1299,6 +1324,8 @@ data.table
 <td style="text-align:left;">
 With <code>climateVariablesForFire$spread = 'auto'</code>: each candidate’s AUC for separating the worst quarter of fire years (by area burned), its Spearman correlation, and which was chosen.
 </td>
+<td style="text-align:left;">
+</td>
 </tr><tr><td style="text-align:left;">
 climateVariables
 </td>
@@ -1308,6 +1335,8 @@ list
 <td style="text-align:left;">
 Climate variable definitions, as used by <code><a href="https://rdrr.io/pkg/climateData/man/prepClimateLayers.html" class="external-link">climateData::prepClimateLayers</a></code> (canClimateData). Unless supplied, built from <code>climateVariablesForFire</code> for <code>fireYears</code> (and canClimateData’s <code>projectedClimateYears</code>, if any). If a previous SpreadFit exists, the variables of that fit are added.
 </td>
+<td style="text-align:left;">
+</td>
 </tr><tr><td style="text-align:left;">
 fireBufferedListDT
 </td>
@@ -1315,7 +1344,9 @@ fireBufferedListDT
 list
 </td>
 <td style="text-align:left;">
-list of data.tables with fire id, <code>pixelID</code>, and buffer status, of the fires the spread model is fitted to: those with at least <code>minBurnableFireSizeHa</code> on burnable pixels.
+list of data.tables with fire id, <code>pixelID</code>, and buffer status, of the fires the spread model is fitted to: those that start in the core with at least <code>minBurnableFireSizeHa</code> on burnable pixels.
+</td>
+<td style="text-align:left;">
 </td>
 </tr><tr><td style="text-align:left;">
 fuelClassTable
@@ -1326,6 +1357,8 @@ data.table
 <td style="text-align:left;">
 Fuel class assigned to each tree species; only created if fuel classes are estimated.
 </td>
+<td style="text-align:left;">
+</td>
 </tr><tr><td style="text-align:left;">
 spreadFirePolys
 </td>
@@ -1333,7 +1366,9 @@ spreadFirePolys
 list
 </td>
 <td style="text-align:left;">
-List of annual fire polygons used for SpreadFit: larger than one pixel and matched to <code>spreadFirePoints</code>.
+List of annual fire polygons of the escaped fires, core and buffer start, matched to their harmonized start points (<code>escapeFireSet</code>); <code>spreadFirePoints</code> and <code>fireBufferedListDT</code> have the core-start fires only.
+</td>
+<td style="text-align:left;">
 </td>
 </tr><tr><td style="text-align:left;">
 fireSense_annualSpreadFitCovariates
@@ -1344,6 +1379,8 @@ list
 <td style="text-align:left;">
 List of data.tables, one per fire year, of <code>pixelID</code> and the spread climate covariates in the fire buffers (every flammable pixel with <code>wholeLandscapeSpreadCovariates</code>).
 </td>
+<td style="text-align:left;">
+</td>
 </tr><tr><td style="text-align:left;">
 fireSense_escapeCovariates
 </td>
@@ -1352,6 +1389,8 @@ data.table
 </td>
 <td style="text-align:left;">
 ignition covariates with added column of escapes
+</td>
+<td style="text-align:left;">
 </td>
 </tr><tr><td style="text-align:left;">
 nonEscapedFireSizesHa
@@ -1362,6 +1401,8 @@ numeric
 <td style="text-align:left;">
 Sizes (ha) of this study area’s natural-cause fires (<code>ignitionFirePoints</code>) below <code>escapeSizeHa</code>, for giving a forecast’s non-escaped ignitions a size.
 </td>
+<td style="text-align:left;">
+</td>
 </tr><tr><td style="text-align:left;">
 fireSense_escapeFormula
 </td>
@@ -1370,6 +1411,8 @@ character
 </td>
 <td style="text-align:left;">
 formula for escape, using fuel classes and landcover, as character
+</td>
+<td style="text-align:left;">
 </td>
 </tr><tr><td style="text-align:left;">
 fireSense_ignitionCovariates
@@ -1380,6 +1423,8 @@ data.table
 <td style="text-align:left;">
 table of aggregated ignition covariates with annual ignitions
 </td>
+<td style="text-align:left;">
+</td>
 </tr><tr><td style="text-align:left;">
 fireSense_nonAnnualSpreadFitCovariates
 </td>
@@ -1388,6 +1433,8 @@ list
 </td>
 <td style="text-align:left;">
 List of data.tables, one per <code>dataYears</code>, of <code>pixelID</code> and the fuel covariates in the fire buffers (every flammable pixel with <code>wholeLandscapeSpreadCovariates</code>).
+</td>
+<td style="text-align:left;">
 </td>
 </tr><tr><td style="text-align:left;">
 fireSense_spreadFormula
@@ -1398,6 +1445,8 @@ character
 <td style="text-align:left;">
 formula for spread, using climate and vegetation covariates, as character
 </td>
+<td style="text-align:left;">
+</td>
 </tr><tr><td style="text-align:left;">
 fuelClassRoles
 </td>
@@ -1407,6 +1456,8 @@ list
 <td style="text-align:left;">
 Only when <code>fuelCovariates = "domSecWetland"</code>: <code>list(domClass =, secClass =)</code>, the fuel classes chosen once for this ELF by <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/chooseDomSecFuelClasses.html" class="external-link">fireSenseUtils::chooseDomSecFuelClasses()</a></code>. Both <code>NA</code> with <code>fuelCovariates = "species"</code> or when the ELF has no tree fuel class.
 </td>
+<td style="text-align:left;">
+</td>
 </tr><tr><td style="text-align:left;">
 ignitionFirePoints
 </td>
@@ -1414,7 +1465,9 @@ ignitionFirePoints
 SpatVector
 </td>
 <td style="text-align:left;">
-The input, in the CRS of <code>rasterToMatch</code> and clipped to <code>studyArea</code>; <code>prepIgnitionFitData</code> adds an ignition for each natural-cause fire polygon that no ignition point matches (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/polygonIgnitions.html" class="external-link">fireSenseUtils::polygonIgnitions()</a></code>).
+The input, in the CRS of <code>rasterToMatch</code> and clipped to <code>studyArea</code>; <code>prepIgnitionFitData</code> makes it the core’s ignition points (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/escapeIgnitionPoints.html" class="external-link">fireSenseUtils::escapeIgnitionPoints()</a></code>) with column <code>escaped</code>: the points of buffer-start fires are left out and each core-start escape polygon that no point matches adds one at its start.
+</td>
+<td style="text-align:left;">
 </td>
 </tr><tr><td style="text-align:left;">
 ignitionFitRTM
@@ -1425,6 +1478,8 @@ SpatRaster
 <td style="text-align:left;">
 Template raster with the resolution and extent of <code>fireSense_ignitionCovariates</code>. Attributes: <code>nonNAs</code>, the number of rows in that table, and <code>meanForestB</code>, the mean forest biomass per pixel.
 </td>
+<td style="text-align:left;">
+</td>
 </tr><tr><td style="text-align:left;">
 landcoverDTs
 </td>
@@ -1433,6 +1488,8 @@ list
 </td>
 <td style="text-align:left;">
 List of data.tables, one per <code>dataYears</code>, of <code>pixelID</code> and a 0/1 column per non-forest group, for flammable pixels.
+</td>
+<td style="text-align:left;">
 </td>
 </tr><tr><td style="text-align:left;">
 lightningMaps
@@ -1443,6 +1500,8 @@ SpatRaster
 <td style="text-align:left;">
 A 4-layer SpatRaster of lightning: lightningDays, lightningDensity, positiveCG, positiveCGdensity
 </td>
+<td style="text-align:left;">
+</td>
 </tr><tr><td style="text-align:left;">
 missingLCCgroup
 </td>
@@ -1451,6 +1510,8 @@ character
 </td>
 <td style="text-align:left;">
 As the input, or the estimated group if fuel classes are estimated.
+</td>
+<td style="text-align:left;">
 </td>
 </tr><tr><td style="text-align:left;">
 nonForestedLCCGroups
@@ -1461,6 +1522,8 @@ list
 <td style="text-align:left;">
 As the input, or the estimated groups if fuel classes are estimated.
 </td>
+<td style="text-align:left;">
+</td>
 </tr><tr><td style="text-align:left;">
 nonForest_timeSinceDisturbances
 </td>
@@ -1469,6 +1532,8 @@ list
 </td>
 <td style="text-align:left;">
 List of SpatRasters, one per <code>dataYears</code>, of years since disturbance in flammable pixels, forested or not.
+</td>
+<td style="text-align:left;">
 </td>
 </tr><tr><td style="text-align:left;">
 rstLCCs
@@ -1479,6 +1544,8 @@ list
 <td style="text-align:left;">
 The input, on <code>rasterToMatch</code>.
 </td>
+<td style="text-align:left;">
+</td>
 </tr><tr><td style="text-align:left;">
 flammableRTMs
 </td>
@@ -1487,6 +1554,8 @@ list
 </td>
 <td style="text-align:left;">
 List of binary SpatRasters of flammable land cover on <code>rasterToMatch</code>, one per <code>dataYears</code>.
+</td>
+<td style="text-align:left;">
 </td>
 </tr><tr><td style="text-align:left;">
 sppEquiv
@@ -1497,6 +1566,8 @@ data.table
 <td style="text-align:left;">
 sppEquiv table potentially modified with new or overwritten fuel class
 </td>
+<td style="text-align:left;">
+</td>
 </tr><tr><td style="text-align:left;">
 spreadFirePoints
 </td>
@@ -1504,7 +1575,33 @@ spreadFirePoints
 list
 </td>
 <td style="text-align:left;">
-List of ignition points, one per fire year, for fires larger than one pixel, harmonized with <code>spreadFirePolys</code>. Column <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fireSenseUtils-constants.html" class="external-link">fireSenseUtils::burnableHaTxt</a></code> is each fire’s burned area (ha) on burnable pixels, the spread fit’s target size.
+List of ignition points, one per fire year, for the fires larger than one pixel that start in the core, harmonized with <code>spreadFirePolys</code>. Column <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fireSenseUtils-constants.html" class="external-link">fireSenseUtils::burnableHaTxt</a></code> is each fire’s burned area (ha) on burnable pixels, the spread fit’s target size.
+</td>
+<td style="text-align:left;">
+</td>
+</tr><tr><td style="text-align:left;">
+escapeFireSet
+</td>
+<td style="text-align:left;">
+SpatVector
+</td>
+<td style="text-align:left;">
+The start of every escaped fire (<code>escapeSizeHa</code>, <code>fireCauses</code>), core and buffer, from <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fireStarts.html" class="external-link">fireSenseUtils::escapeFireSet()</a></code> with <code>spreadFirePoints</code> as starts: <code>YEAR</code>, the fire ID, <code>polyHa</code>, <code>burnableHa</code>, <code>pixelID</code> and <code>core</code>. Only <code>core</code> fires are in <code>spreadFirePoints</code> and <code>fireBufferedListDT</code>; <code>spreadFirePolys</code> keeps all, so the ignition and escape data can leave out the NFDB points of buffer-start fires.
+</td>
+<td style="text-align:left;">
+prepSpre….
+</td>
+</tr><tr><td style="text-align:left;">
+fireSense_spreadFitCorePixels
+</td>
+<td style="text-align:left;">
+integer
+</td>
+<td style="text-align:left;">
+<code>pixelID</code>s (cells of <code>rasterToMatch</code>) in the ELF’s core, where <code>rasterToMatchLargeELF</code> is <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fireSenseSharedDefaults.html" class="external-link">fireSenseUtils::fireSenseELFCoreValue</a></code>; every pixel without <code>rasterToMatchLargeELF</code>. The spread fit scores area burned on these.
+</td>
+<td style="text-align:left;">
+prepSpre….
 </td>
 </tr><tr><td style="text-align:left;">
 propFlammable
@@ -1515,6 +1612,8 @@ SpatRaster
 <td style="text-align:left;">
 Last element of <code>propFlammables</code>.
 </td>
+<td style="text-align:left;">
+</td>
 </tr><tr><td style="text-align:left;">
 standAgeMap
 </td>
@@ -1523,6 +1622,8 @@ SpatRaster
 </td>
 <td style="text-align:left;">
 Last element of <code>standAgeMaps</code>.
+</td>
+<td style="text-align:left;">
 </td>
 </tr><tr><td style="text-align:left;">
 rstLCC_RTM
@@ -1533,6 +1634,8 @@ SpatRaster
 <td style="text-align:left;">
 Last element of the output <code>rstLCCs</code>, i.e., on <code>rasterToMatch</code>.
 </td>
+<td style="text-align:left;">
+</td>
 </tr><tr><td style="text-align:left;">
 rstLCC
 </td>
@@ -1541,6 +1644,8 @@ SpatRaster
 </td>
 <td style="text-align:left;">
 Last element of the input <code>rstLCCs</code>, i.e., on <code>rasterToMatch_biomassParam</code>.
+</td>
+<td style="text-align:left;">
 </td>
 </tr><tr><td style="text-align:left;">
 flammableRTM
@@ -1551,6 +1656,8 @@ SpatRaster
 <td style="text-align:left;">
 Last element of <code>flammableRTMs</code>.
 </td>
+<td style="text-align:left;">
+</td>
 </tr><tr><td style="text-align:left;">
 landcoverDT
 </td>
@@ -1560,6 +1667,8 @@ data.table
 <td style="text-align:left;">
 Last element of <code>landcoverDTs</code>.
 </td>
+<td style="text-align:left;">
+</td>
 </tr><tr><td style="text-align:left;">
 nonForest_timeSinceDisturbance
 </td>
@@ -1568,6 +1677,8 @@ SpatRaster
 </td>
 <td style="text-align:left;">
 Last element of <code>nonForest_timeSinceDisturbances</code>.
+</td>
+<td style="text-align:left;">
 </td>
 </tr></tbody></table></div>
 <div class="section level3">
