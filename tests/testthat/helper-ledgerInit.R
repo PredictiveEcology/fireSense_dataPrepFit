@@ -1,6 +1,9 @@
 ## Runs the module's own Init() with stand-ins for Drive and climate (test-ledgerFuelGroups.R,
 ## test-spreadClimateOwnELF.R).
 
+## the escape definition parameters of a test sim, which Init() reads with fireSenseUtils::escapeDefinitionOf()
+escapeTestParams <- list(escapeSizeHa = 1, fireCauses = "natural")
+
 initBody <- function() {
   exprs <- parse(testthat::test_path("..", "..", "fireSense_dataPrepFit.R"), keep.source = FALSE)
   def <- Filter(function(x) is.call(x) && identical(x[[1]], as.name("<-")) &&
@@ -11,8 +14,9 @@ initBody <- function() {
 
 ledgerInitEnv <- function(ledger) {
   sim <- suppressMessages(SpaDES.core::simInit())
-  sim@params <- list(fireSense_dataPrepFit = list(heldOutFold = NA, sppEquivCol = "LandR",
-                                                  fuelClassCol = "FuelClass", fireYears = 1985:2024))
+  sim@params <- list(fireSense_dataPrepFit = c(list(heldOutFold = NA, sppEquivCol = "LandR",
+                                                    fuelClassCol = "FuelClass", fireYears = 1985:2024),
+                                               escapeTestParams))
   sim@current <- data.table::data.table(moduleName = "fireSense_dataPrepFit")
   sim$studyArea <- sf::st_sf(geometry = sf::st_sfc(sf::st_polygon(list(rbind(c(0, 0), c(1, 0), c(1, 1),
                                                                                c(0, 1), c(0, 0))))))
