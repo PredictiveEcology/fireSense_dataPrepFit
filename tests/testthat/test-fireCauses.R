@@ -50,9 +50,10 @@ test_that("prepare_SpreadFitFire_Vector: the default fireCauses keeps natural + 
                                                       ymax = 10000, crs = "EPSG:3978"))
     env <- new.env(parent = environment(prepare_SpreadFitFire_Vector))
     env$Par <- list(escapeSizeHa = 50, fireCauses = causes)
+    mockEscapeDefinition(env$Par)
     env$P <- function(sim) list(areaMultiplier = 1, minBufferSize = 0)
     env$mod <- new.env()
-    env$mod$allYears <- list(year1985 = "year2000")
+    env$mod$allYears <- list(`1985` = "year2000")
     env$Cache <- function(x, ...) x
     ## the harmonization is tested elsewhere: pass the fires through
     env$harmonizeFireData <- function(firePolys, spreadFirePoints, ...)
@@ -99,11 +100,12 @@ test_that("prepare_IgnitionFit: an unknown-cause polygon with no point adds an i
     sim$ignitionFirePoints <- pts
     sim$spreadFirePolys <- list(year2000 = polys)
     sim$escapeFireSet <- escapeStartsByDataYear(list(year2000 = polys), list(year2000 = starts), flam,
-                                                list(year1985 = "year2000"), NULL, def, "NFIREID", "POLY_HA")
+                                                list(`1985` = "year2000"), NULL, def, "NFIREID")
     sim$flammableRTMs <- flam
     env <- new.env(parent = environment(prepare_IgnitionFit))
     env$sim <- sim
     env$Par <- list(escapeSizeHa = 50, fireCauses = causes)
+    mockEscapeDefinition(env$Par)
     env$mod <- new.env()
     env$mod$studyAreaUnion <- terra::as.polygons(terra::ext(0, 10000, 0, 10000), crs = "EPSG:3978")
     eval(as.list(body(prepare_IgnitionFit))[-1][[1]], env)

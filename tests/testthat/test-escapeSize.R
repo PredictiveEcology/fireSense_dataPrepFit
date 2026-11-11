@@ -18,9 +18,9 @@ test_that("the rules work on terra points, as the module's fire points are", {
 
 test_that("the module uses escapeSizeHa for the escape response, the spread fires and the small-fire sizes", {
   src <- readLines(file.path(modulePath, moduleName, paste0(moduleName, ".R")))
-  expect_true(any(grepl("escapeDefinitionOf(Par)", src, fixed = TRUE)))
+  expect_true(any(grepl("escapeDefinitionOf(sim)", src, fixed = TRUE)))
   expect_true(any(grepl("escapeIgnitionPoints(", src, fixed = TRUE)))
-  expect_true(any(grepl("escapedFires(x, Par$escapeSizeHa, pixSizeHa", src, fixed = TRUE)))
+  expect_true(any(grepl("escapedFires(x, definition$escapeSizeHa, pixSizeHa", src, fixed = TRUE)))
   expect_true(any(grepl("nonEscapedFireSizes(sim$ignitionFirePoints, Par$escapeSizeHa)", src, fixed = TRUE)))
 })
 
@@ -35,10 +35,12 @@ test_that("spreadFirePolys are filtered with escapedFires too, so they keep the 
   polysFilterLine <- grep("sim$spreadFirePolys <- lapply(sim$spreadFirePolys", src, fixed = TRUE)
   expect_length(polysFilterLine, 1)
   polysFilterBody <- src[polysFilterLine:(polysFilterLine + 3)]
-  expect_true(any(grepl("escapedFires(x, Par$escapeSizeHa, pixSizeHa, sizeCol = haColname)",
+  expect_true(any(grepl("escapedFires(x, definition$escapeSizeHa, pixSizeHa, sizeCol = fireSenseUtils::polySizeColTxt)",
                         polysFilterBody, fixed = TRUE)))
   ## the old, pixel-size-only filter must be gone
   expect_false(any(grepl("x[[haColname]] > pixSizeHa", polysFilterBody, fixed = TRUE)))
+  ## the points are not filtered by size again: they follow the polygons
+  expect_length(grep("escapedFires(", src, fixed = TRUE), 1)
 })
 
 test_that("escapedFires keeps the same fires whether applied to points or to polygons", {

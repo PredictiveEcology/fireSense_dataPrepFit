@@ -15,7 +15,7 @@ initLedgerStatements <- function() {
 ## a simList with this module current and, optionally, another module carrying its own heldOutFold
 initEnv <- function(ownFold, otherFold = NULL, ledgerCalls = NULL) {
   sim <- suppressMessages(SpaDES.core::simInit())
-  sim@params <- list(fireSense_dataPrepFit = list(heldOutFold = ownFold))
+  sim@params <- list(fireSense_dataPrepFit = c(list(heldOutFold = ownFold), escapeTestParams))
   if (!is.null(otherFold)) sim@params$fireSense_spreadFit <- list(heldOutFold = otherFold)
   sim@current <- data.table::data.table(moduleName = "fireSense_dataPrepFit")
   e <- new.env()

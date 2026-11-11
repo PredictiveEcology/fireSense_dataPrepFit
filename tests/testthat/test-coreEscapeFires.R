@@ -32,6 +32,7 @@ test_that("a fire that starts in the buffer is not fitted: prepare_SpreadFitFire
   sim$rasterToMatchLargeELF <- fx$core
   env <- new.env(parent = environment(prepare_SpreadFitFire_Vector))
   env$Par <- list(escapeSizeHa = 50, fireCauses = "natural")
+  mockEscapeDefinition(env$Par)
   env$P <- function(sim) list(areaMultiplier = 10, minBufferSize = 100)
   env$Cache <- function(x, ...) x
   env$mod <- new.env()
@@ -58,7 +59,7 @@ test_that("the core ignition training set leaves out the NFDB points of buffer-s
   def <- fireSenseUtils::escapeDefinition(50, "natural")
   fireSet <- escapeStartsByDataYear(list(year2000 = polys), list(year2000 = fx$starts[1:2, ]),
                                     list(year1985 = fx$rtm), list(`1985` = "year2000"), fx$core, def,
-                                    "NFIREID", "POLY_HA")
+                                    "NFIREID")
   pts <- terra::vect(cbind(c(1100, 7100, 3000, 8500), c(4100, 4100, 8000, 8000)), crs = fx$crs)
   pts$YEAR <- 2000L
   pts$CAUSE <- "L"
@@ -73,6 +74,7 @@ test_that("the core ignition training set leaves out the NFDB points of buffer-s
   env <- new.env(parent = environment(prepare_IgnitionFit))
   env$sim <- sim
   env$Par <- list(escapeSizeHa = 50, fireCauses = "natural")
+  mockEscapeDefinition(env$Par)
   env$mod <- new.env()
   env$mod$studyAreaUnion <- terra::as.polygons(terra::ext(0, 10000, 0, 10000), crs = fx$crs)
   first <- as.list(body(prepare_IgnitionFit))[[2]]  # the block that makes the core ignition points
@@ -86,14 +88,6 @@ test_that("the core ignition training set leaves out the NFDB points of buffer-s
   expect_equal(sum(got$escaped), 1)
   expect_equal(NROW(got), 2)
   expect_false(any(xy[, 1] > 5000)) # no buffer point, with or without a fire
-})
-
-test_that("corePixelIDs gives the pixels whose centre is in the core, and every pixel without a core raster", {
-  fx <- coreFixture()
-  ids <- corePixelIDs(fx$rtm, fx$core)
-  expect_equal(length(ids), 40 * 20)
-  expect_true(all(terra::xFromCell(fx$rtm, ids) < 5000))
-  expect_identical(corePixelIDs(fx$rtm, NULL), seq_len(terra::ncell(fx$rtm)))
 })
 
 ## A run can ask for summer maximum temperature as the spread climate (or an ignition covariate) without any
