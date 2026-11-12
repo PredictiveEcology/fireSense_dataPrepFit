@@ -3,7 +3,7 @@
 #' The ignition table has a row for every coarse pixel (`igAggFactor`), buffer included, but the ignitions it
 #' counts start in the core of `rasterToMatchLargeELF`. `coreFraction` lets the ignition fit weight a pixel by
 #' the part of it that can hold a counted ignition. It is the mean, over the pixel's flammable cells (the
-#' non-`NA` cells of the data year's `flammableRTM`, as for the fuel covariates), of
+#' cells of value 1 in the data year's binary `flammableRTM`; 0 and `NA` are not flammable), of
 #' `fireSenseUtils::inELFCore()`, aggregated with the same `terra::aggregate(fact =, fun = mean)` as the coarse
 #' covariates. A multi-ELF categorical raster has no buffer (all `1`); without a raster everything is core.
 #'
@@ -15,7 +15,7 @@
 #'   coarse pixel with flammable cells, for every fire year.
 coreFractionByYear <- function(years, flammableRTMs, rasterToMatchLargeELF, fact) {
   byDataYear <- Map(function(fireYears, flammableRTM) {
-    flammable <- !is.na(terra::values(flammableRTM, mat = FALSE))
+    flammable <- terra::values(flammableRTM, mat = FALSE) %in% 1
     core <- fireSenseUtils::inELFCore(seq_len(terra::ncell(flammableRTM)), rasterToMatchLargeELF,
                                       grid = flammableRTM)
     fineCore <- terra::setValues(terra::rast(flammableRTM, nlyrs = 1), ifelse(flammable, as.numeric(core), NA_real_))

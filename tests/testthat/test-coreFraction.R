@@ -38,10 +38,13 @@ test_that("coreFraction is 1 in the core, 0 in pure buffer, fractional at the ed
 test_that("coreFraction counts flammable cells only, and follows the data year's flammableRTM", {
   r <- coreFractionRasters()
   flam2 <- r$flam
-  flam2[, 5:6] <- NA   # the core part of coarse pixel 2 is not flammable: only buffer cells are left
+  flam2[, 5:6] <- 0    # the core part of coarse pixel 2 is not flammable (0, as LandR::defineFlammable() gives): only buffer cells are left
   years <- list(`2010` = "year2011", `2020` = "year2021")
   out <- coreFractionByYear(years, list(year2010 = r$flam, year2020 = flam2), r$elf, fact = 4)
   expect_equal(unname(fractionOf(out, 2011)), c(1, 0.5, 1, 0.5))
+  expect_equal(unname(fractionOf(out, 2021)), c(1, 0, 1, 0))
+  flam2[, 5:6] <- NA   # NA is not flammable either
+  out <- coreFractionByYear(years, list(year2010 = r$flam, year2020 = flam2), r$elf, fact = 4)
   expect_equal(unname(fractionOf(out, 2021)), c(1, 0, 1, 0))
 })
 
