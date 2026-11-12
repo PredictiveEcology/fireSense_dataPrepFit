@@ -535,7 +535,7 @@ Init <- function(sim) {
   mod$haveSpreadFit <- is(sim$spreadFitPreRun, "sf") || is(sim$spreadFitPreRun, "data.frame")
   ## doFit FALSE (the default) never fits: without a ledger fit for this ELF, stop now, before hours of data
   ## preparation for a fit that fireSense_spreadFit would refuse. A held-out fold fits without the ledger.
-  ## Over a studyAreaLarge, `.ELFind` names several ELFs (fireSense_ELFs), and each needs its fit.
+  ## Over a studyArea_fireSense, `.ELFind` names several ELFs (fireSense_ELFs), and each needs its fit.
   if (isTRUE(is.na(heldOutFold))) {
     ids <- as.character(sim$.ELFind)
     fireSenseUtils::mustFit(Par$doFit,
@@ -560,7 +560,7 @@ Init <- function(sim) {
     keepCols <- setdiff(colnames(outs2[[1]]$sppEquiv), P(sim)$fuelClassCol)
 
     ## The single-ELF objects (sppEquiv, sppNameVector, colours, non-forest groups) are this run's own
-    ## ELF's (ELFs': over a studyAreaLarge, `.ELFind` names several). The ledger also holds neighbour ELFs'
+    ## ELF's (ELFs': over a studyArea_fireSense, `.ELFind` names several). The ledger also holds neighbour ELFs'
     ## rows; without an own row (non-ELF run) use them all.
     ledgerIDs <- sim$spreadFitPreRun[[fireSenseUtils::polygonIDTxt]]
     ownRow <- ownLedgerRow(sim$.ELFind, ledgerIDs)
