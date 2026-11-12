@@ -1,6 +1,3 @@
-## The column of the ignition covariates that is an exposure, never a covariate
-coreFractionTxt <- "coreFraction"
-
 #' The share of each coarse pixel's flammable cells that are core, by fire year
 #'
 #' The ignition table has a row for every coarse pixel (`igAggFactor`), buffer included, but the ignitions it
@@ -14,7 +11,7 @@ coreFractionTxt <- "coreFraction"
 #' @param flammableRTMs list of `SpatRaster`, one per data year, in the order of `years`.
 #' @param rasterToMatchLargeELF `SpatRaster` read by `fireSenseUtils::inELFCore()`, or `NULL`.
 #' @param fact the aggregation factor, `igAggFactor`.
-#' @return a `data.table` with `pixelID` (the coarse cell), `year` (numeric) and `coreFraction` (`coreFractionTxt`), a row for every
+#' @return a `data.table` with `pixelID` (the coarse cell), `year` (numeric) and `coreFraction` (`fireSenseUtils::coreFractionTxt`), a row for every
 #'   coarse pixel with flammable cells, for every fire year.
 coreFractionByYear <- function(years, flammableRTMs, rasterToMatchLargeELF, fact) {
   byDataYear <- Map(function(fireYears, flammableRTM) {
@@ -24,9 +21,11 @@ coreFractionByYear <- function(years, flammableRTMs, rasterToMatchLargeELF, fact
     fineCore <- terra::setValues(terra::rast(flammableRTM, nlyrs = 1), ifelse(flammable, as.numeric(core), NA_real_))
     coarse <- terra::values(terra::aggregate(fineCore, fact = fact, fun = mean, na.rm = TRUE), mat = FALSE)
     pixelID <- which(!is.na(coarse))
-    data.table::data.table(pixelID = rep(pixelID, length(fireYears)),
-               year = rep(as.numeric(gsub(fireSenseUtils::yearTxt, "", fireYears)), each = length(pixelID)),
-               coreFraction = rep(coarse[pixelID], length(fireYears)))
+    out <- data.table::data.table(pixelID = rep(pixelID, length(fireYears)),
+                                  year = rep(as.numeric(gsub(fireSenseUtils::yearTxt, "", fireYears)),
+                                             each = length(pixelID)),
+                                  fraction = rep(coarse[pixelID], length(fireYears)))
+    data.table::setnames(out, "fraction", fireSenseUtils::coreFractionTxt)
   }, years, flammableRTMs)
   data.table::rbindlist(byDataYear)
 }
@@ -39,10 +38,10 @@ coreFractionByYear <- function(years, flammableRTMs, rasterToMatchLargeELF, fact
 addCoreFraction <- function(covariates, years, flammableRTMs, rasterToMatchLargeELF, fact) {
   fractions <- coreFractionByYear(years, flammableRTMs, rasterToMatchLargeELF, fact)
   key <- function(d) d$year * 1e10 + d$pixelID  ## exact in a double: pixelID < 1e10
-  fraction <- fractions$coreFraction[match(key(covariates), key(fractions))]
+  fraction <- fractions[[fireSenseUtils::coreFractionTxt]][match(key(covariates), key(fractions))]
   if (anyNA(fraction))
     stop("coreFraction is missing for ", sum(is.na(fraction)),
          " ignition covariate rows: their coarse pixel has no flammable cell")
-  data.table::set(covariates, NULL, coreFractionTxt, fraction)
+  data.table::set(covariates, NULL, fireSenseUtils::coreFractionTxt, fraction)
   covariates
 }
