@@ -368,7 +368,11 @@ defineModule(sim, list(
                   "formula for escape, using fuel classes and landcover, as character",
                   events = "prepEscapeFitData"),
     createsOutput("fireSense_ignitionCovariates", "data.table",
-                  "table of aggregated ignition covariates with annual ignitions",
+                  paste("table of aggregated ignition covariates with annual ignitions: one row per coarse pixel",
+                        "(`igAggFactor`) and year, with `pixelID`, `year`, `ignitions` (those that start in the core of",
+                        "`rasterToMatchLargeELF`), the covariates, and `coreFraction`, the share of the pixel's flammable",
+                        "cells that are in the core (1 inside the core, 0 in the buffer, fractional at the edge).",
+                        "`coreFraction` is an exposure, not a covariate: fireSense_ignitionFit weights the pixel by it."),
                   events = "prepIgnitionFitData"),
     createsOutput("fireSense_nonAnnualSpreadFitCovariates", "list",
                   "List of data.tables, one per `dataYears`, of `pixelID` and the fuel covariates in the fire buffers (every flammable pixel with `wholeLandscapeSpreadCovariates`).",
@@ -1468,7 +1472,8 @@ prepare_IgnitionFit <- function(sim) {
   sim$fireSense_ignitionCovariates <-
     mergePreparedCovs(years, fuelCovsCoarse, sim$ignitionFirePoints, sim$nonForestedLCCGroups,
                       ignitionClimateCoarse, sim$lightningMaps["lightningDays"], 
-                      digest = append(dig2, list(P(sim)$igAggFactor)))
+                      digest = append(dig2, list(P(sim)$igAggFactor))) |>
+    addCoreFraction(years, sim$flammableRTMs, sim$rasterToMatchLargeELF, P(sim)$igAggFactor)
 
   ## make new ignition object, ignitionFitRTM
   sim$ignitionFitRTM <- rast(fuelCovsCoarse[[1]][[1]][[1]])
@@ -1559,7 +1564,7 @@ prepare_EscapeFit <- function(sim) {
 
   escapeVars <- names(escapeDT)[!names(escapeDT) %in% c(fireSenseUtils::yearTxt, "pixelID", "escapes",
                                                         sim$climateVariablesForFire$ignition,
-                                                        "ignitions", ranEffsLabel)]
+                                                        "ignitions", coreFractionTxt, ranEffsLabel)]
 
   interactionsDF <- as.data.table(expand.grid(escapeVars, sim$climateVariablesForFire$ignition))
   interactionsDF[, interaction := do.call(paste, c(.SD, sep = ":")), .SDcols = names(interactionsDF)]
