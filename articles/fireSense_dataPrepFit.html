@@ -31,7 +31,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fireSense_dataPrepFit</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.0.9028</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.0.9029</span>
       </span>
     </div>
 
@@ -70,9 +70,9 @@
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>fireSense_dataPrepFit Manual</h1>
-            <h3 data-toc-skip class="subtitle">v.1.3.0.9028</h3>
+            <h3 data-toc-skip class="subtitle">v.1.3.0.9029</h3>
             
-            <h4 data-toc-skip class="date">Last updated: 2026-11-11</h4>
+            <h4 data-toc-skip class="date">Last updated: 2026-11-13</h4>
       
 
       <div class="hidden name"><code>fireSense_dataPrepFit.Rmd</code></div>
@@ -291,7 +291,7 @@ climateVariablesForFire
 list
 </td>
 <td style="text-align:left;">
-List with elements <code>ignition</code> and <code>spread</code>, each a character vector of climate variable names, with or without underscores (e.g., <code>CMD_sm</code> or <code>CMDsm</code>). IgnitionFit uses all of <code>ignition</code>; SpreadFit uses <code>spread</code>. Default: <code>ignition = c('CMD', 'cumMDC', 'CMD_sm', 'CMD_sp')</code>, <code>spread = 'auto'</code>: the <code>ignition</code> variable that best separates the study area’s worst fire years (see <code>spreadClimateSelection</code>). Unless supplied, <code>climateVariables</code> is built from these.
+List with elements <code>ignition</code> and <code>spread</code>, each a character vector of climate variable names, with or without underscores (e.g., <code>CMD_sm</code> or <code>CMDsm</code>). IgnitionFit uses all of <code>ignition</code>; SpreadFit uses <code>spread</code>. Default: <code>ignition = c('CMD', 'cumMDC', 'CMD_sm', 'CMD_sp')</code>, <code>spread = 'auto'</code>: the <code>spreadClimateCandidates</code> variable that best separates the study area’s worst fire years (see <code>spreadClimateSelection</code>). Unless supplied, <code>climateVariables</code> is built from these.
 </td>
 <td style="text-align:left;">
 NA
@@ -1180,6 +1180,29 @@ TRUE
 </tr>
 <tr>
 <td style="text-align:left;">
+spreadClimateCandidates
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+CMD, cum….
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+The climate variables <code>climateVariablesForFire$spread = "auto"</code> chooses among (ClimateNA names, with or without underscores). Not the ignition variables: those are <code>climateVariablesForFire$ignition</code>, which IgnitionFit uses whole. Their layers are prepared with the others (<code>.inputObjects</code>), but only the chosen one enters the spread tables. Ignored unless <code>spread</code> is “auto”. Each must increase with dryness, except precipitation (<code>PPT</code>), which decreases. Changing it re-runs the cached events, like any other parameter. Default: the default ignition variables, summer maximum temperature (<code>Tmax_sm</code>) and summer precipitation (<code>PPT_sm</code>).
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
 spreadFitGoogleDriveFolder
 </td>
 <td style="text-align:left;">
@@ -1598,7 +1621,7 @@ climateVariables
 list
 </td>
 <td style="text-align:left;">
-Climate variable definitions, as used by <code><a href="https://rdrr.io/pkg/climateData/man/prepClimateLayers.html" class="external-link">climateData::prepClimateLayers</a></code> (canClimateData). Unless supplied, built from <code>climateVariablesForFire</code> for <code>fireYears</code> (and canClimateData’s <code>projectedClimateYears</code>, if any). If a previous SpreadFit exists, the variables of that fit are added.
+Climate variable definitions, as used by <code><a href="https://rdrr.io/pkg/climateData/man/prepClimateLayers.html" class="external-link">climateData::prepClimateLayers</a></code> (canClimateData). Unless supplied, built from <code>climateVariablesForFire</code> (and, when <code>spread</code> is “auto”, <code>spreadClimateCandidates</code>) for <code>fireYears</code> (and canClimateData’s <code>projectedClimateYears</code>, if any). If a previous SpreadFit exists, the variables of that fit are added.
 </td>
 <td style="text-align:left;">
 .inputOb….
@@ -1710,7 +1733,7 @@ fireSense_ignitionCovariates
 data.table
 </td>
 <td style="text-align:left;">
-table of aggregated ignition covariates with annual ignitions
+table of aggregated ignition covariates with annual ignitions: one row per coarse pixel (<code>igAggFactor</code>) and year, with <code>pixelID</code>, <code>year</code>, <code>ignitions</code> (those that start in the core of <code>rasterToMatchLargeELF</code>), the covariates, and <code>coreFraction</code>, the share of the pixel’s flammable cells that are in the core (1 inside the core, 0 in the buffer, fractional at the edge). <code>coreFraction</code> is an exposure, not a covariate: fireSense_ignitionFit weights the pixel by it.
 </td>
 <td style="text-align:left;">
 prepIgni….

@@ -1,7 +1,7 @@
 ---
 title: "fireSense_dataPrepFit Manual"
-subtitle: "v.1.3.0.9028"
-date: "Last updated: 2026-11-11"
+subtitle: "v.1.3.0.9029"
+date: "Last updated: 2026-11-13"
 output:
   bookdown::html_document2:
     toc: true
@@ -149,7 +149,7 @@ Table \@ref(tab:moduleInputs-fireSense-dataPrepFit) shows the full list of modul
   <tr>
    <td style="text-align:left;"> climateVariablesForFire </td>
    <td style="text-align:left;"> list </td>
-   <td style="text-align:left;"> List with elements `ignition` and `spread`, each a character vector of climate variable names, with or without underscores (e.g., `CMD_sm` or `CMDsm`). IgnitionFit uses all of `ignition`; SpreadFit uses `spread`. Default: `ignition = c('CMD', 'cumMDC', 'CMD_sm', 'CMD_sp')`, `spread = 'auto'`: the `ignition` variable that best separates the study area's worst fire years (see `spreadClimateSelection`). Unless supplied, `climateVariables` is built from these. </td>
+   <td style="text-align:left;"> List with elements `ignition` and `spread`, each a character vector of climate variable names, with or without underscores (e.g., `CMD_sm` or `CMDsm`). IgnitionFit uses all of `ignition`; SpreadFit uses `spread`. Default: `ignition = c('CMD', 'cumMDC', 'CMD_sm', 'CMD_sp')`, `spread = 'auto'`: the `spreadClimateCandidates` variable that best separates the study area's worst fire years (see `spreadClimateSelection`). Unless supplied, `climateVariables` is built from these. </td>
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
@@ -517,6 +517,15 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
+   <td style="text-align:left;"> spreadClimateCandidates </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;"> CMD, cum.... </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> The climate variables `climateVariablesForFire$spread = "auto"` chooses among (ClimateNA names, with or without underscores). Not the ignition variables: those are `climateVariablesForFire$ignition`, which IgnitionFit uses whole. Their layers are prepared with the others (`.inputObjects`), but only the chosen one enters the spread tables. Ignored unless `spread` is "auto". Each must increase with dryness, except precipitation (`PPT `), which decreases. Changing it re-runs the cached events, like any other parameter. Default: the default ignition variables, summer maximum temperature (`Tmax_sm`) and summer precipitation (`PPT_sm`). </td>
+   <td style="text-align:left;"> TRUE </td>
+  </tr>
+  <tr>
    <td style="text-align:left;"> spreadFitGoogleDriveFolder </td>
    <td style="text-align:left;"> character </td>
    <td style="text-align:left;"> https://.... </td>
@@ -716,7 +725,7 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-dataP
   <tr>
    <td style="text-align:left;"> climateVariables </td>
    <td style="text-align:left;"> list </td>
-   <td style="text-align:left;"> Climate variable definitions, as used by `climateData::prepClimateLayers` (canClimateData). Unless supplied, built from `climateVariablesForFire` for `fireYears` (and canClimateData's `projectedClimateYears`, if any). If a previous SpreadFit exists, the variables of that fit are added. </td>
+   <td style="text-align:left;"> Climate variable definitions, as used by `climateData::prepClimateLayers` (canClimateData). Unless supplied, built from `climateVariablesForFire` (and, when `spread` is "auto", `spreadClimateCandidates`) for `fireYears` (and canClimateData's `projectedClimateYears`, if any). If a previous SpreadFit exists, the variables of that fit are added. </td>
    <td style="text-align:left;"> .inputOb.... </td>
   </tr>
   <tr>
@@ -764,7 +773,7 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-dataP
   <tr>
    <td style="text-align:left;"> fireSense_ignitionCovariates </td>
    <td style="text-align:left;"> data.table </td>
-   <td style="text-align:left;"> table of aggregated ignition covariates with annual ignitions </td>
+   <td style="text-align:left;"> table of aggregated ignition covariates with annual ignitions: one row per coarse pixel (`igAggFactor`) and year, with `pixelID`, `year`, `ignitions` (those that start in the core of `rasterToMatchLargeELF`), the covariates, and `coreFraction`, the share of the pixel's flammable cells that are in the core (1 inside the core, 0 in the buffer, fractional at the edge). `coreFraction` is an exposure, not a covariate: fireSense_ignitionFit weights the pixel by it. </td>
    <td style="text-align:left;"> prepIgni.... </td>
   </tr>
   <tr>
