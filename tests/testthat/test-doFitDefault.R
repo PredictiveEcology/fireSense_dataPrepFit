@@ -36,7 +36,7 @@ test_that("default doFit with this ELF's row, and doFit NA or TRUE without one, 
   expect_identical(initDoFit(oneELFLedger(), elf = "9.9.9", doFit = TRUE)$error, "")
 })
 
-## over a studyAreaLarge, fireSense_ELFs makes `.ELFind` the ELFs it covers: each needs its fit
+## over a studyArea_fireSense, fireSense_ELFs makes `.ELFind` the ELFs it covers: each needs its fit
 test_that("default doFit over several ELFs: all have a row, Init goes on; one has none, it stops naming them", {
   twoELFs <- oneELFLedger()[c(1, 1), ]
   twoELFs[[fireSenseUtils::polygonIDTxt]] <- c("4.2.1", "4.2.2")
