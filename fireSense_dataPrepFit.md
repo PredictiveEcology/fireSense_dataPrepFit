@@ -1,7 +1,7 @@
 ---
 title: "fireSense_dataPrepFit Manual"
 subtitle: "v.1.3.0.9030"
-date: "Last updated: 2026-11-14"
+date: "Last updated: 2026-11-15"
 output:
   bookdown::html_document2:
     toc: true
@@ -504,6 +504,15 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> The same parameter as in `fireSense_spreadFit`: FALSE (default) never fits, and `Init()` stops, before any data preparation, when the SpreadFit ledger (`fitFileSuffix`) has no fit for this ELF; NA fits only an ELF without a ledger fit; TRUE always refits. When this ELF's ledger fit is reused (FALSE, or NA with a ledger row), the spread formula takes that fit's climate variable(s); when it is fitted, `climateVariablesForFire$spread` as given (`"auto"`: chosen afresh). Set it for every fireSense module at once with `.globals = list(doFit = ...)`. </td>
    <td style="text-align:left;"> TRUE </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> skipUnusedFitPrep </td>
+   <td style="text-align:left;"> logical </td>
+   <td style="text-align:left;"> FALSE </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> FALSE (default): unchanged. TRUE: a job that cannot fit, validate, profile or hold out a fold (`fireSenseUtils::fitDataNeeded()`: `doFit` FALSE, no `heldOutFold`, `fireSense_spreadFit`'s `mode` without "validate" or "profile") makes only the spread fire data (`prepSpreadFitFireData`: the fire polygons, `escapeFireSet`, hence the same `ignitionFirePoints` and escape covariates) and leaves out the spread covariates, the slowest step and the one only a fit reads. The same parameter of `fireSense_spreadFit`: set it for both with `.globals = list(skipUnusedFitPrep = TRUE)`; init stops if they differ on it or on `doFit`. Not part of the cache keys. </td>
+   <td style="text-align:left;"> FALSE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> fitFileSuffix </td>
