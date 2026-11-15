@@ -17,7 +17,7 @@ defineModule(sim, list(
   reqdPkgs = list("data.table", "digest", "fastDummies", "googledrive", "httr2", "qs2", "Require",
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9042)", # CacheGeo re-reads a changed local file
                   "PredictiveEcology/climateData@development (>= 2.2.3.9006)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9161)", # 9161: coreFractionTxt; 9159: climateCovRanges Tmaxsm, PPTsm (#224); 9141: spreadFitLedgerInputs(), spreadFitLedgerInputLists(); 9135: fireSenseFireCauses; 9131: fireCauseCodes(); 9130: climateRasterToDataTable(Index) reads only those cells; 9128: burnableHaTxt
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9169)", # 9169: fitDataNeeded() (#234); 9161: coreFractionTxt; 9159: climateCovRanges Tmaxsm, PPTsm (#224); 9141: spreadFitLedgerInputs(), spreadFitLedgerInputLists(); 9135: fireSenseFireCauses; 9131: fireCauseCodes(); 9130: climateRasterToDataTable(Index) reads only those cells; 9128: burnableHaTxt
                   "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
                   "ggplot2", "methods", "parallel", "purrr", "raster", "sf", "sp", "stats", "utils",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9015)",
@@ -138,6 +138,16 @@ defineModule(sim, list(
                                  "takes that fit's climate variable(s); when it is fitted, `climateVariablesForFire$spread`",
                                  "as given (`\"auto\"`: chosen afresh). Set it for every fireSense module at once with",
                                  "`.globals = list(doFit = ...)`.")),
+    defineParameter("skipUnusedFitPrep", "logical", default = FALSE,
+                    desc = paste("FALSE (default): unchanged. TRUE: a job that cannot fit, validate, profile or hold out a fold",
+                                 "(`fireSenseUtils::fitDataNeeded()`: `doFit` FALSE, no `heldOutFold`, `fireSense_spreadFit`'s `mode`",
+                                 "without \"validate\" or \"profile\") makes only the spread fire data (`prepSpreadFitFireData`: the",
+                                 "fire polygons, `escapeFireSet`, hence the same `ignitionFirePoints` and escape covariates) and",
+                                 "leaves out the spread covariates, the slowest step and the one only a fit reads.",
+                                 "The same parameter of `fireSense_spreadFit`: set it for both with",
+                                 "`.globals = list(skipUnusedFitPrep = TRUE)`; init stops if they differ on it or on `doFit`.",
+                                 "Not part of the cache keys."),
+                    cacheKey = FALSE),
     defineParameter("fitFileSuffix", "character", "", NA, NA,
                     paste("Text put after the model tag in the ledger file names, e.g. `\"_boundfix_rep81\"`, so a test run",
                           "writes and reads (`\"latest\"`) only its own files, never the production ones. `\"\"` (the",
@@ -206,6 +216,11 @@ defineModule(sim, list(
                       list(spreadFitPreRun = sim$spreadFitPreRun), fireSenseUtils::escapeFireSetDeps()))),
                          prepEscapeFitData = list(.cacheExtra = quote(c(
                       list(spreadFitPreRun = sim$spreadFitPreRun), fireSenseUtils::escapeFireSetDeps()))),
+                         prepSpreadFitFireData = list(.cacheExtra = quote(c(list(
+                      fireSenseUtils::bufferToArea, fireSenseUtils::escapedFires, fireSenseUtils::escapeDefinitionOf,
+                      fireSenseUtils::fireCauseCodes, fireSenseUtils::rasterFireBufferDT,
+                      fireSenseUtils::rasterFireSpreadPoints, spreadFitPreRun = sim$spreadFitPreRun),
+                      fireSenseUtils::harmonizeFireDataDeps(), fireSenseUtils::escapeFireSetDeps()))),
                          prepSpreadFitData = list(.cacheExtra = quote(c(list(
                       fireSenseUtils::bufferToArea, fireSenseUtils::chooseDomSecFuelClasses,
                       fireSenseUtils::climateRasterToDataTable, fireSenseUtils::dataYearBefore,
@@ -347,13 +362,13 @@ defineModule(sim, list(
     createsOutput("fireBufferedListDT", "list",
                   paste("list of data.tables with fire id, `pixelID`, and buffer status, of the fires the spread",
                         "model is fitted to: those that start in the core with at least `minBurnableFireSizeHa` on burnable pixels."),
-                  events = "prepSpreadFitData"),
+                  events = c("prepSpreadFitFireData", "prepSpreadFitData")),
     createsOutput("fuelClassTable", "data.table",
                   "Fuel class assigned to each tree species; only created if fuel classes are estimated.",
                   events = "dataPrepBuild"),
     createsOutput("spreadFirePolys", "list",
                   "List of annual fire polygons of the escaped fires, core and buffer start, matched to their harmonized start points (`escapeFireSet`); `spreadFirePoints` and `fireBufferedListDT` have the core-start fires only.",
-                  events = c("dataPrepBuild", "prepSpreadFitData")),
+                  events = c("dataPrepBuild", "prepSpreadFitFireData", "prepSpreadFitData")),
     createsOutput("fireSense_annualSpreadFitCovariates", "list",
                   "List of data.tables, one per fire year, of `pixelID` and the spread climate covariates in the fire buffers (every flammable pixel with `wholeLandscapeSpreadCovariates`).",
                   events = "prepSpreadFitData"),
@@ -423,7 +438,7 @@ defineModule(sim, list(
                   paste("List of ignition points, one per fire year, for the fires larger than one pixel that start in the core,",
                         "harmonized with `spreadFirePolys`. Column `fireSenseUtils::burnableHaTxt` is each fire's",
                         "burned area (ha) on burnable pixels, the spread fit's target size."),
-                  events = c(".inputObjects", "prepSpreadFitData")),
+                  events = c(".inputObjects", "prepSpreadFitFireData", "prepSpreadFitData")),
     
     createsOutput("escapeFireSet", "SpatVector",
                   paste("The start of every escaped fire (`escapeSizeHa`, `fireCauses`), core and buffer, from",
@@ -431,7 +446,7 @@ defineModule(sim, list(
                         "`polyHa`, `burnableHa`, `pixelID` and `core`. Only `core` fires are in `spreadFirePoints` and",
                         "`fireBufferedListDT`; `spreadFirePolys` keeps all, so the ignition and escape data can leave out",
                         "the NFDB points of buffer-start fires."),
-                  events = "prepSpreadFitData"),
+                  events = c("prepSpreadFitFireData", "prepSpreadFitData")),
     createsOutput("fireSense_spreadFitCorePixels", "integer",
                   paste("`pixelID`s (cells of `rasterToMatch`) in the ELF's core, where `rasterToMatchLargeELF` is",
                         "`fireSenseUtils::fireSenseELFCoreValue`; every pixel without `rasterToMatchLargeELF`. The spread",
@@ -473,7 +488,7 @@ doEvent.fireSense_dataPrepFit = function(sim, eventTime, eventType) {
     eventType,
     init = {
       ## schedule future event(s)
-      for (ev in prepEventsToSchedule(P(sim)$whichModulesToPrepare))
+      for (ev in prepEventsToSchedule(P(sim)$whichModulesToPrepare, fitPrepNeeded(sim)))
         sim <- scheduleEvent(sim, start(sim), "fireSense_dataPrepFit", ev, eventPriority = 1)
 
       sim <- Init(sim)
@@ -495,6 +510,9 @@ doEvent.fireSense_dataPrepFit = function(sim, eventTime, eventType) {
     },
     prepSpreadFitData = {
       sim <- prepare_SpreadFit(sim)
+    },
+    prepSpreadFitFireData = {
+      sim <- prepare_SpreadFitFires(sim)
     },
     plotAndMessage = {
       sim <- plotAndMessage(sim)
@@ -837,6 +855,26 @@ dataPrepBuild <- function(sim) {
 }
 
 
+#' Prepare the fire data for fireSense_spreadFit
+#'
+#' The fire half of `prepare_SpreadFit()`: the fire polygons and start points, `fireBufferedListDT` and
+#' `escapeFireSet`, which the ignition and escape data also need. A job that only predicts
+#' (`skipUnusedFitPrep`) runs only this, so those objects are what a full run makes. Sets `mod$allYears`.
+#'
+#' @param sim a `simList`.
+#' @return the `simList`, invisibly, with `fireBufferedListDT`, `spreadFirePoints`, `spreadFirePolys` and
+#'   `escapeFireSet`.
+prepare_SpreadFitFires <- function(sim) {
+  mod$allYears <- fitYearNames(Par) # it runs before prepare_IgnitionFit, which set them
+  ## sim$fireBufferedListDT is made in these functions
+  if (P(sim)$useRasterizedFireForSpread) {
+    sim <- prepare_SpreadFitFire_Raster(sim)
+  } else {
+    sim <- prepare_SpreadFitFire_Vector(sim)
+  }
+  invisible(sim)
+}
+
 #' Prepare the covariates and formula for fireSense_spreadFit
 #'
 #' Buffers each fire, joins the buffers to the fuel covariates of their data year and to annual
@@ -848,7 +886,7 @@ dataPrepBuild <- function(sim) {
 #'   `spreadFirePoints` and `spreadFirePolys`.
 prepare_SpreadFit <- function(sim) {
 
-  mod$allYears <- fitYearNames(Par) # it runs before prepare_IgnitionFit, which set them
+  sim <- prepare_SpreadFitFires(sim)
 
   ## prep veg data ---------------------------------------------------------------------------------
   doAssertion <- getOption("fireSenseUtils.assertions", TRUE)
@@ -927,14 +965,6 @@ prepare_SpreadFit <- function(sim) {
   })
   vegData <- rbindlist(vegData)
   
-  # prep the fire data ####
-  # sim$fireBufferedListDT is made in these functions
-  if (P(sim)$useRasterizedFireForSpread) {
-    sim <- prepare_SpreadFitFire_Raster(sim)
-  } else {
-    sim <- prepare_SpreadFitFire_Vector(sim)
-  }
-
   ## the pixels of the ELF's core, where the spread fit scores area burned
   sim$fireSense_spreadFitCorePixels <- which(fireSenseUtils::inELFCore(seq_len(terra::ncell(sim$rasterToMatch)), sim$rasterToMatchLargeELF,
                                                                          grid = sim$rasterToMatch))
@@ -1506,16 +1536,35 @@ fitYearNames <- function(Par) {
 #' exists, so a project still naming it stops.
 #'
 #' @param which character, `P(sim)$whichModulesToPrepare`.
+#' @param fitPrep logical; `FALSE` makes only the spread fire data (`prepSpreadFitFireData`), which the ignition and
+#'   escape data need, not the spread covariates (`fitPrepNeeded()`).
 #' @return character, event names in the order to schedule them.
-prepEventsToSchedule <- function(which) {
+prepEventsToSchedule <- function(which, fitPrep = TRUE) {
   if ("fireSense_EscapeFit" %in% which)
     stop("fireSense_EscapeFit no longer exists as a module; escape data are prepared with ",
          "fireSense_ignitionFit. Remove it from parameter whichModulesToPrepare.")
   if (!all(which %in% c("fireSense_spreadFit", "fireSense_ignitionFit")))
     stop("unrecognized module to prepare - review parameter whichModulesToPrepare")
   ## spread first: its fire start points place the ignitions of fire polygons without an ignition point
-  c(if ("fireSense_spreadFit" %in% which) "prepSpreadFitData",
+  c(if ("fireSense_spreadFit" %in% which && fitPrep) "prepSpreadFitData",
+    if ("fireSense_spreadFit" %in% which && !fitPrep && "fireSense_ignitionFit" %in% which) "prepSpreadFitFireData",
     if ("fireSense_ignitionFit" %in% which) c("prepIgnitionFitData", "prepEscapeFitData"))
+}
+
+#' Will a fit, profile or validation read the spread covariates?
+#'
+#' Always, unless `skipUnusedFitPrep` and `fireSenseUtils::fitDataNeeded()` is `FALSE` for this job's `doFit`,
+#' `heldOutFold` and `fireSense_spreadFit`'s `mode`. The ledger is not known here (`Init()` reads it after the
+#' events are scheduled), so `doFit` NA counts as a job that may fit.
+#'
+#' @param sim a `simList`.
+#' @return logical, length one.
+fitPrepNeeded <- function(sim) {
+  if (!isTRUE(P(sim)$skipUnusedFitPrep)) return(TRUE)
+  for (nm in c("skipUnusedFitPrep", "doFit"))
+    SpaDES.core::paramCheckOtherMods(sim, nm, ifSetButDifferent = "error")
+  fireSenseUtils::fitDataNeeded(P(sim)$doFit, SpaDES.core::paramCheckOtherMods(sim, "heldOutFold"),
+                                params(sim)[["fireSense_spreadFit"]][["mode"]])
 }
 
 #' Prepare the covariates and formula for the escape part of fireSense_ignitionFit
