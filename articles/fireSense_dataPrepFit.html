@@ -72,7 +72,7 @@
       <h1 data-toc-skip>fireSense_dataPrepFit Manual</h1>
             <h3 data-toc-skip class="subtitle">v.1.3.0.9030</h3>
             
-            <h4 data-toc-skip class="date">Last updated: 2026-11-14</h4>
+            <h4 data-toc-skip class="date">Last updated: 2026-11-15</h4>
       
 
       <div class="hidden name"><code>fireSense_dataPrepFit.Rmd</code></div>
@@ -1154,6 +1154,29 @@ The same parameter as in <code>fireSense_spreadFit</code>: FALSE (default) never
 </td>
 <td style="text-align:left;">
 TRUE
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+skipUnusedFitPrep
+</td>
+<td style="text-align:left;">
+logical
+</td>
+<td style="text-align:left;">
+FALSE
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+FALSE (default): unchanged. TRUE: a job that cannot fit, validate, profile or hold out a fold (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fitDataNeeded.html" class="external-link">fireSenseUtils::fitDataNeeded()</a></code>: <code>doFit</code> FALSE, no <code>heldOutFold</code>, <code>fireSense_spreadFit</code>’s <code>mode</code> without “validate” or “profile”) makes only the spread fire data (<code>prepSpreadFitFireData</code>: the fire polygons, <code>escapeFireSet</code>, hence the same <code>ignitionFirePoints</code> and escape covariates) and leaves out the spread covariates, the slowest step and the one only a fit reads. The same parameter of <code>fireSense_spreadFit</code>: set it for both with <code>.globals = list(skipUnusedFitPrep = TRUE)</code>; init stops if they differ on it or on <code>doFit</code>. Not part of the cache keys.
+</td>
+<td style="text-align:left;">
+FALSE
 </td>
 </tr>
 <tr>

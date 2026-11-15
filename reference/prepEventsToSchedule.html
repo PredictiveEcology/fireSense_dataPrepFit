@@ -61,7 +61,7 @@ exists, so a project still naming it stops.</p>
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">prepEventsToSchedule</span><span class="op">(</span><span class="va">which</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">prepEventsToSchedule</span><span class="op">(</span><span class="va">which</span>, fitPrep <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -70,6 +70,11 @@ exists, so a project still naming it stops.</p>
 
 <dl><dt id="arg-which">which<a class="anchor" aria-label="anchor" href="#arg-which"></a></dt>
 <dd><p>character, <code>P(sim)$whichModulesToPrepare</code>.</p></dd>
+
+
+<dt id="arg-fitprep">fitPrep<a class="anchor" aria-label="anchor" href="#arg-fitprep"></a></dt>
+<dd><p>logical; <code>FALSE</code> makes only the spread fire data (<code>prepSpreadFitFireData</code>), which the ignition and
+escape data need, not the spread covariates (<code><a href="fitPrepNeeded.html">fitPrepNeeded()</a></code>).</p></dd>
 
 </dl></div>
     <div id="value">
