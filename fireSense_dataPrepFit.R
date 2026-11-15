@@ -138,6 +138,15 @@ defineModule(sim, list(
                                  "takes that fit's climate variable(s); when it is fitted, `climateVariablesForFire$spread`",
                                  "as given (`\"auto\"`: chosen afresh). Set it for every fireSense module at once with",
                                  "`.globals = list(doFit = ...)`.")),
+    defineParameter("skipUnusedFitPrep", "logical", default = FALSE,
+                    desc = paste("FALSE (default): unchanged. TRUE: a job that cannot fit, validate, profile or hold out a fold",
+                                 "(`doFit` FALSE, no `heldOutFold`, `fireSense_spreadFit`'s `mode` without \"validate\" or \"profile\")",
+                                 "does not schedule `prepSpreadFitData` and `prepEscapeFitData`, the slowest steps, whose outputs",
+                                 "only those fits read; `prepIgnitionFitData` still runs (`lightningMaps`, `ignitionFitRTM`).",
+                                 "`sim$ignitionFirePoints` is then the study area's NFDB points, not the core points made with the",
+                                 "spread fires. The same parameter of `fireSense_spreadFit`: set it for both with",
+                                 "`.globals = list(skipUnusedFitPrep = TRUE)`. Needs `fireSense_ignitionFit` that does not compare",
+                                 "a stored escape fit with escape covariates it was not given.")),
     defineParameter("fitFileSuffix", "character", "", NA, NA,
                     paste("Text put after the model tag in the ledger file names, e.g. `\"_boundfix_rep81\"`, so a test run",
                           "writes and reads (`\"latest\"`) only its own files, never the production ones. `\"\"` (the",
@@ -473,7 +482,7 @@ doEvent.fireSense_dataPrepFit = function(sim, eventTime, eventType) {
     eventType,
     init = {
       ## schedule future event(s)
-      for (ev in prepEventsToSchedule(P(sim)$whichModulesToPrepare))
+      for (ev in prepEventsToSchedule(P(sim)$whichModulesToPrepare, fitPrepNeeded(sim)))
         sim <- scheduleEvent(sim, start(sim), "fireSense_dataPrepFit", ev, eventPriority = 1)
 
       sim <- Init(sim)
@@ -1506,16 +1515,33 @@ fitYearNames <- function(Par) {
 #' exists, so a project still naming it stops.
 #'
 #' @param which character, `P(sim)$whichModulesToPrepare`.
+#' @param fitPrep logical; `FALSE` leaves out the spread and escape fit data (`fitPrepNeeded()`).
 #' @return character, event names in the order to schedule them.
-prepEventsToSchedule <- function(which) {
+prepEventsToSchedule <- function(which, fitPrep = TRUE) {
   if ("fireSense_EscapeFit" %in% which)
     stop("fireSense_EscapeFit no longer exists as a module; escape data are prepared with ",
          "fireSense_ignitionFit. Remove it from parameter whichModulesToPrepare.")
   if (!all(which %in% c("fireSense_spreadFit", "fireSense_ignitionFit")))
     stop("unrecognized module to prepare - review parameter whichModulesToPrepare")
   ## spread first: its fire start points place the ignitions of fire polygons without an ignition point
-  c(if ("fireSense_spreadFit" %in% which) "prepSpreadFitData",
-    if ("fireSense_ignitionFit" %in% which) c("prepIgnitionFitData", "prepEscapeFitData"))
+  c(if (fitPrep && "fireSense_spreadFit" %in% which) "prepSpreadFitData",
+    if ("fireSense_ignitionFit" %in% which) c("prepIgnitionFitData", if (fitPrep) "prepEscapeFitData"))
+}
+
+#' Will a fit, profile or validation read the spread and escape fit data?
+#'
+#' Always, unless `skipUnusedFitPrep` and the job cannot fit: `doFit` FALSE (`Init()` has stopped it if the
+#' ledger holds no fit for the ELF; `fireSenseUtils::mustFit()`), no `heldOutFold`, and `fireSense_spreadFit`'s
+#' `mode` without "validate" or "profile". With `doFit` NA the ledgers decide, and the ignition ledger is
+#' `fireSense_ignitionFit`'s to read, so the data are prepared.
+#'
+#' @param sim a `simList`.
+#' @return logical, length one.
+fitPrepNeeded <- function(sim) {
+  if (!isTRUE(P(sim)$skipUnusedFitPrep)) return(TRUE)
+  mode <- params(sim)[["fireSense_spreadFit"]][["mode"]]
+  !isFALSE(P(sim)$doFit) || !isTRUE(is.na(SpaDES.core::paramCheckOtherMods(sim, "heldOutFold"))) ||
+    any(c("validate", "profile") %in% mode)
 }
 
 #' Prepare the covariates and formula for the escape part of fireSense_ignitionFit
