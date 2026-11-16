@@ -44,11 +44,6 @@ test_that("allFirePixelsByYear uses every fire in firePolysForAge, or historical
   expect_identical(allFirePixelsByYear(sim), list(`2001` = c(1L, 4L)))
 })
 
-test_that("nonForestCanBeYoungAge = FALSE stops; TRUE does not", {
-  expect_error(stopIfNonForestCannotBeYoung(FALSE), "not supported")
-  expect_silent(stopIfNonForestCannotBeYoung(TRUE))
-})
-
 test_that("prepare_SpreadFit and prepare_IgnitionFit take youngAge from the per-year calculation", {
   spread <- paste(deparse(body(prepare_SpreadFit)), collapse = " ")
   ## fuels are built without youngAge, so they are not zeroed at the data year

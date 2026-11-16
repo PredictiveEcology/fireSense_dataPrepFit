@@ -1,20 +1,3 @@
-#' Stop unless non-forest can be `youngAge`
-#'
-#' `youngAge` is resolved for each fire year from time since disturbance, which covers forest and
-#' non-forest pixels alike, so the mode where non-forest is never young (whose exclusivity needs
-#' the non-forest land-cover columns in the annual table) is not available.
-#'
-#' @param nonForestCanBeYoungAge `P(sim)$nonForestCanBeYoungAge`.
-#' @return `NULL`, invisibly.
-stopIfNonForestCannotBeYoung <- function(nonForestCanBeYoungAge) {
-  if (!isTRUE(nonForestCanBeYoungAge)) {
-    stop("nonForestCanBeYoungAge = FALSE is not supported: youngAge is resolved for each fire year ",
-         "from time since disturbance, which treats forest and non-forest pixels alike. ",
-         "Set nonForestCanBeYoungAge = TRUE.", call. = FALSE)
-  }
-  invisible(NULL)
-}
-
 #' Every fire, as the pixels burned in each year
 #'
 #' All fires, not only those being fitted, because any of them resets `youngAge`. From
@@ -24,12 +7,8 @@ stopIfNonForestCannotBeYoung <- function(nonForestCanBeYoungAge) {
 #' @param sim a `simList` with `firePolysForAge` or `historicalFireRaster`, and `flammableRTMs`.
 #' @return list named by year of integer `pixelID`s, see `fireSenseUtils::firePixelsByYear()`.
 allFirePixelsByYear <- function(sim) {
-  template <- sim$flammableRTMs[[1]]
-  if (!is.null(sim$historicalFireRaster)) {
-    terra::compareGeom(sim$historicalFireRaster, template, stopOnError = TRUE)
-    return(fireSenseUtils::firePixelsByYear(fireRaster = sim$historicalFireRaster))
-  }
-  fireSenseUtils::firePixelsByYear(firePolys = sim$firePolysForAge, template = template)
+  fireSenseUtils::firePixelsByYear(firePolys = sim$firePolysForAge, fireRaster = sim$historicalFireRaster,
+                                   template = sim$flammableRTMs[[1]])
 }
 
 #' Add `youngAge` to each fire year's annual table
@@ -45,8 +24,7 @@ addAnnualYoungAge <- function(annualCovariates, tsds, firePixelsByYear, cutoffFo
   for (dy in names(annualCovariates)) {
     dataYear <- as.integer(gsub("[^0-9]", "", dy))
     ras <- tsds[[paste0(fireSenseUtils::yearTxt, dataYear)]]
-    tsd <- data.table::data.table(pixelID = seq_len(terra::ncell(ras)),
-                                  tsd = terra::values(ras, mat = FALSE))
+    tsd <- fireSenseUtils::tsdTable(ras)
     for (yrChar in names(annualCovariates[[dy]])) {
       x <- annualCovariates[[dy]][[yrChar]]
       data.table::set(x, NULL, fireSenseUtils::youngAgeTxt,
