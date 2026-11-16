@@ -8,7 +8,7 @@ defineModule(sim, list(
     person(c("Alex", "M"), "Chubaty", role = "ctb", email = "achubaty@for-cast.ca")
   ),
   childModules = character(0),
-  version = list(fireSense_dataPrepFit = "1.3.0.9032"),
+  version = list(fireSense_dataPrepFit = "1.3.0.9033"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -17,7 +17,7 @@ defineModule(sim, list(
   reqdPkgs = list("data.table", "digest", "fastDummies", "googledrive", "httr2", "qs2", "Require",
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9042)", # CacheGeo re-reads a changed local file
                   "PredictiveEcology/climateData@development (>= 2.2.3.9006)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9169)", # 9169: fitDataNeeded() (#234); 9161: coreFractionTxt; 9159: climateCovRanges Tmaxsm, PPTsm (#224); 9141: spreadFitLedgerInputs(), spreadFitLedgerInputLists(); 9135: fireSenseFireCauses; 9131: fireCauseCodes(); 9130: climateRasterToDataTable(Index) reads only those cells; 9128: burnableHaTxt
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9175)", # 9169: fitDataNeeded() (#234); 9161: coreFractionTxt; 9159: climateCovRanges Tmaxsm, PPTsm (#224); 9141: spreadFitLedgerInputs(), spreadFitLedgerInputLists(); 9135: fireSenseFireCauses; 9131: fireCauseCodes(); 9130: climateRasterToDataTable(Index) reads only those cells; 9128: burnableHaTxt
                   "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
                   "ggplot2", "methods", "parallel", "purrr", "raster", "sf", "sp", "stats", "utils",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9015)",
@@ -243,7 +243,8 @@ defineModule(sim, list(
                       fireSenseUtils::escapedFires, fireSenseUtils::escapeDefinitionOf, fireSenseUtils::fireCauseCodes, fireSenseUtils::fireSenseCovariatesCreate, fireSenseUtils::firePixelsByYear,
                       fireSenseUtils::harmonizeFireData, fireSenseUtils::lccFlammableShare,
                       fireSenseUtils::makeMutuallyExclusive, fireSenseUtils::rasterFireBufferDT,
-                      fireSenseUtils::rasterFireSpreadPoints, fireSenseUtils::youngAgeAtYear,
+                      fireSenseUtils::rasterFireSpreadPoints, fireSenseUtils::stopIfNonForestCannotBeYoung, fireSenseUtils::tsdTable,
+                      fireSenseUtils::youngAgeAtYear,
                       spreadFitPreRun = sim$spreadFitPreRun),
                       fireSenseUtils::harmonizeFireDataDeps(), fireSenseUtils::escapeFireSetDeps())))),
                     NA, NA,
@@ -906,7 +907,7 @@ prepare_SpreadFit <- function(sim) {
 
   ## prep veg data ---------------------------------------------------------------------------------
   doAssertion <- getOption("fireSenseUtils.assertions", TRUE)
-  stopIfNonForestCannotBeYoung(P(sim)$nonForestCanBeYoungAge)
+  fireSenseUtils::stopIfNonForestCannotBeYoung(P(sim)$nonForestCanBeYoungAge)
 
   ## sanity check the inputs
   lapply(sim$historicalClimateRasters, compareGeom, x = sim$rasterToMatch)
@@ -1448,7 +1449,7 @@ prepare_IgnitionFit <- function(sim) {
     )
   )
 
-  stopIfNonForestCannotBeYoung(P(sim)$nonForestCanBeYoungAge)
+  fireSenseUtils::stopIfNonForestCannotBeYoung(P(sim)$nonForestCanBeYoungAge)
 
   dig1 <- .robustDigest(list(sim$landcoverDTs, sim$flammableRTMs))
   dig1a <- .robustDigest(list(sim$cohortDatas, sim$pixelGroupMaps, sim$nonForest_timeSinceDisturbances))
