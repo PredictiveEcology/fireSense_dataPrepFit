@@ -31,7 +31,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fireSense_dataPrepFit</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.0.9032</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.0.9033</span>
       </span>
     </div>
 
@@ -70,7 +70,7 @@
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>fireSense_dataPrepFit Manual</h1>
-            <h3 data-toc-skip class="subtitle">v.1.3.0.9032</h3>
+            <h3 data-toc-skip class="subtitle">v.1.3.0.9033</h3>
             
             <h4 data-toc-skip class="date">Last updated: 2026-11-16</h4>
       
@@ -1082,6 +1082,29 @@ NA
 </td>
 <td style="text-align:left;">
 SCANFI land-cover version for non-forest land cover, <code>"V2"</code> or <code>"V3"</code>. Passed to <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/makeFireSenseLCC.html" class="external-link">fireSenseUtils::makeFireSenseLCC()</a></code>.
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+seedVegInit
+</td>
+<td style="text-align:left;">
+numeric
+</td>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Seed for the random draws of the nested <code>Biomass_borealDataPrep</code> runs that rebuild <code>cohortDatas</code> and <code>pixelGroupMaps</code> (the age and biomass models fit to a random subset of at most 50 rows per ecoregion x species; the choice of replacement land cover). It is the nested module’s <code>.seed</code> for its <code>init</code> event, so the same seed gives the same vegetation on every machine, and it is part of that event’s cache key. <code>NA</code>: no seed, as before (each run draws afresh; a cache hit replays its first draw). Change it to see how much the in-filling of missing data moves the results.
 </td>
 <td style="text-align:left;">
 TRUE
