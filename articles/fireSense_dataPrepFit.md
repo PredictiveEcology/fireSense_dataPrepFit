@@ -1,7 +1,7 @@
 ---
 title: "fireSense_dataPrepFit Manual"
-subtitle: "v.1.3.0.9030"
-date: "Last updated: 2026-11-15"
+subtitle: "v.1.3.0.9031"
+date: "Last updated: 2026-11-16"
 output:
   bookdown::html_document2:
     toc: true
@@ -550,6 +550,15 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Name of the ledger file in `spreadFitGoogleDriveFolder`: study area polygons with their fitted SpreadFit parameters. `"latest"` (the default) takes each polygon's fit from the most recent ledger file that has it (`fireSenseUtils::latestSpreadFits()`). </td>
+   <td style="text-align:left;"> TRUE </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> spreadCovariates </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;"> all </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> `"all"` (the default): the spread formula has the covariates (climate, `youngAge`, fuel, non-forest). `"none"`: the null model, the formula `~ 1` (an intercept and no covariate), the baseline that a spread fit with covariates has to beat. The covariate tables are still made, so everything downstream finds its inputs. Needs `spreadIntercept = TRUE`. Ignored if `sim$fireSense_spreadFormula` is supplied. A hindcast of a null fit sets it too (`.globals`). </td>
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
