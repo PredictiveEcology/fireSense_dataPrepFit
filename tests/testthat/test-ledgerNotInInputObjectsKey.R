@@ -4,11 +4,6 @@
 ## rows from CacheGeo, or NULL for a held-out fold) before any cached event runs, so it is an output only
 ## and the cached events after init key on it through `.useCacheArgs`.
 
-moduleParams <- function() {
-  def <- Filter(function(x) is.call(x) && identical(x[[1]], as.name("defineModule")),
-                parse(testthat::test_path("..", "..", "fireSense_dataPrepFit.R"), keep.source = FALSE))
-  eval(as.list(def[[1]][[3]])[["parameters"]], envir = asNamespace("SpaDES.core"))
-}
 fnDefs <- function() {
   files <- c(testthat::test_path("..", "..", "fireSense_dataPrepFit.R"),
              list.files(testthat::test_path("..", "..", "R"), "\\.R$", full.names = TRUE))
@@ -18,7 +13,7 @@ fnDefs <- function() {
   stats::setNames(lapply(defs, function(d) d[[3]]), vapply(defs, function(d) as.character(d[[2]]), ""))
 }
 cacheExtras <- function() {
-  p <- moduleParams()
+  p <- moduleParamTable()
   p$default[[match(".useCacheArgs", p$paramName)]]
 }
 
