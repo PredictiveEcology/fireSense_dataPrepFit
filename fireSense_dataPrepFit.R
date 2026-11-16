@@ -235,7 +235,7 @@ defineModule(sim, list(
                       fireSenseUtils::escapedFires, fireSenseUtils::escapeDefinitionOf, fireSenseUtils::fireCauseCodes, fireSenseUtils::fireSenseCovariatesCreate, fireSenseUtils::firePixelsByYear,
                       fireSenseUtils::harmonizeFireData, fireSenseUtils::lccFlammableShare,
                       fireSenseUtils::makeMutuallyExclusive, fireSenseUtils::rasterFireBufferDT,
-                      fireSenseUtils::rasterFireSpreadPoints, fireSenseUtils::stopIfNonForestCannotBeYoung,
+                      fireSenseUtils::rasterFireSpreadPoints, fireSenseUtils::stopIfNonForestCannotBeYoung, fireSenseUtils::tsdTable,
                       fireSenseUtils::youngAgeAtYear,
                       spreadFitPreRun = sim$spreadFitPreRun),
                       fireSenseUtils::harmonizeFireDataDeps(), fireSenseUtils::escapeFireSetDeps())))),

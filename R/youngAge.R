@@ -24,8 +24,7 @@ addAnnualYoungAge <- function(annualCovariates, tsds, firePixelsByYear, cutoffFo
   for (dy in names(annualCovariates)) {
     dataYear <- as.integer(gsub("[^0-9]", "", dy))
     ras <- tsds[[paste0(fireSenseUtils::yearTxt, dataYear)]]
-    tsd <- data.table::data.table(pixelID = seq_len(terra::ncell(ras)),
-                                  tsd = terra::values(ras, mat = FALSE))
+    tsd <- fireSenseUtils::tsdTable(ras)
     for (yrChar in names(annualCovariates[[dy]])) {
       x <- annualCovariates[[dy]][[yrChar]]
       data.table::set(x, NULL, fireSenseUtils::youngAgeTxt,
