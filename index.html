@@ -32,7 +32,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">fireSense_dataPrepFit</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.0.9031</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.0.9032</span>
       </span>
     </div>
 
@@ -1235,6 +1235,29 @@ NA
 </td>
 <td style="text-align:left;">
 Name of the ledger file in <code>spreadFitGoogleDriveFolder</code>: study area polygons with their fitted SpreadFit parameters. <code>"latest"</code> (the default) takes each polygon’s fit from the most recent ledger file that has it (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/spreadFitLedger.html" class="external-link">fireSenseUtils::latestSpreadFits()</a></code>).
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+spreadCovariates
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+all
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+<code>"all"</code> (the default): the spread formula has the covariates (climate, <code>youngAge</code>, fuel, non-forest). <code>"none"</code>: the null model, the formula <code>~ 1</code> (an intercept and no covariate), the baseline that a spread fit with covariates has to beat. The covariate tables are still made, so everything downstream finds its inputs. Needs <code>spreadIntercept = TRUE</code>. Ignored if <code>sim$fireSense_spreadFormula</code> is supplied. A hindcast of a null fit sets it too (<code>.globals</code>).
 </td>
 <td style="text-align:left;">
 TRUE
