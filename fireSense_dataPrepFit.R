@@ -541,10 +541,10 @@ doEvent.fireSense_dataPrepFit = function(sim, eventTime, eventType) {
 #' @return the `simList`, invisibly, with `mod$haveSpreadFit` and `mod$userSuppliedFuelObjs` set.
 Init <- function(sim) {
 
-  checkSpreadCovariates(Par$spreadCovariates, Par$spreadIntercept)
-
   ## the escape definition (size and causes) must be the one the other modules (e.g. fireSense_summary) use
   fireSenseUtils::escapeDefinitionOf(sim)
+
+  checkSpreadCovariates(Par$spreadCovariates, Par$spreadIntercept)
 
   sim$nonEscapedFireSizesHa <- nonEscapedFireSizes(sim$ignitionFirePoints, Par$escapeSizeHa)
 
