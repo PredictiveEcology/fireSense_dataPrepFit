@@ -1,16 +1,16 @@
 ## The nested Biomass_borealDataPrep runs drew random numbers with no seed, so the same ELF
-## got different cohortData on different machines. `vegInitSeed` seeds them through `.seed`.
+## got different cohortData on different machines. `seedVegInit` seeds them through `.seed`.
 
-test_that("vegInitSeed becomes the nested module's .seed for init; NA leaves it as it was", {
+test_that("seedVegInit becomes the nested module's .seed for init; NA leaves it as it was", {
   expect_identical(nestedVegSeed(1), list(init = 1))
   expect_identical(nestedVegSeed(7, list(init = 3, other = 2)), list(init = 7, other = 2))
   expect_null(nestedVegSeed(NA_real_))
   expect_identical(nestedVegSeed(NA, list(init = 3)), list(init = 3))
 })
 
-test_that("the module defines vegInitSeed with a fixed default seed", {
+test_that("the module defines seedVegInit with a fixed default seed", {
   pars <- moduleParamTable()
-  default <- pars$default[[match("vegInitSeed", pars$paramName)]]
+  default <- pars$default[[match("seedVegInit", pars$paramName)]]
   expect_equal(default, 1)
   expect_true(is.numeric(default))
 })

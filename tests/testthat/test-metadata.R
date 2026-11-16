@@ -103,7 +103,7 @@ test_that("parameters are the expected names", {
            "minBufferSize", "minBurnableFireSizeHa", "minCovariateProp", "nonflammableLCC",
            "nonForestCanBeYoungAge", "scanfiVersion", "sppEquivCol", "spreadClimateCandidates", "spreadFitFilename",
            "spreadFitGoogleDriveFolder", "fitFileSuffix", "skipUnusedFitPrep", "spreadCovariates", "spreadIntercept", "targetFuelClasses",
-           "useRasterizedFireForSpread", "vegInitSeed", "wholeLandscapeSpreadCovariates", "whichModulesToPrepare"))
+           "useRasterizedFireForSpread", "seedVegInit", "wholeLandscapeSpreadCovariates", "whichModulesToPrepare"))
   )
 })
 

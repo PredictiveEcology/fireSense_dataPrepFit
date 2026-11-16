@@ -22,7 +22,7 @@ nestedObjsNeeded <- function(available) {
 #' SpaDES.core calls `set.seed()` for an event named in `.seed`; the draws of the nested module
 #' (age and biomass model subsets, replacement land cover) all happen in its `init` event.
 #'
-#' @param seed numeric or `NA`; the `vegInitSeed` parameter.
+#' @param seed numeric or `NA`; the `seedVegInit` parameter.
 #' @param current the `.seed` the nested module already has (kept when `seed` is `NA`).
 #' @return a named list of seeds per event.
 #' @noRd
