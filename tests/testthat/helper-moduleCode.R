@@ -24,3 +24,10 @@ moduleFunsFrom <- function(start, defs = moduleDefs()) {
   }
   seen
 }
+
+## The module's parameter table (`defineParameter()` rows), without running the module.
+moduleParamTable <- function() {
+  def <- Filter(function(x) is.call(x) && identical(x[[1]], as.name("defineModule")),
+                parse(testthat::test_path("..", "..", "fireSense_dataPrepFit.R"), keep.source = FALSE))
+  eval(as.list(def[[1]][[3]])[["parameters"]], envir = asNamespace("SpaDES.core"))
+}
