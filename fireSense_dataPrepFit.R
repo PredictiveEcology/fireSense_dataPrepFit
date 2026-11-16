@@ -235,7 +235,8 @@ defineModule(sim, list(
                       fireSenseUtils::escapedFires, fireSenseUtils::escapeDefinitionOf, fireSenseUtils::fireCauseCodes, fireSenseUtils::fireSenseCovariatesCreate, fireSenseUtils::firePixelsByYear,
                       fireSenseUtils::harmonizeFireData, fireSenseUtils::lccFlammableShare,
                       fireSenseUtils::makeMutuallyExclusive, fireSenseUtils::rasterFireBufferDT,
-                      fireSenseUtils::rasterFireSpreadPoints, fireSenseUtils::youngAgeAtYear,
+                      fireSenseUtils::rasterFireSpreadPoints, fireSenseUtils::stopIfNonForestCannotBeYoung,
+                      fireSenseUtils::youngAgeAtYear,
                       spreadFitPreRun = sim$spreadFitPreRun),
                       fireSenseUtils::harmonizeFireDataDeps(), fireSenseUtils::escapeFireSetDeps())))),
                     NA, NA,
@@ -898,7 +899,7 @@ prepare_SpreadFit <- function(sim) {
 
   ## prep veg data ---------------------------------------------------------------------------------
   doAssertion <- getOption("fireSenseUtils.assertions", TRUE)
-  stopIfNonForestCannotBeYoung(P(sim)$nonForestCanBeYoungAge)
+  fireSenseUtils::stopIfNonForestCannotBeYoung(P(sim)$nonForestCanBeYoungAge)
 
   ## sanity check the inputs
   lapply(sim$historicalClimateRasters, compareGeom, x = sim$rasterToMatch)
@@ -1440,7 +1441,7 @@ prepare_IgnitionFit <- function(sim) {
     )
   )
 
-  stopIfNonForestCannotBeYoung(P(sim)$nonForestCanBeYoungAge)
+  fireSenseUtils::stopIfNonForestCannotBeYoung(P(sim)$nonForestCanBeYoungAge)
 
   dig1 <- .robustDigest(list(sim$landcoverDTs, sim$flammableRTMs))
   dig1a <- .robustDigest(list(sim$cohortDatas, sim$pixelGroupMaps, sim$nonForest_timeSinceDisturbances))
