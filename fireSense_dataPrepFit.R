@@ -17,7 +17,7 @@ defineModule(sim, list(
   reqdPkgs = list("data.table", "digest", "fastDummies", "googledrive", "httr2", "qs2", "Require",
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9042)", # CacheGeo re-reads a changed local file
                   "PredictiveEcology/climateData@development (>= 2.2.3.9006)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9169)", # 9169: fitDataNeeded() (#234); 9161: coreFractionTxt; 9159: climateCovRanges Tmaxsm, PPTsm (#224); 9141: spreadFitLedgerInputs(), spreadFitLedgerInputLists(); 9135: fireSenseFireCauses; 9131: fireCauseCodes(); 9130: climateRasterToDataTable(Index) reads only those cells; 9128: burnableHaTxt
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9175)", # 9169: fitDataNeeded() (#234); 9161: coreFractionTxt; 9159: climateCovRanges Tmaxsm, PPTsm (#224); 9141: spreadFitLedgerInputs(), spreadFitLedgerInputLists(); 9135: fireSenseFireCauses; 9131: fireCauseCodes(); 9130: climateRasterToDataTable(Index) reads only those cells; 9128: burnableHaTxt
                   "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
                   "ggplot2", "methods", "parallel", "purrr", "raster", "sf", "sp", "stats", "utils",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9015)",
