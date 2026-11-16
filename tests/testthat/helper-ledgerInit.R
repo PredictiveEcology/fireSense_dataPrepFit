@@ -30,7 +30,8 @@ ledgerInitEnv <- function(ledger) {
   e$sim <- sim
   e$mod <- new.env()
   e$Par <- list(heldOutFold = NA, sppEquivCol = "LandR", spreadFitFilename = "latest",
-                spreadFitGoogleDriveFolder = "folder", escapeSizeHa = 1)
+                spreadFitGoogleDriveFolder = "folder", escapeSizeHa = 1,
+                spreadCovariates = "all", spreadIntercept = TRUE)
   e$nonEscapedFireSizes <- function(...) NULL
   e$inputPath <- function(sim) tempdir()
   e$readSpreadFitLedger <- function(...) ledger

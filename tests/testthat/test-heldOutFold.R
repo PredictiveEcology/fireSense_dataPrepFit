@@ -22,7 +22,7 @@ initEnv <- function(ownFold, otherFold = NULL, ledgerCalls = NULL) {
   e$sim <- sim
   e$mod <- new.env()
   e$Par <- list(heldOutFold = ownFold, spreadFitFilename = "latest", spreadFitGoogleDriveFolder = "folder",
-                escapeSizeHa = 1)
+                escapeSizeHa = 1, spreadCovariates = "all", spreadIntercept = TRUE)
   e$nonEscapedFireSizes <- function(...) NULL
   e$inputPath <- function(sim) tempdir()
   e$ledgerCalls <- 0L

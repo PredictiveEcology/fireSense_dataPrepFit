@@ -172,6 +172,12 @@ defineModule(sim, list(
                     NA, NA, paste("Name of the ledger file in `spreadFitGoogleDriveFolder`: study area polygons with",
                                   "their fitted SpreadFit parameters. `\"latest\"` (the default) takes each polygon's",
                                   "fit from the most recent ledger file that has it (`fireSenseUtils::latestSpreadFits()`).")),
+    defineParameter("spreadCovariates", "character", "all", NA, NA,
+                    paste("`\"all\"` (the default): the spread formula has the covariates (climate, `youngAge`, fuel,",
+                          "non-forest). `\"none\"`: the null model, the formula `~ 1` (an intercept and no covariate), the",
+                          "baseline that a spread fit with covariates has to beat. The covariate tables are still made, so",
+                          "everything downstream finds its inputs. Needs `spreadIntercept = TRUE`. Ignored if",
+                          "`sim$fireSense_spreadFormula` is supplied. A hindcast of a null fit sets it too (`.globals`).")),
     defineParameter("spreadIntercept", "logical", TRUE, NA, NA,
                     paste("If `TRUE`, the spread formula has an intercept (`~ 1 + ...`) and `fireSense_spreadFit` fits",
                           "it, with the covariates centred, so the coefficients describe variation and the intercept",
@@ -537,6 +543,8 @@ Init <- function(sim) {
 
   ## the escape definition (size and causes) must be the one the other modules (e.g. fireSense_summary) use
   fireSenseUtils::escapeDefinitionOf(sim)
+
+  checkSpreadCovariates(Par$spreadCovariates, Par$spreadIntercept)
 
   sim$nonEscapedFireSizesHa <- nonEscapedFireSizes(sim$ignitionFirePoints, Par$escapeSizeHa)
 
@@ -1039,8 +1047,9 @@ prepare_SpreadFit <- function(sim) {
   ## the formula lists them twice and terms() silently drops the duplicate, leaving one fewer term
   ## than parameters.
   vegColsForRHS <- setdiff(vegCols, c(youngAgeTxt, spreadVars))
-  RHS <- paste(paste0(spreadVars, collapse = " + "), youngAgeTxt,
-               paste0(vegColsForRHS, collapse = " + "), sep =  " + ")
+  RHS <- if (identical(Par$spreadCovariates, "none")) character() else
+    paste(paste0(spreadVars, collapse = " + "), youngAgeTxt,
+          paste0(vegColsForRHS, collapse = " + "), sep =  " + ")
 
   ## this is a funny way to get years but avoids years with 0 fires
   allYears <- unname(unlist(mod$allYears))
