@@ -1,6 +1,6 @@
 ---
 title: "fireSense_dataPrepFit Manual"
-subtitle: "v.1.3.0.9032"
+subtitle: "v.1.3.0.9033"
 date: "Last updated: 2026-11-16"
 output:
   bookdown::html_document2:
@@ -476,6 +476,15 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> SCANFI land-cover version for non-forest land cover, `"V2"` or `"V3"`. Passed to `fireSenseUtils::makeFireSenseLCC()`. </td>
+   <td style="text-align:left;"> TRUE </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> seedVegInit </td>
+   <td style="text-align:left;"> numeric </td>
+   <td style="text-align:left;"> 1 </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Seed for the random draws of the nested `Biomass_borealDataPrep` runs that rebuild `cohortDatas` and `pixelGroupMaps` (the age and biomass models fit to a random subset of at most 50 rows per ecoregion x species; the choice of replacement land cover). It is the nested module's `.seed` for its `init` event, so the same seed gives the same vegetation on every machine, and it is part of that event's cache key. `NA`: no seed, as before (each run draws afresh; a cache hit replays its first draw). Change it to see how much the in-filling of missing data moves the results. </td>
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>

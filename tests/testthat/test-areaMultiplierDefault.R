@@ -1,14 +1,9 @@
 ## Defaults production already passes: areaMultiplier = 10 x fireSenseUtils::multiplier, as a call that is
 ## identical() to bquote(function(size) .(10) * fireSenseUtils::multiplier(size)) (so the cache digest is unchanged).
 
-moduleParams <- function() {
-  def <- Filter(function(x) is.call(x) && identical(x[[1]], as.name("defineModule")),
-                parse(testthat::test_path("..", "..", "fireSense_dataPrepFit.R"), keep.source = FALSE))
-  eval(as.list(def[[1]][[3]])[["parameters"]], envir = asNamespace("SpaDES.core"))
-}
 
 test_that("areaMultiplier defaults to 10 x fireSenseUtils::multiplier", {
-  params <- moduleParams()
+  params <- moduleParamTable()
   i <- match("areaMultiplier", params$paramName)
   default <- params$default[[i]]
   expect_true("call" %in% params$paramClass[[i]])
@@ -22,7 +17,7 @@ test_that("the default areaMultiplier is identical() to the value production pas
   ## which a `function` call would keep as its 4th element)
   production <- eval(parse(text = "bquote(function(size) .(10) * fireSenseUtils::multiplier(size))",
                            keep.source = FALSE))
-  params <- moduleParams()
+  params <- moduleParamTable()
   default <- params$default[[match("areaMultiplier", params$paramName)]]
   expect_identical(default, production)
   expect_identical(reproducible::.robustDigest(default), reproducible::.robustDigest(production))

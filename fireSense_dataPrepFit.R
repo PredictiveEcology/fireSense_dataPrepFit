@@ -8,7 +8,7 @@ defineModule(sim, list(
     person(c("Alex", "M"), "Chubaty", role = "ctb", email = "achubaty@for-cast.ca")
   ),
   childModules = character(0),
-  version = list(fireSense_dataPrepFit = "1.3.0.9033"),
+  version = list(fireSense_dataPrepFit = "1.3.0.9034"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -121,6 +121,14 @@ defineModule(sim, list(
     defineParameter("scanfiVersion", "character", fireSenseUtils::fireSenseSCANFIVersion, NA, NA,
                     paste("SCANFI land-cover version for non-forest land cover, `\"V2\"` or `\"V3\"`.",
                           "Passed to `fireSenseUtils::makeFireSenseLCC()`.")),
+    defineParameter("seedVegInit", "numeric", 1, NA, NA,
+                    paste("Seed for the random draws of the nested `Biomass_borealDataPrep` runs that rebuild",
+                          "`cohortDatas` and `pixelGroupMaps` (the age and biomass models fit to a random subset of",
+                          "at most 50 rows per ecoregion x species; the choice of replacement land cover). It is the",
+                          "nested module's `.seed` for its `init` event, so the same seed gives the same vegetation on",
+                          "every machine, and it is part of that event's cache key. `NA`: no seed, as before (each run",
+                          "draws afresh; a cache hit replays its first draw). Change it to see how much the in-filling",
+                          "of missing data moves the results.")),
     defineParameter("sppEquivCol", "character", "LandR", NA, NA,
                     "column name in `sppEquiv` object that defines unique species in `cohortData`"),
     defineParameter("heldOutFold", "integer", default = NA,
@@ -1737,6 +1745,8 @@ runBorealDP_forCohortData <- function(sim) {
       parms[[nm]][["forestedLCCClasses"]] <- P(sim)$forestedLCC
     }
     parms$Biomass_borealDataPrep$exportModels <- "none"
+    parms$Biomass_borealDataPrep$.seed <- nestedVegSeed(Par$seedVegInit,
+                                                       parms$Biomass_borealDataPrep$.seed)
 
     # Digest the source code of modules; in case they change
     sourceCodeDig <- moduleCodeDigest(pathsLocal$modulePath, neededModule)
