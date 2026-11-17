@@ -1,7 +1,7 @@
 ---
 title: "fireSense_dataPrepFit Manual"
-subtitle: "v.1.3.0.9033"
-date: "Last updated: 2026-11-16"
+subtitle: "v.1.3.0.9034"
+date: "Last updated: 2026-11-17"
 output:
   bookdown::html_document2:
     toc: true
@@ -568,6 +568,15 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> `"all"` (the default): the spread formula has the covariates (climate, `youngAge`, fuel, non-forest). `"none"`: the null model, the formula `~ 1` (an intercept and no covariate), the baseline that a spread fit with covariates has to beat. The covariate tables are still made, so everything downstream finds its inputs. Needs `spreadIntercept = TRUE`. Ignored if `sim$fireSense_spreadFormula` is supplied. A hindcast of a null fit sets it too (`.globals`). </td>
+   <td style="text-align:left;"> TRUE </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> spreadInteractions </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;">  </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Interaction terms of the spread formula. `character(0)` (the default): none, and the formula string is byte-identical to what it was. `"climate:fuel"`: one term for each spread climate variable and each fuel covariate (`fireSenseUtils::spreadFuelCols()`), e.g. `CMD:dom_agb_Pice_mar`, after the main effects; `fireSense_spreadFit` fits each with its own coefficient (bounded symmetrically, no sign constraint). Each is the product of the two covariates after each is rescaled to 0-1 and centred (0 where `youngAge` cleared the fuel), so each main effect is the slope at the mean of the other covariate, (`fireSenseUtils::spreadProbFromIntegerCovs()`), in the fit and in `fireSense_spreadPredict`. Needs covariates (not `spreadCovariates = "none"`). Ignored if `sim$fireSense_spreadFormula` is supplied. Needs a `fireSense_spreadFit` and a `fireSense_spreadPredict` that know interactions. </td>
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
