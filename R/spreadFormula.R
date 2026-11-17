@@ -31,11 +31,14 @@ spreadInteractionClimateFuel <- "climate:fuel"
 #' @param spreadVars character; the spread climate variable(s).
 #' @param vegColsForRHS character; the other covariates (not `youngAge` or the climate variables).
 #' @param spreadInteractions the module's `spreadInteractions`; `NULL` or `character(0)` for none.
+#' @param climateSplit the module's `spreadClimateSplit`: `TRUE` replaces each climate variable `C` by `C_yr` and
+#'   `C_dev` (`fireSenseUtils::climateSplitCols()`).
 #' @return a character string, or `character()` for the null model.
-spreadRHS <- function(spreadCovariates, spreadVars, vegColsForRHS, spreadInteractions = character()) {
+spreadRHS <- function(spreadCovariates, spreadVars, vegColsForRHS, spreadInteractions = character(), climateSplit = FALSE) {
   if (identical(spreadCovariates, "none")) return(character())
   fuel <- if (spreadInteractionClimateFuel %in% spreadInteractions) fireSenseUtils::spreadFuelCols(vegColsForRHS)
-  paste(c(paste0(spreadVars, collapse = " + "), fireSenseUtils::youngAgeTxt,
+  climCols <- if (isTRUE(climateSplit)) fireSenseUtils::climateSplitCols(spreadVars) else spreadVars
+  paste(c(paste0(climCols, collapse = " + "), fireSenseUtils::youngAgeTxt,
           paste0(vegColsForRHS, collapse = " + "),
           paste(rep(spreadVars, each = length(fuel)), rep(fuel, times = length(spreadVars)), sep = ":")),
         collapse = " + ")

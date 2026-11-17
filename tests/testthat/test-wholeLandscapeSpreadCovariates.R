@@ -71,3 +71,50 @@ test_that("prepare_SpreadFit picks the buffer or the burnable pixels by the para
   expect_match(body, "pixelsByYear <- if (wholeSpreadCovariates)", fixed = TRUE)
   expect_equal(lengths(regmatches(body, gregexpr("annualSpreadCovariates(", body, fixed = TRUE))), 1L) # one call, whichever pixels
 })
+
+test_that("spreadClimateSplit: the annual tables have CMD_yr (the year's burnable-pixel median) and CMD_dev (CMD minus it)", {
+  skip_if_not_installed("fireSenseUtils")
+  withr::local_options(reproducible.cachePath = withr::local_tempdir(), reproducible.useMemoise = FALSE)
+  f <- wholeFixture()
+  run <- function(split) do.call(c, unname(annualSpreadCovariates(f$buffers, f$clim, f$allYears, f$burnablePixels,
+                                  tsds = f$tsds, firePixelsByYear = f$fires, cutoffForYoungAge = 15,
+                                  climateSplit = split)))
+  plain <- run(FALSE)
+  split <- run(TRUE)
+  expect_identical(names(split), names(plain))
+  for (fy in names(plain)) {
+    expect_identical(names(plain[[fy]]), c("pixelID", "CMD", "youngAge"))
+    expect_true(all(c("pixelID", "CMD_yr", "CMD_dev", "youngAge") %in% names(split[[fy]])))
+    expect_false("CMD" %in% names(split[[fy]]))
+    expect_identical(split[[fy]]$pixelID, plain[[fy]]$pixelID)
+  }
+  ## pixels 1:16 burn: their values are y + 1:16, median y + 8.5 (not that of the fitted buffer pixels, which differ)
+  for (fy in c("year2001", "year2003", "year2004")) {
+    y <- as.integer(sub("year", "", fy))
+    expect_equal(split[[fy]]$CMD_yr, rep(y + 8.5, nrow(split[[fy]])))
+    expect_equal(split[[fy]]$CMD_dev, plain[[fy]]$CMD - (y + 8.5))
+  }
+  expect_false(isTRUE(all.equal(split$year2001$CMD_yr[1], median(plain$year2001$CMD))))
+  expect_identical(nrow(split$year2002), 0L)
+})
+
+test_that("spreadClimateSplit is FALSE by default and the formula is then the same string; TRUE has the two terms", {
+  md <- SpaDES.core::moduleMetadata(module = moduleName, path = modulePath)
+  expect_false(md$parameters$default[md$parameters$paramName == "spreadClimateSplit"][[1]])
+
+  stmts <- as.list(body(prepare_SpreadFit))[-1]
+  txt <- vapply(stmts, function(s) paste(deparse(s), collapse = " "), character(1))
+  idx <- sort(unique(unlist(lapply(c("^spreadVars <-", "^vegColsForRHS <-", "^RHS <-"), grep, x = txt))))
+  formulaFor <- function(Par) {
+    env <- new.env(parent = environment(prepare_SpreadFit))
+    env$sim <- new.env(); env$sim$climateVariablesForFire <- list(spread = "CMD")
+    env$mod <- new.env(); env$Par <- Par
+    env$vegCols <- c("class1", "class2")
+    for (i in idx) eval(stmts[[i]], env)
+    spreadFormula(env$RHS, Par$spreadIntercept)
+  }
+  expect_identical(formulaFor(list(spreadIntercept = TRUE)), "~ 1 + CMD + youngAge + class1 + class2")
+  expect_identical(formulaFor(list(spreadIntercept = TRUE, spreadClimateSplit = FALSE)), "~ 1 + CMD + youngAge + class1 + class2")
+  expect_identical(formulaFor(list(spreadIntercept = TRUE, spreadClimateSplit = TRUE)),
+                   "~ 1 + CMD_yr + CMD_dev + youngAge + class1 + class2")
+})

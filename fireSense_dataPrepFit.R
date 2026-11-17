@@ -202,6 +202,16 @@ defineModule(sim, list(
                           "against the fuel and non-forest ones (ELF 13.1). `TRUE` is the default; `FALSE` gives `~ 0 + ...`.",
                           "Ignored if `sim$fireSense_spreadFormula` is supplied. Needs a `fireSense_spreadFit` and a",
                           "`fireSense_spreadPredict` that know the intercept.")),
+    defineParameter("spreadClimateSplit", "logical", FALSE, NA, NA,
+                    paste("`FALSE` (the default): the spread formula has one term for the climate variable, `C`, as always",
+                          "(the formula string is unchanged). `TRUE`: it has two, each with its own coefficient: `<C>_yr`, the year's",
+                          "median of `C` over the ELF's burnable pixels (the same value for every pixel of a year: the year-to-year",
+                          "swings), and `<C>_dev`, `C` minus that median (a pixel's departure from its year's median: the spatial",
+                          "gradient within a year). One coefficient for both let the gradient, which is confounded with fuel, set the",
+                          "year-to-year slope. The median is taken over the ELF's burnable pixels, not the fire buffers, so",
+                          "`fireSense_spreadPredict` computes the same value from a year's climate layer",
+                          "(`fireSenseUtils::splitSpreadClimate()`). `CMD*` and `MDC*` terms are bounded below by 0, as before; others",
+                          "are not. Ignored if `sim$fireSense_spreadFormula` is supplied. A prediction needs no setting: `fireSense_spreadPredict` reads the terms from the ledger row.")),
     defineParameter("targetFuelClasses", "numeric", 5, 1, 7,
                     "the target number of unique fuel classes when using semi-automated approach"),
     defineParameter("useRasterizedFireForSpread", "logical", FALSE, NA, NA,
@@ -249,13 +259,13 @@ defineModule(sim, list(
                       fireSenseUtils::harmonizeFireDataDeps(), fireSenseUtils::escapeFireSetDeps()))),
                          prepSpreadFitData = list(.cacheExtra = quote(c(list(
                       fireSenseUtils::bufferToArea, fireSenseUtils::chooseDomSecFuelClasses,
-                      fireSenseUtils::climateRasterToDataTable, fireSenseUtils::dataYearBefore,
+                      fireSenseUtils::climateRasterToDataTable, fireSenseUtils::climateSplitCols, fireSenseUtils::dataYearBefore,
                       fireSenseUtils::dataYearElement,
                       fireSenseUtils::dataYearFor, fireSenseUtils::emptySpreadCovariates,
                       fireSenseUtils::escapedFires, fireSenseUtils::escapeDefinitionOf, fireSenseUtils::fireCauseCodes, fireSenseUtils::fireSenseCovariatesCreate, fireSenseUtils::firePixelsByYear,
                       fireSenseUtils::harmonizeFireData, fireSenseUtils::lccFlammableShare,
                       fireSenseUtils::makeMutuallyExclusive, fireSenseUtils::rasterFireBufferDT,
-                      fireSenseUtils::rasterFireSpreadPoints, fireSenseUtils::spreadFuelCols, fireSenseUtils::stopIfNonForestCannotBeYoung, fireSenseUtils::tsdTable,
+                      fireSenseUtils::rasterFireSpreadPoints, fireSenseUtils::splitSpreadClimate, fireSenseUtils::spreadFuelCols, fireSenseUtils::stopIfNonForestCannotBeYoung, fireSenseUtils::tsdTable,
                       fireSenseUtils::youngAgeAtYear,
                       spreadFitPreRun = sim$spreadFitPreRun),
                       fireSenseUtils::harmonizeFireDataDeps(), fireSenseUtils::escapeFireSetDeps())))),
@@ -567,6 +577,9 @@ Init <- function(sim) {
 
   checkSpreadCovariates(Par$spreadCovariates, Par$spreadIntercept)
   checkSpreadInteractions(Par$spreadInteractions, Par$spreadCovariates)
+  if (length(Par$spreadInteractions) && isTRUE(Par$spreadClimateSplit))
+    stop("fireSense_dataPrepFit: spreadInteractions and spreadClimateSplit = TRUE cannot be combined yet: ",
+         "the interactions are built from the unsplit climate variable")
 
   sim$nonEscapedFireSizesHa <- nonEscapedFireSizes(sim$ignitionFirePoints, Par$escapeSizeHa)
 
@@ -1068,7 +1081,7 @@ prepare_SpreadFit <- function(sim) {
   ## the formula lists them twice and terms() silently drops the duplicate, leaving one fewer term
   ## than parameters.
   vegColsForRHS <- setdiff(vegCols, c(youngAgeTxt, spreadVars))
-  RHS <- spreadRHS(Par$spreadCovariates, spreadVars, vegColsForRHS, Par$spreadInteractions)
+  RHS <- spreadRHS(Par$spreadCovariates, spreadVars, vegColsForRHS, Par$spreadInteractions, Par$spreadClimateSplit)
 
   ## this is a funny way to get years but avoids years with 0 fires
   allYears <- unname(unlist(mod$allYears))
@@ -1097,7 +1110,7 @@ prepare_SpreadFit <- function(sim) {
   annualCovariates <- annualSpreadCovariates(
     pixelsByYear, spreadClimate, mod$allYears, burnablePixels,
     tsds = sim$nonForest_timeSinceDisturbances, firePixelsByYear = firePixels,
-    cutoffForYoungAge = P(sim)$cutoffForYoungAge)
+    cutoffForYoungAge = P(sim)$cutoffForYoungAge, climateSplit = isTRUE(Par$spreadClimateSplit))
 
   # Confirm that YoungAge is the right amount. If there are "normal" amount of fires,
   #  then it should be < 0.2
@@ -1146,19 +1159,27 @@ prepare_SpreadFit <- function(sim) {
 #' @param allYears list named by data year of the `year<year>` fire years that use it, as `mod$allYears`.
 #' @param burnablePixels from [burnablePixelsByFireYear()]: only these pixels are kept.
 #' @param tsds,firePixelsByYear,cutoffForYoungAge see [addAnnualYoungAge()].
+#' @param climateSplit logical; `TRUE` replaces each climate variable `C` by `C_yr`, the year's median of `C` over
+#'   the burnable pixels, and `C_dev`, `C` minus it ([fireSenseUtils::splitSpreadClimate()]).
 #' @return list named by data year of lists named `year<year>` (every year of `allYears`, empty if no pixels)
-#'   of data.tables of `pixelID`, the climate variables and `youngAge`.
+#'   of data.tables of `pixelID`, the climate variables (or their two terms) and `youngAge`.
 annualSpreadCovariates <- function(pixelsByYear, spreadClimate, allYears, burnablePixels, tsds,
-                                   firePixelsByYear, cutoffForYoungAge) {
+                                   firePixelsByYear, cutoffForYoungAge, climateSplit = FALSE) {
   ## only these pixels of each year are read from the rasters; the join below keeps no others
-  climateDT <- climateRasterToDataTable(historicalClimateRasters = spreadClimate,
-                                        Index = pixelsByYear) |>
-    Cache(userTags = c("climateRasterToDataTable", names(spreadClimate)))
+  climateAt <- function(Index)
+    climateRasterToDataTable(historicalClimateRasters = spreadClimate, Index = Index) |>
+      Cache(userTags = c("climateRasterToDataTable", names(spreadClimate)))
+  climateDT <- climateAt(pixelsByYear)
 
   fbl <- rbindlist(pixelsByYear, idcol = fireSenseUtils::yearTxt)
   rmCols <- setdiff(colnames(fbl), c("pixelID", fireSenseUtils::yearTxt))
   set(fbl, NULL, rmCols, NULL)
   fbl <- climateDT[fbl, on = c(fireSenseUtils::yearTxt, "pixelID"), nomatch = NULL]
+  if (isTRUE(climateSplit)) {
+    ## the median is over each year's burnable pixels of the ELF (what a prediction has), not over the fitted pixels
+    burnableIndex <- lapply(burnablePixels[names(pixelsByYear)], function(p) data.table(pixelID = p))
+    fireSenseUtils::splitSpreadClimate(fbl, names(spreadClimate), climateAt(burnableIndex), by = fireSenseUtils::yearTxt)
+  }
 
   annuals <- split(fbl, by = fireSenseUtils::yearTxt, keep.by = FALSE)
 
