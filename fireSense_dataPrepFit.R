@@ -186,6 +186,16 @@ defineModule(sim, list(
                           "baseline that a spread fit with covariates has to beat. The covariate tables are still made, so",
                           "everything downstream finds its inputs. Needs `spreadIntercept = TRUE`. Ignored if",
                           "`sim$fireSense_spreadFormula` is supplied. A hindcast of a null fit sets it too (`.globals`).")),
+    defineParameter("spreadInteractions", "character", character(0), NA, NA,
+                    paste("Interaction terms of the spread formula. `character(0)` (the default): none, and the formula",
+                          "string is byte-identical to what it was. `\"climate:fuel\"`: one term for each spread climate",
+                          "variable and each fuel covariate (`fireSenseUtils::spreadFuelCols()`), e.g.",
+                          "`CMD:dom_agb_Pice_mar`, after the main effects; `fireSense_spreadFit` fits each with its own coefficient",
+                          "(bounded symmetrically, no sign constraint). Each is the product of the two covariates after each is",
+                          "rescaled to 0-1 and centred (0 where `youngAge` cleared the fuel), so each main effect is the slope at the mean of the other covariate,",
+                          "(`fireSenseUtils::spreadProbFromIntegerCovs()`), in the fit and in `fireSense_spreadPredict`.",
+                          "Needs covariates (not `spreadCovariates = \"none\"`). Ignored if `sim$fireSense_spreadFormula` is supplied.",
+                          "Needs a `fireSense_spreadFit` and a `fireSense_spreadPredict` that know interactions.")),
     defineParameter("spreadIntercept", "logical", TRUE, NA, NA,
                     paste("If `TRUE`, the spread formula has an intercept (`~ 1 + ...`) and `fireSense_spreadFit` fits",
                           "it, with the covariates centred, so the coefficients describe variation and the intercept",
@@ -243,7 +253,7 @@ defineModule(sim, list(
                       fireSenseUtils::escapedFires, fireSenseUtils::escapeDefinitionOf, fireSenseUtils::fireCauseCodes, fireSenseUtils::fireSenseCovariatesCreate, fireSenseUtils::firePixelsByYear,
                       fireSenseUtils::harmonizeFireData, fireSenseUtils::lccFlammableShare,
                       fireSenseUtils::makeMutuallyExclusive, fireSenseUtils::rasterFireBufferDT,
-                      fireSenseUtils::rasterFireSpreadPoints, fireSenseUtils::stopIfNonForestCannotBeYoung, fireSenseUtils::tsdTable,
+                      fireSenseUtils::rasterFireSpreadPoints, fireSenseUtils::spreadFuelCols, fireSenseUtils::stopIfNonForestCannotBeYoung, fireSenseUtils::tsdTable,
                       fireSenseUtils::youngAgeAtYear,
                       spreadFitPreRun = sim$spreadFitPreRun),
                       fireSenseUtils::harmonizeFireDataDeps(), fireSenseUtils::escapeFireSetDeps())))),
@@ -554,6 +564,7 @@ Init <- function(sim) {
   fireSenseUtils::escapeDefinitionOf(sim)
 
   checkSpreadCovariates(Par$spreadCovariates, Par$spreadIntercept)
+  checkSpreadInteractions(Par$spreadInteractions, Par$spreadCovariates)
 
   sim$nonEscapedFireSizesHa <- nonEscapedFireSizes(sim$ignitionFirePoints, Par$escapeSizeHa)
 
@@ -1056,9 +1067,7 @@ prepare_SpreadFit <- function(sim) {
   ## the formula lists them twice and terms() silently drops the duplicate, leaving one fewer term
   ## than parameters.
   vegColsForRHS <- setdiff(vegCols, c(youngAgeTxt, spreadVars))
-  RHS <- if (identical(Par$spreadCovariates, "none")) character() else
-    paste(paste0(spreadVars, collapse = " + "), youngAgeTxt,
-          paste0(vegColsForRHS, collapse = " + "), sep =  " + ")
+  RHS <- spreadRHS(Par$spreadCovariates, spreadVars, vegColsForRHS, Par$spreadInteractions)
 
   ## this is a funny way to get years but avoids years with 0 fires
   allYears <- unname(unlist(mod$allYears))
