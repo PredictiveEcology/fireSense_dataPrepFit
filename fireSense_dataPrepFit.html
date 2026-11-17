@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">fireSense_dataPrepFit</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.0.9034</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.0.9035</span>
       </span>
     </div>
 
@@ -1104,6 +1104,26 @@ NA
 </td>
 <td style="text-align:left;">
 <code>"all"</code> (the default): the spread formula has the covariates (climate, <code>youngAge</code>, fuel, non-forest). <code>"none"</code>: the null model, the formula <code>~ 1</code> (an intercept and no covariate), the baseline that a spread fit with covariates has to beat. The covariate tables are still made, so everything downstream finds its inputs. Needs <code>spreadIntercept = TRUE</code>. Ignored if <code>sim$fireSense_spreadFormula</code> is supplied. A hindcast of a null fit sets it too (<code>.globals</code>).
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+</tr><tr><td style="text-align:left;">
+spreadInteractions
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Interaction terms of the spread formula. <code>character(0)</code> (the default): none, and the formula string is byte-identical to what it was. <code>"climate:fuel"</code>: one term for each spread climate variable and each fuel covariate (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/spreadIndicators.html" class="external-link">fireSenseUtils::spreadFuelCols()</a></code>), e.g. <code>CMD:dom_agb_Pice_mar</code>, after the main effects; <code>fireSense_spreadFit</code> fits each with its own coefficient (bounded symmetrically, no sign constraint). Each is the product of the two covariates after each is rescaled to 0-1 and centred (0 where <code>youngAge</code> cleared the fuel), so each main effect is the slope at the mean of the other covariate, (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/spreadProbFromIntegerCovs.html" class="external-link">fireSenseUtils::spreadProbFromIntegerCovs()</a></code>), in the fit and in <code>fireSense_spreadPredict</code>. Needs covariates (not <code>spreadCovariates = "none"</code>). Ignored if <code>sim$fireSense_spreadFormula</code> is supplied. Needs a <code>fireSense_spreadFit</code> and a <code>fireSense_spreadPredict</code> that know interactions.
 </td>
 <td style="text-align:left;">
 TRUE
