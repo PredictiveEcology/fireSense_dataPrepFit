@@ -1589,7 +1589,7 @@ prepEventsToSchedule <- function(which, fitPrep = TRUE, ignitionPrep = TRUE) {
 #' Always, unless `skipUnusedFitPrep` and `fireSenseUtils::fitDataNeeded()` is `FALSE`. For `fireSense_spreadFit`
 #' (the spread covariates) it takes this job's `doFit`, `heldOutFold` and that module's `mode`. For
 #' `fireSense_ignitionFit` (the ignition and escape data) it takes that module's own `doFit`, resolved as it does
-#' (`fireSenseUtils::resolveDoFit()`, default NA); `heldOutFold` and `mode` are the spread fit's and do not apply.
+#' (`fireSenseUtils::resolveDoFit()`; NA if the simList has no `fireSense_ignitionFit` parameters); `heldOutFold` and `mode` are the spread fit's and do not apply.
 #' The ledger is not known here (`Init()` reads it after the events are scheduled), so `doFit` NA counts as a
 #' job that may fit.
 #'
