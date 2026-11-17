@@ -105,10 +105,10 @@ test_that("spreadClimateSplit is FALSE by default and the formula is then the sa
   stmts <- as.list(body(prepare_SpreadFit))[-1]
   txt <- vapply(stmts, function(s) paste(deparse(s), collapse = " "), character(1))
   idx <- sort(unique(unlist(lapply(c("^spreadVars <-", "^vegColsForRHS <-", "^RHS <-"), grep, x = txt))))
-  formulaFor <- function(Par) {
+  formulaFor <- function(Par, modSplit = NULL) {
     env <- new.env(parent = environment(prepare_SpreadFit))
     env$sim <- new.env(); env$sim$climateVariablesForFire <- list(spread = "CMD")
-    env$mod <- new.env(); env$Par <- Par
+    env$mod <- new.env(); env$mod$spreadClimateSplit <- modSplit; env$Par <- Par
     env$vegCols <- c("class1", "class2")
     for (i in idx) eval(stmts[[i]], env)
     spreadFormula(env$RHS, Par$spreadIntercept)
@@ -117,4 +117,9 @@ test_that("spreadClimateSplit is FALSE by default and the formula is then the sa
   expect_identical(formulaFor(list(spreadIntercept = TRUE, spreadClimateSplit = FALSE)), "~ 1 + CMD + youngAge + class1 + class2")
   expect_identical(formulaFor(list(spreadIntercept = TRUE, spreadClimateSplit = TRUE)),
                    "~ 1 + CMD_yr + CMD_dev + youngAge + class1 + class2")
+  ## a reused ledger fit's split (mod$spreadClimateSplit, from Init()) wins over the parameter
+  expect_identical(formulaFor(list(spreadIntercept = TRUE, spreadClimateSplit = FALSE), modSplit = TRUE),
+                   "~ 1 + CMD_yr + CMD_dev + youngAge + class1 + class2")
+  expect_identical(formulaFor(list(spreadIntercept = TRUE, spreadClimateSplit = TRUE), modSplit = FALSE),
+                   "~ 1 + CMD + youngAge + class1 + class2")
 })

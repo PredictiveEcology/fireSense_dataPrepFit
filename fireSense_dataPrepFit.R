@@ -211,7 +211,7 @@ defineModule(sim, list(
                           "year-to-year slope. The median is taken over the ELF's burnable pixels, not the fire buffers, so",
                           "`fireSense_spreadPredict` computes the same value from a year's climate layer",
                           "(`fireSenseUtils::splitSpreadClimate()`). `CMD*` and `MDC*` terms are bounded below by 0, as before; others",
-                          "are not. Ignored if `sim$fireSense_spreadFormula` is supplied. A prediction needs no setting: `fireSense_spreadPredict` reads the terms from the ledger row.")),
+                          "are not. Ignored if `sim$fireSense_spreadFormula` is supplied. A prediction needs no setting: `fireSense_spreadPredict` reads the terms from the ledger row. A ledger fit that is reused (`doFit` FALSE) keeps its own split, whatever this says.")),
     defineParameter("targetFuelClasses", "numeric", 5, 1, 7,
                     "the target number of unique fuel classes when using semi-automated approach"),
     defineParameter("useRasterizedFireForSpread", "logical", FALSE, NA, NA,
@@ -259,7 +259,8 @@ defineModule(sim, list(
                       fireSenseUtils::harmonizeFireDataDeps(), fireSenseUtils::escapeFireSetDeps()))),
                          prepSpreadFitData = list(.cacheExtra = quote(c(list(
                       fireSenseUtils::bufferToArea, fireSenseUtils::chooseDomSecFuelClasses,
-                      fireSenseUtils::climateRasterToDataTable, fireSenseUtils::climateSplitCols, fireSenseUtils::dataYearBefore,
+                      fireSenseUtils::climateRasterToDataTable, fireSenseUtils::climateSplitCols, fireSenseUtils::climateSplitRefPixels,
+                      fireSenseUtils::dataYearBefore,
                       fireSenseUtils::dataYearElement,
                       fireSenseUtils::dataYearFor, fireSenseUtils::emptySpreadCovariates,
                       fireSenseUtils::escapedFires, fireSenseUtils::escapeDefinitionOf, fireSenseUtils::fireCauseCodes, fireSenseUtils::fireSenseCovariatesCreate, fireSenseUtils::firePixelsByYear,
@@ -675,6 +676,9 @@ Init <- function(sim) {
     reuseOwnFit <- !is.na(ownRow) && !isTRUE(Par$doFit)
     mod$spreadFormulaClimate <- if (reuseOwnFit) outs2[[ownRow]][["theseClimVarsNoUnderscore"]] else
       sim$climateVariablesForFire[["spread"]]
+    ## a reused fit keeps its split (or not): the formula follows the ledger row's coefficient names, not `spreadClimateSplit`
+    mod$spreadClimateSplit <- if (reuseOwnFit)
+      any(fireSenseUtils::isClimateSplitCol(colnames(sim$spreadFitPreRun$params[[ownRow]])))
     ## spread: the union, for prediction; ignition (xgboost) can use every one of them
     sim$climateVariablesForFire <- addFitClimateVariablesForFire(sim$climateVariablesForFire, fitClimVars)
   
@@ -1081,7 +1085,7 @@ prepare_SpreadFit <- function(sim) {
   ## the formula lists them twice and terms() silently drops the duplicate, leaving one fewer term
   ## than parameters.
   vegColsForRHS <- setdiff(vegCols, c(youngAgeTxt, spreadVars))
-  RHS <- spreadRHS(Par$spreadCovariates, spreadVars, vegColsForRHS, Par$spreadInteractions, Par$spreadClimateSplit)
+  RHS <- spreadRHS(Par$spreadCovariates, spreadVars, vegColsForRHS, Par$spreadInteractions, useClimateSplit(mod, Par))
 
   ## this is a funny way to get years but avoids years with 0 fires
   allYears <- unname(unlist(mod$allYears))
@@ -1110,7 +1114,7 @@ prepare_SpreadFit <- function(sim) {
   annualCovariates <- annualSpreadCovariates(
     pixelsByYear, spreadClimate, mod$allYears, burnablePixels,
     tsds = sim$nonForest_timeSinceDisturbances, firePixelsByYear = firePixels,
-    cutoffForYoungAge = P(sim)$cutoffForYoungAge, climateSplit = isTRUE(Par$spreadClimateSplit))
+    cutoffForYoungAge = P(sim)$cutoffForYoungAge, climateSplit = useClimateSplit(mod, Par))
 
   # Confirm that YoungAge is the right amount. If there are "normal" amount of fires,
   #  then it should be < 0.2
@@ -1148,6 +1152,15 @@ prepare_SpreadFit <- function(sim) {
   return(invisible(sim))
 }
 
+#' Is the spread climate split into a between-year and a within-year term?
+#'
+#' A fit reused from the ledger (`mod$spreadClimateSplit`, set by `Init()` from the row's coefficient names) keeps
+#' its own split; otherwise the `spreadClimateSplit` parameter decides.
+#'
+#' @param mod,Par the module's `mod` and `Par`.
+#' @return logical(1).
+useClimateSplit <- function(mod, Par) isTRUE(mod$spreadClimateSplit %||% Par$spreadClimateSplit)
+
 #' The annual spread covariates of the given pixels
 #'
 #' Climate of each fire year's pixels, then `youngAge`, grouped by data year. `prepare_SpreadFit()` calls it
@@ -1177,7 +1190,7 @@ annualSpreadCovariates <- function(pixelsByYear, spreadClimate, allYears, burnab
   fbl <- climateDT[fbl, on = c(fireSenseUtils::yearTxt, "pixelID"), nomatch = NULL]
   if (isTRUE(climateSplit)) {
     ## the median is over each year's burnable pixels of the ELF (what a prediction has), not over the fitted pixels
-    burnableIndex <- lapply(burnablePixels[names(pixelsByYear)], function(p) data.table(pixelID = p))
+    burnableIndex <- lapply(burnablePixels[names(pixelsByYear)], function(p) data.table(pixelID = fireSenseUtils::climateSplitRefPixels(p)))
     fireSenseUtils::splitSpreadClimate(fbl, names(spreadClimate), climateAt(burnableIndex), by = fireSenseUtils::yearTxt)
   }
 
