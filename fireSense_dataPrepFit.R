@@ -1942,27 +1942,26 @@ runBorealDP_forCohortData <- function(sim) {
     if (anyPlotting(Par$.plots)) {
       fp <- allFirePolys[!sapply(allFirePolys, is.null)]
       yrsDone <- names(fp)
-      r1 <- {
-        Map(nam = yrsDone, function(nam) {
-          r <- sim$rasterToMatch
-          wh <- r[] > 0
-          # force the scale on the individual layers to be 1:2; must do the rtm colors larger so that they always plot
-          r[wh] <- 2
-          p <- rasterize(allFirePolys[[nam]], sim$rasterToMatch)
-          r[p[] > 0] <- p[p[] > 0 ]
-          r
-        }) |>
-          terra::rast() |>
-          Plots(
-            .plotInitialTime = NULL, # needs to be NULL or else won't do it
-            maxnl = length(fp),
-            legend = FALSE,
-            maxcell = 1e6, zlim = c(1, 2), col = c("red", "grey"),
-            deviceArgs = list(width = 11, height = 8, units = "in", res = 300),
-            filename = "Historical Fire Maps") } |>
-        Cache(.cacheExtra = attr(allFirePolys, "tags"),
-              omitArgs = "data",
-              .functionName = "Plots_fireMaps") # uses the cacheId of the firePolysByYear; only plot if changed
+      Map(nam = yrsDone, function(nam) {
+        r <- sim$rasterToMatch
+        wh <- r[] > 0
+        # force the scale on the individual layers to be 1:2; must do the rtm colors larger so that they always plot
+        r[wh] <- 2
+        p <- rasterize(allFirePolys[[nam]], sim$rasterToMatch)
+        r[p[] > 0] <- p[p[] > 0 ]
+        r
+      }) |>
+        terra::rast() |>
+        Plots(
+          .plotInitialTime = NULL, # needs to be NULL or else won't do it
+          maxnl = length(fp),
+          legend = FALSE,
+          maxcell = 1e6, zlim = c(1, 2), col = c("red", "grey"),
+          deviceArgs = list(width = 11, height = 8, units = "in", res = 300),
+          filename = "Historical Fire Maps",
+          ## keyed on the fire polygons' cache tags, checked before the maps are built: only
+          ##   plot if they changed; a hit still adds the figure to outputs(sim)
+          useCache = TRUE, .cacheExtra = attr(allFirePolys, "tags"))
     }
 
     if (!suppliedElsewhere("firePolys", sim)) {
