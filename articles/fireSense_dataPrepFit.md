@@ -1,7 +1,7 @@
 ---
 title: "fireSense_dataPrepFit Manual"
-subtitle: "v.1.3.0.9036"
-date: "Last updated: 2026-11-17"
+subtitle: "v.1.3.0.9037"
+date: "Last updated: 2026-11-18"
 output:
   bookdown::html_document2:
     toc: true
@@ -519,10 +519,10 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
   <tr>
    <td style="text-align:left;"> skipUnusedFitPrep </td>
    <td style="text-align:left;"> logical </td>
-   <td style="text-align:left;"> FALSE </td>
+   <td style="text-align:left;"> TRUE </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> FALSE (default): unchanged. TRUE: a job that cannot fit, validate, profile or hold out a fold (`fireSenseUtils::fitDataNeeded()`: `doFit` FALSE, no `heldOutFold`, `fireSense_spreadFit`'s `mode` without "validate" or "profile") makes only the spread fire data (`prepSpreadFitFireData`: the fire polygons, `escapeFireSet`, hence the same `ignitionFirePoints` and escape covariates) and leaves out the spread covariates, the slowest step and the one only a fit reads. The same parameter of `fireSense_spreadFit`: set it for both with `.globals = list(skipUnusedFitPrep = TRUE)`; init stops if they differ on it or on `doFit`. Not part of the cache keys. </td>
+   <td style="text-align:left;"> TRUE (default): a job that cannot fit, validate, profile or hold out a fold (`fireSenseUtils::fitDataNeeded()`: `doFit` FALSE, no `heldOutFold`, `fireSense_spreadFit`'s `mode` without "validate" or "profile") leaves out the spread covariates, the slowest step and the one only a fit reads, and makes only the spread fire data (`prepSpreadFitFireData`: the fire polygons, `escapeFireSet`) that the ignition and escape data need. The ignition and escape prep (`prepIgnitionFitData`, `prepEscapeFitData`) follows `fireSense_ignitionFit`'s own `doFit`: left out when it is FALSE (the ledger's fits are used), and then so is `prepSpreadFitFireData`; run when it is TRUE or NA. `ignitionFirePoints` and `nonEscapedFireSizesHa` are still made, from the input points. FALSE: prepare everything, as before this parameter existed. The same parameter of `fireSense_spreadFit`: set it for both with `.globals = list(skipUnusedFitPrep = FALSE)`; init stops if they differ on it or on `doFit`. Not part of the cache keys. </td>
    <td style="text-align:left;"> FALSE </td>
   </tr>
   <tr>
