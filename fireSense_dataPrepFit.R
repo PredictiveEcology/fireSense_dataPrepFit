@@ -146,14 +146,18 @@ defineModule(sim, list(
                                  "takes that fit's climate variable(s); when it is fitted, `climateVariablesForFire$spread`",
                                  "as given (`\"auto\"`: chosen afresh). Set it for every fireSense module at once with",
                                  "`.globals = list(doFit = ...)`.")),
-    defineParameter("skipUnusedFitPrep", "logical", default = FALSE,
-                    desc = paste("FALSE (default): unchanged. TRUE: a job that cannot fit, validate, profile or hold out a fold",
+    defineParameter("skipUnusedFitPrep", "logical", default = TRUE,
+                    desc = paste("TRUE (default): a job that cannot fit, validate, profile or hold out a fold",
                                  "(`fireSenseUtils::fitDataNeeded()`: `doFit` FALSE, no `heldOutFold`, `fireSense_spreadFit`'s `mode`",
-                                 "without \"validate\" or \"profile\") makes only the spread fire data (`prepSpreadFitFireData`: the",
-                                 "fire polygons, `escapeFireSet`, hence the same `ignitionFirePoints` and escape covariates) and",
-                                 "leaves out the spread covariates, the slowest step and the one only a fit reads.",
+                                 "without \"validate\" or \"profile\") leaves out the spread covariates, the slowest step and the one",
+                                 "only a fit reads, and makes only the spread fire data (`prepSpreadFitFireData`: the fire polygons,",
+                                 "`escapeFireSet`) that the ignition and escape data need. The ignition and escape prep",
+                                 "(`prepIgnitionFitData`, `prepEscapeFitData`) follows `fireSense_ignitionFit`'s own `doFit`: left out",
+                                 "when it is FALSE (the ledger's fits are used), and then so is `prepSpreadFitFireData`; run when it is",
+                                 "TRUE or NA. `ignitionFirePoints` and `nonEscapedFireSizesHa` are still made, from the input points.",
+                                 "FALSE: prepare everything, as before this parameter existed.",
                                  "The same parameter of `fireSense_spreadFit`: set it for both with",
-                                 "`.globals = list(skipUnusedFitPrep = TRUE)`; init stops if they differ on it or on `doFit`.",
+                                 "`.globals = list(skipUnusedFitPrep = FALSE)`; init stops if they differ on it or on `doFit`.",
                                  "Not part of the cache keys."),
                     cacheKey = FALSE),
     defineParameter("fitFileSuffix", "character", "", NA, NA,
@@ -513,7 +517,7 @@ doEvent.fireSense_dataPrepFit = function(sim, eventTime, eventType) {
     eventType,
     init = {
       ## schedule future event(s)
-      for (ev in prepEventsToSchedule(P(sim)$whichModulesToPrepare, fitPrepNeeded(sim)))
+      for (ev in prepEventsToSchedule(P(sim)$whichModulesToPrepare, fitPrepNeeded(sim), fitPrepNeeded(sim, "fireSense_ignitionFit")))
         sim <- scheduleEvent(sim, start(sim), "fireSense_dataPrepFit", ev, eventPriority = 1)
 
       sim <- Init(sim)
@@ -1560,13 +1564,15 @@ fitYearNames <- function(Par) {
 #'
 #' Preparing `fireSense_ignitionFit` schedules `prepIgnitionFitData` and `prepEscapeFitData`: that module
 #' fits ignition and escape, and the escape data need the ignition prep. `fireSense_EscapeFit` no longer
-#' exists, so a project still naming it stops.
+#' exists, so a project still naming it stops. With `ignitionPrep = FALSE` (`fitPrepNeeded(sim, "fireSense_ignitionFit")`) neither is
+#' scheduled, and nor is `prepSpreadFitFireData`, which only they need when the spread covariates are skipped.
 #'
 #' @param which character, `P(sim)$whichModulesToPrepare`.
-#' @param fitPrep logical; `FALSE` makes only the spread fire data (`prepSpreadFitFireData`), which the ignition and
-#'   escape data need, not the spread covariates (`fitPrepNeeded()`).
+#' @param fitPrep logical; `FALSE` makes no spread covariates (`fitPrepNeeded()`); with `ignitionPrep` it makes the
+#'   spread fire data (`prepSpreadFitFireData`), which the ignition and escape data need.
+#' @param ignitionPrep logical; `FALSE` leaves out the ignition and escape prep (`fitPrepNeeded(sim, "fireSense_ignitionFit")`).
 #' @return character, event names in the order to schedule them.
-prepEventsToSchedule <- function(which, fitPrep = TRUE) {
+prepEventsToSchedule <- function(which, fitPrep = TRUE, ignitionPrep = TRUE) {
   if ("fireSense_EscapeFit" %in% which)
     stop("fireSense_EscapeFit no longer exists as a module; escape data are prepared with ",
          "fireSense_ignitionFit. Remove it from parameter whichModulesToPrepare.")
@@ -1574,24 +1580,34 @@ prepEventsToSchedule <- function(which, fitPrep = TRUE) {
     stop("unrecognized module to prepare - review parameter whichModulesToPrepare")
   ## spread first: its fire start points place the ignitions of fire polygons without an ignition point
   c(if ("fireSense_spreadFit" %in% which && fitPrep) "prepSpreadFitData",
-    if ("fireSense_spreadFit" %in% which && !fitPrep && "fireSense_ignitionFit" %in% which) "prepSpreadFitFireData",
-    if ("fireSense_ignitionFit" %in% which) c("prepIgnitionFitData", "prepEscapeFitData"))
+    if ("fireSense_spreadFit" %in% which && !fitPrep && "fireSense_ignitionFit" %in% which &&
+        ignitionPrep) "prepSpreadFitFireData",
+    if ("fireSense_ignitionFit" %in% which && ignitionPrep) c("prepIgnitionFitData", "prepEscapeFitData"))
 }
 
-#' Will a fit, profile or validation read the spread covariates?
+#' Will a fit, profile or validation read this module's prep?
 #'
-#' Always, unless `skipUnusedFitPrep` and `fireSenseUtils::fitDataNeeded()` is `FALSE` for this job's `doFit`,
-#' `heldOutFold` and `fireSense_spreadFit`'s `mode`. The ledger is not known here (`Init()` reads it after the
-#' events are scheduled), so `doFit` NA counts as a job that may fit.
+#' Always, unless `skipUnusedFitPrep` and `fireSenseUtils::fitDataNeeded()` is `FALSE`. For `fireSense_spreadFit`
+#' (the spread covariates) it takes this job's `doFit`, `heldOutFold` and that module's `mode`. For
+#' `fireSense_ignitionFit` (the ignition and escape data) it takes that module's own `doFit`, resolved as it does
+#' (`fireSenseUtils::resolveDoFit()`; NA if the simList has no `fireSense_ignitionFit` parameters); `heldOutFold` and `mode` are the spread fit's and do not apply.
+#' The ledger is not known here (`Init()` reads it after the events are scheduled), so `doFit` NA counts as a
+#' job that may fit.
 #'
 #' @param sim a `simList`.
+#' @param module `"fireSense_spreadFit"` or `"fireSense_ignitionFit"`.
 #' @return logical, length one.
-fitPrepNeeded <- function(sim) {
+fitPrepNeeded <- function(sim, module = "fireSense_spreadFit") {
   if (!isTRUE(P(sim)$skipUnusedFitPrep)) return(TRUE)
   for (nm in c("skipUnusedFitPrep", "doFit"))
     SpaDES.core::paramCheckOtherMods(sim, nm, ifSetButDifferent = "error")
+  if (module == "fireSense_ignitionFit") {
+    ign <- params(sim)[[module]]
+    return(fireSenseUtils::fitDataNeeded(
+      fireSenseUtils::resolveDoFit(ign[["doFit"]] %||% NA, ign[["refitExisting"]] %||% NA, module = module)))
+  }
   fireSenseUtils::fitDataNeeded(P(sim)$doFit, SpaDES.core::paramCheckOtherMods(sim, "heldOutFold"),
-                                params(sim)[["fireSense_spreadFit"]][["mode"]])
+                                params(sim)[[module]][["mode"]])
 }
 
 #' Prepare the covariates and formula for the escape part of fireSense_ignitionFit

@@ -7,15 +7,16 @@ all4 <- c("prepSpreadFitData", "prepIgnitionFitData", "prepEscapeFitData")
 fireOnly <- c("prepSpreadFitFireData", "prepIgnitionFitData", "prepEscapeFitData")
 
 ## a simList with this module current, `doFit` as given, and optionally a spreadFit with its own parameters
-prepSim <- function(doFit = FALSE, heldOutFold = NA, spreadFit = NULL, skip = TRUE) {
+prepSim <- function(doFit = FALSE, heldOutFold = NA, spreadFit = NULL, skip = TRUE, ignitionFit = NULL) {
   sim <- suppressMessages(SpaDES.core::simInit())
   sim@params <- list(fireSense_dataPrepFit = list(doFit = doFit, heldOutFold = heldOutFold,
                                                   skipUnusedFitPrep = skip))
   if (!is.null(spreadFit)) sim@params$fireSense_spreadFit <- c(list(skipUnusedFitPrep = skip, doFit = doFit), spreadFit)
+  if (!is.null(ignitionFit)) sim@params$fireSense_ignitionFit <- ignitionFit
   sim@current <- data.table::data.table(moduleName = "fireSense_dataPrepFit")
   sim
 }
-scheduled <- function(sim) prepEventsToSchedule(bothFits, fitPrepNeeded(sim))
+scheduled <- function(sim) prepEventsToSchedule(bothFits, fitPrepNeeded(sim), fitPrepNeeded(sim, "fireSense_ignitionFit"))
 
 test_that("by default every prep event is scheduled, as before", {
   expect_identical(scheduled(prepSim(FALSE, skip = FALSE)), all4)
@@ -32,6 +33,27 @@ test_that("skipUnusedFitPrep: a job that may fit, validate, profile or hold out 
   expect_identical(scheduled(prepSim(FALSE, heldOutFold = 2L)), all4)
   expect_identical(scheduled(prepSim(FALSE, spreadFit = list(mode = c("fit", "validate")))), all4)
   expect_identical(scheduled(prepSim(FALSE, spreadFit = list(mode = "profile"))), all4)
+})
+
+test_that("skipUnusedFitPrep: the ignition and escape prep follows fireSense_ignitionFit's own doFit", {
+  ## ignitionFit reuses its ledger fit: no ignition or escape data, hence no fire data either
+  expect_length(scheduled(prepSim(FALSE, ignitionFit = list(doFit = FALSE))), 0L)
+  expect_identical(scheduled(prepSim(TRUE, ignitionFit = list(doFit = TRUE))), all4)
+  expect_identical(scheduled(prepSim(NA, ignitionFit = list(doFit = NA))), all4)
+  expect_identical(scheduled(prepSim(FALSE)), fireOnly)          # ignitionFit's doFit unset: its default is NA
+  expect_identical(scheduled(prepSim(FALSE, ignitionFit = list(refitExisting = TRUE))), fireOnly)
+  ## a held-out fold and the spread mode are the spread fit's: they do not make the ignition fit read its data
+  expect_identical(scheduled(prepSim(FALSE, heldOutFold = 1L, ignitionFit = list(doFit = FALSE))),
+                   "prepSpreadFitData")
+  expect_identical(scheduled(prepSim(FALSE, spreadFit = list(mode = "validate"), ignitionFit = list(doFit = FALSE))),
+                   "prepSpreadFitData")
+  ## not skipping: unchanged
+  expect_identical(scheduled(prepSim(FALSE, skip = FALSE, ignitionFit = list(doFit = FALSE))), all4)
+})
+
+test_that("a project that prepares only the ignition fit and skips its prep schedules nothing", {
+  expect_length(prepEventsToSchedule("fireSense_ignitionFit", FALSE, FALSE), 0L)
+  expect_length(prepEventsToSchedule(bothFits, TRUE, FALSE), 1L)
 })
 
 test_that("a project that prepares only the spread fit schedules nothing when it only predicts", {
