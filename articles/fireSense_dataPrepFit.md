@@ -405,7 +405,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> natural,.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Cause groups of the fires all three models use: `"natural"`, `"unknown"`, `"human"`, `"other"` (`fireSenseUtils::fireCauseCodes()` maps them to NFDB `CAUSE` and NBAC `FIRECAUS` values; a missing cause is `"unknown"`). Sets the ignition points, the polygons that add an ignition and an escape, and the polygons the spread model is fitted to. Checked against `fireCauses` of the other modules (`SpaDES.core::paramCheckOtherMods()`), which must match. Use a new `fitFileSuffix` when changing it. </td>
+   <td style="text-align:left;"> Cause groups of the fires all three models use: `"natural"`, `"unknown"`, `"human"`, `"other"` (`fireSenseUtils::fireCauseCodes()` maps them to NFDB `CAUSE` and NBAC `FIRECAUS` values; a missing cause is `"unknown"`). Sets the ignition points, the polygons that add an ignition and an escape, and the polygons the spread model is fitted to. Checked against `fireCauses` of the other modules (`SpaDES.core::paramCheckOtherMods()`), which must match. The ledger rows record it, and `"latest"` uses only fits made with the run's. </td>
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
@@ -513,7 +513,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> FALSE </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> The same parameter as in `fireSense_spreadFit`: FALSE (default) never fits, and `Init()` stops, before any data preparation, when the SpreadFit ledger (`fitFileSuffix`) has no fit for this ELF; NA fits only an ELF without a ledger fit; TRUE always refits. When this ELF's ledger fit is reused (FALSE, or NA with a ledger row), the spread formula takes that fit's climate variable(s); when it is fitted, `climateVariablesForFire$spread` as given (`"auto"`: chosen afresh). Set it for every fireSense module at once with `.globals = list(doFit = ...)`. </td>
+   <td style="text-align:left;"> The same parameter as in `fireSense_spreadFit`: FALSE (default) never fits, and `Init()` stops, before any data preparation, when the SpreadFit ledger (`spreadFitFilename`) has no fit for this ELF; NA fits only an ELF without a ledger fit; TRUE always refits. When this ELF's ledger fit is reused (FALSE, or NA with a ledger row), the spread formula takes that fit's climate variable(s); when it is fitted, `climateVariablesForFire$spread` as given (`"auto"`: chosen afresh). Set it for every fireSense module at once with `.globals = list(doFit = ...)`. </td>
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
@@ -524,15 +524,6 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> TRUE (default): a job that cannot fit, validate, profile or hold out a fold (`fireSenseUtils::fitDataNeeded()`: `doFit` FALSE, no `heldOutFold`, `fireSense_spreadFit`'s `mode` without "validate" or "profile") leaves out the spread covariates, the slowest step and the one only a fit reads, and makes only the spread fire data (`prepSpreadFitFireData`: the fire polygons, `escapeFireSet`) that the ignition and escape data need. The ignition and escape prep (`prepIgnitionFitData`, `prepEscapeFitData`) follows `fireSense_ignitionFit`'s own `doFit`: left out when it is FALSE (the ledger's fits are used), and then so is `prepSpreadFitFireData`; run when it is TRUE or NA. `ignitionFirePoints` and `nonEscapedFireSizesHa` are still made, from the input points. FALSE: prepare everything, as before this parameter existed. The same parameter of `fireSense_spreadFit`: set it for both with `.globals = list(skipUnusedFitPrep = FALSE)`; init stops if they differ on it or on `doFit`. Not part of the cache keys. </td>
    <td style="text-align:left;"> FALSE </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> fitFileSuffix </td>
-   <td style="text-align:left;"> character </td>
-   <td style="text-align:left;">  </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Text put after the model tag in the ledger file names, e.g. `"_boundfix_rep81"`, so a test run writes and reads (`"latest"`) only its own files, never the production ones. `""` (the default) writes the unsuffixed file and reads (`"latest"`) every file of the model tag, newest by the date in its suffix (`fireSenseUtils::ledgerFileOrder()`); experiment fits belong in `spreadFitLedgerFolder(testing = TRUE)`. The same parameter of `fireSense_spreadFit`, `fireSense_ignitionFit` and `fireSense_ELFs`; set it for all with `.globals = list(fitFileSuffix = ...)`; modules that disagree stop (`SpaDES.core::paramCheckOtherMods()`). Ignored when a file name is given. </td>
-   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> spreadClimateCandidates </td>
@@ -558,7 +549,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> latest </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Name of the ledger file in `spreadFitGoogleDriveFolder`: study area polygons with their fitted SpreadFit parameters. `"latest"` (the default) takes each polygon's fit from the most recent ledger file that has it (`fireSenseUtils::latestSpreadFits()`). </td>
+   <td style="text-align:left;"> Name of the ledger file in `spreadFitGoogleDriveFolder`: study area polygons with their fitted SpreadFit parameters. `"latest"` (the default) takes each polygon's newest fit this run can use, from any ledger file (`fireSenseUtils::latestSpreadFits()`); a name (e.g. an experiment's) reads that file only. </td>
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
