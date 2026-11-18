@@ -1,6 +1,6 @@
 ---
 title: "fireSense_dataPrepFit Manual"
-subtitle: "v.1.3.0.9037"
+subtitle: "v.1.3.0.9038"
 date: "Last updated: 2026-11-18"
 output:
   bookdown::html_document2:
@@ -620,6 +620,15 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Which fireSense fit modules to prep? defaults to both. Preparing `fireSense_ignitionFit` prepares its ignition and escape data. </td>
+   <td style="text-align:left;"> TRUE </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> .plots </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;"> screen </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Passed to `types` in `Plots()`, e.g. "screen" (default), "png": the historical fire maps of the fit data. `NA` or `NULL`: no plots. </td>
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
