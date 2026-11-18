@@ -96,7 +96,7 @@ test_that("parameters are the expected names", {
   md <- SpaDES.core::moduleMetadata(module = moduleName, path = modulePath)
   expect_identical(
     sort(md$parameters$paramName),
-    sort(c(".neverCache", ".studyAreaName",
+    sort(c(".neverCache", ".plots", ".studyAreaName",
            ".useCache", ".useCacheArgs", "areaMultiplier", "bufferForFireRaster", "cutoffForYoungAge",
            "dataYears", "doFit", "escapeSizeHa", "estimateFuelClasses", "fireCauses", "fireYears", "flammabilityThreshold",
            "forestedLCC", "fuelClassCol", "fuelCovariates", "heldOutFold", "igAggFactor",
@@ -105,6 +105,8 @@ test_that("parameters are the expected names", {
            "spreadFitGoogleDriveFolder", "fitFileSuffix", "skipUnusedFitPrep", "spreadCovariates", "spreadInteractions", "spreadIntercept", "targetFuelClasses",
            "useRasterizedFireForSpread", "seedVegInit", "wholeLandscapeSpreadCovariates", "whichModulesToPrepare"))
   )
+  ## a new user sees the plots; the tests set .plots = NA (helper-dataPrepBuild.R)
+  expect_identical(md$parameters$default[[which(md$parameters$paramName == ".plots")]], "screen")
 })
 
 test_that("every object .inputObjects() assigns is a declared input", {
