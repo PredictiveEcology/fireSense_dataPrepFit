@@ -1,6 +1,6 @@
 # fireSense_dataPrepFit 1.3.0.9011 (development version)
 
-* With `skipUnusedFitPrep = TRUE`, `prepIgnitionFitData` and `prepEscapeFitData` (the lightning download and ignition covariates, ~14 min in one run) are now left out when `fireSense_ignitionFit`'s own `doFit` is FALSE, as the spread covariates already are; `prepSpreadFitFireData` goes with them. Run when its `doFit` is TRUE or NA. `ignitionFirePoints` and `nonEscapedFireSizesHa` are still made at init. Default (`skipUnusedFitPrep = FALSE`) unchanged.
+* With `skipUnusedFitPrep = TRUE`, `prepIgnitionFitData` and `prepEscapeFitData` (the lightning download and ignition covariates, ~14 min in one run) are now left out when `fireSense_ignitionFit`'s own `doFit` is FALSE, as the spread covariates already are; `prepSpreadFitFireData` goes with them. Run when its `doFit` is TRUE or NA. `ignitionFirePoints` and `nonEscapedFireSizesHa` are still made at init. `skipUnusedFitPrep` is now TRUE by default: a run that does not fit prepares no fit data. Set it FALSE (for both this module and `fireSense_spreadFit`, e.g. `.globals = list(skipUnusedFitPrep = FALSE)`) to prepare everything, as before.
 
 * The "Historical Fire Maps" figure is now listed in `outputs(sim)` on every run. Its outer `Cache()` skipped `Plots()` on a hit, so the figure was missing from the run's saved files; `Plots(useCache = TRUE, .cacheExtra = )` (SpaDES.core, PredictiveEcology/SpaDES.core#535) now skips building the maps on a hit and still records the figure.
 
