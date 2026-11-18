@@ -21,7 +21,7 @@ defineModule(sim, list(
                   "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
                   "ggplot2", "methods", "parallel", "purrr", "raster", "sf", "sp", "stats", "utils",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9015)",
-                  "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9065)",
+                  "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9073)",
                   "PredictiveEcology/SpaDES.project@development",
                   "PredictiveEcology/SpaDES.tools@development (>= 2.1.1.9000)",
                   "terra"),
