@@ -17,7 +17,7 @@ defineModule(sim, list(
   reqdPkgs = list("data.table", "digest", "fastDummies", "googledrive", "httr2", "qs2", "Require",
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9042)", # CacheGeo re-reads a changed local file
                   "PredictiveEcology/climateData@development (>= 2.2.3.9006)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9177)", # 9169: fitDataNeeded() (#234); 9161: coreFractionTxt; 9159: climateCovRanges Tmaxsm, PPTsm (#224); 9141: spreadFitLedgerInputs(), spreadFitLedgerInputLists(); 9135: fireSenseFireCauses; 9131: fireCauseCodes(); 9130: climateRasterToDataTable(Index) reads only those cells; 9128: burnableHaTxt
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9179)", # 9179: readSpreadFitLedger(escapeDefinition); 9169: fitDataNeeded() (#234); 9161: coreFractionTxt; 9159: climateCovRanges Tmaxsm, PPTsm (#224); 9141: spreadFitLedgerInputs(), spreadFitLedgerInputLists(); 9135: fireSenseFireCauses; 9131: fireCauseCodes(); 9130: climateRasterToDataTable(Index) reads only those cells; 9128: burnableHaTxt
                   "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
                   "ggplot2", "methods", "parallel", "purrr", "raster", "sf", "sp", "stats", "utils",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9015)",
@@ -79,7 +79,7 @@ defineModule(sim, list(
                           "(`fireSenseUtils::fireCauseCodes()` maps them to NFDB `CAUSE` and NBAC `FIRECAUS` values; a missing cause is",
                           "`\"unknown\"`). Sets the ignition points, the polygons that add an ignition and an escape, and the",
                           "polygons the spread model is fitted to. Checked against `fireCauses` of the other modules",
-                          "(`SpaDES.core::paramCheckOtherMods()`), which must match. Use a new `fitFileSuffix` when changing it.")),
+                          "(`SpaDES.core::paramCheckOtherMods()`), which must match. The ledger rows record it, and `\"latest\"` uses only fits made with the run's.")),
     defineParameter("fuelClassCol", "character", fireSenseUtils::fireSenseFuelClassCol, NA, NA,
                     "the column in `sppEquiv` that defines unique fuel classes. A column ",
                     "named `FuelClass` exists in the `LandR::sppEquivalencies_CA` and will be used ",
@@ -140,7 +140,7 @@ defineModule(sim, list(
                                  "`Init()` stops if `fireSense_spreadFit` has a different value. Any other value is an error.")),
     defineParameter("doFit", "logical", default = FALSE,
                     desc = paste("The same parameter as in `fireSense_spreadFit`: FALSE (default) never fits, and `Init()`",
-                                 "stops, before any data preparation, when the SpreadFit ledger (`fitFileSuffix`) has no",
+                                 "stops, before any data preparation, when the SpreadFit ledger (`spreadFitFilename`) has no",
                                  "fit for this ELF; NA fits only an ELF without a ledger fit; TRUE always refits. When",
                                  "this ELF's ledger fit is reused (FALSE, or NA with a ledger row), the spread formula",
                                  "takes that fit's climate variable(s); when it is fitted, `climateVariablesForFire$spread`",
@@ -160,13 +160,6 @@ defineModule(sim, list(
                                  "`.globals = list(skipUnusedFitPrep = FALSE)`; init stops if they differ on it or on `doFit`.",
                                  "Not part of the cache keys."),
                     cacheKey = FALSE),
-    defineParameter("fitFileSuffix", "character", "", NA, NA,
-                    paste("Text put after the model tag in the ledger file names, e.g. `\"_boundfix_rep81\"`, so a test run",
-                          "writes and reads (`\"latest\"`) only its own files, never the production ones. `\"\"` (the",
-                          "default) writes the unsuffixed file and reads (`\"latest\"`) every file of the model tag, newest by the date in its",
-                          "suffix (`fireSenseUtils::ledgerFileOrder()`); experiment fits belong in `spreadFitLedgerFolder(testing = TRUE)`. The same parameter of `fireSense_spreadFit`, `fireSense_ignitionFit` and `fireSense_ELFs`;",
-                          "set it for all with `.globals = list(fitFileSuffix = ...)`; modules that disagree stop",
-                          "(`SpaDES.core::paramCheckOtherMods()`). Ignored when a file name is given.")),
     defineParameter("spreadClimateCandidates", "character",
                     c(fireSenseUtils::defaultClimateVariablesForFire$ignition, "Tmax_sm", "PPT_sm"), NA, NA,
                     paste("The climate variables `climateVariablesForFire$spread = \"auto\"` chooses among (ClimateNA names,",
@@ -182,8 +175,9 @@ defineModule(sim, list(
                                   "(`spreadFitFilename`), read with `reproducible::CacheGeo`.")),
     defineParameter("spreadFitFilename", "character", "latest",
                     NA, NA, paste("Name of the ledger file in `spreadFitGoogleDriveFolder`: study area polygons with",
-                                  "their fitted SpreadFit parameters. `\"latest\"` (the default) takes each polygon's",
-                                  "fit from the most recent ledger file that has it (`fireSenseUtils::latestSpreadFits()`).")),
+                                  "their fitted SpreadFit parameters. `\"latest\"` (the default) takes each polygon's newest",
+                                  "fit this run can use, from any ledger file (`fireSenseUtils::latestSpreadFits()`); a name (e.g. an",
+                                  "experiment's) reads that file only.")),
     defineParameter("spreadCovariates", "character", "all", NA, NA,
                     paste("`\"all\"` (the default): the spread formula has the covariates (climate, `youngAge`, fuel,",
                           "non-forest). `\"none\"`: the null model, the formula `~ 1` (an intercept and no covariate), the",
@@ -587,7 +581,7 @@ Init <- function(sim) {
   sim$spreadFitPreRun <- if (isTRUE(is.na(heldOutFold))) {
     readSpreadFitLedger(Par$spreadFitFilename, Par$spreadFitGoogleDriveFolder,
                         domain = sa, destinationPath = inputPath(sim),
-                        fitFileSuffix = SpaDES.core::paramCheckOtherMods(sim, "fitFileSuffix"))
+                        escapeDefinition = fireSenseUtils::escapeDefinitionOf(sim))
   }
   mod$haveSpreadFit <- is(sim$spreadFitPreRun, "sf") || is(sim$spreadFitPreRun, "data.frame")
   ## doFit FALSE (the default) never fits: without a ledger fit for this ELF, stop now, before hours of data
@@ -598,8 +592,7 @@ Init <- function(sim) {
     fireSenseUtils::mustFit(Par$doFit,
                             mod$haveSpreadFit && length(ids) > 0L && !anyNA(ids) &&
                               all(ids %in% as.character(sim$spreadFitPreRun[[fireSenseUtils::polygonIDTxt]])),
-                            paste(ids, collapse = ", "),
-                            fitFileSuffix = SpaDES.core::paramCheckOtherMods(sim, "fitFileSuffix"))
+                            paste(ids, collapse = ", "))
   }
   if (mod$haveSpreadFit) {
     sim$studyAreaWithSpreadParams <- sim$spreadFitPreRun
