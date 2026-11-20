@@ -17,7 +17,7 @@ defineModule(sim, list(
   reqdPkgs = list("data.table", "digest", "fastDummies", "googledrive", "httr2", "qs2", "Require",
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9042)", # CacheGeo re-reads a changed local file
                   "PredictiveEcology/climateData@development (>= 2.2.3.9006)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9179)", # 9179: readSpreadFitLedger(escapeDefinition); 9169: fitDataNeeded() (#234); 9161: coreFractionTxt; 9159: climateCovRanges Tmaxsm, PPTsm (#224); 9141: spreadFitLedgerInputs(), spreadFitLedgerInputLists(); 9135: fireSenseFireCauses; 9131: fireCauseCodes(); 9130: climateRasterToDataTable(Index) reads only those cells; 9128: burnableHaTxt
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9184)", # 9184: addCoreFraction(), coreFractionByYear() (moved from this module); 9179: readSpreadFitLedger(escapeDefinition); 9169: fitDataNeeded() (#234); 9161: coreFractionTxt; 9159: climateCovRanges Tmaxsm, PPTsm (#224); 9141: spreadFitLedgerInputs(), spreadFitLedgerInputLists(); 9135: fireSenseFireCauses; 9131: fireCauseCodes(); 9130: climateRasterToDataTable(Index) reads only those cells; 9128: burnableHaTxt
                   "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
                   "ggplot2", "methods", "parallel", "purrr", "raster", "sf", "sp", "stats", "utils",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9015)",
@@ -238,7 +238,8 @@ defineModule(sim, list(
                       fireSenseUtils::lccFlammableShare, fireSenseUtils::makeLandcoverDT,
                       fireSenseUtils::makeTSD, spreadFitPreRun = sim$spreadFitPreRun))),
                          prepIgnitionFitData = list(.cacheExtra = quote(c(
-                      list(spreadFitPreRun = sim$spreadFitPreRun), fireSenseUtils::escapeFireSetDeps()))),
+                      list(fireSenseUtils::addCoreFraction, fireSenseUtils::coreFractionByYear, fireSenseUtils::inELFCore,
+                           spreadFitPreRun = sim$spreadFitPreRun), fireSenseUtils::escapeFireSetDeps()))),
                          prepEscapeFitData = list(.cacheExtra = quote(c(
                       list(spreadFitPreRun = sim$spreadFitPreRun), fireSenseUtils::escapeFireSetDeps()))),
                          prepSpreadFitFireData = list(.cacheExtra = quote(c(list(
@@ -1530,7 +1531,7 @@ prepare_IgnitionFit <- function(sim) {
     mergePreparedCovs(years, fuelCovsCoarse, sim$ignitionFirePoints, sim$nonForestedLCCGroups,
                       ignitionClimateCoarse, sim$lightningMaps["lightningDays"], 
                       digest = append(dig2, list(P(sim)$igAggFactor))) |>
-    addCoreFraction(years, sim$flammableRTMs, sim$rasterToMatchLargeELF, P(sim)$igAggFactor)
+    fireSenseUtils::addCoreFraction(years, sim$flammableRTMs, sim$rasterToMatchLargeELF, P(sim)$igAggFactor)
 
   ## make new ignition object, ignitionFitRTM
   sim$ignitionFitRTM <- rast(fuelCovsCoarse[[1]][[1]][[1]])
