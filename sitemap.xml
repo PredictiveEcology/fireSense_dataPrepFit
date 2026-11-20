@@ -10,7 +10,6 @@
 <url><loc>/news/index.html</loc></url>
 <url><loc>/reference/Init.html</loc></url>
 <url><loc>/reference/addAnnualYoungAge.html</loc></url>
-<url><loc>/reference/addCoreFraction.html</loc></url>
 <url><loc>/reference/allFirePixelsByYear.html</loc></url>
 <url><loc>/reference/annualSpreadCovariates.html</loc></url>
 <url><loc>/reference/autoSpreadClimate.html</loc></url>
@@ -21,7 +20,6 @@
 <url><loc>/reference/cleanUpMod.html</loc></url>
 <url><loc>/reference/clipPointsToStudyArea.html</loc></url>
 <url><loc>/reference/coreFireIDs.html</loc></url>
-<url><loc>/reference/coreFractionByYear.html</loc></url>
 <url><loc>/reference/correctMissingLCC.html</loc></url>
 <url><loc>/reference/dataPrepBuild.html</loc></url>
 <url><loc>/reference/doEvent.fireSense_dataPrepFit.html</loc></url>
