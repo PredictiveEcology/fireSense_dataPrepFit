@@ -238,7 +238,7 @@ defineModule(sim, list(
                       fireSenseUtils::lccFlammableShare, fireSenseUtils::makeLandcoverDT,
                       fireSenseUtils::makeTSD, spreadFitPreRun = sim$spreadFitPreRun))),
                          prepIgnitionFitData = list(.cacheExtra = quote(c(
-                      list(fireSenseUtils::addCoreFraction, fireSenseUtils::coreFractionByYear,
+                      list(fireSenseUtils::addCoreFraction, fireSenseUtils::coreFractionByYear, fireSenseUtils::inELFCore,
                            spreadFitPreRun = sim$spreadFitPreRun), fireSenseUtils::escapeFireSetDeps()))),
                          prepEscapeFitData = list(.cacheExtra = quote(c(
                       list(spreadFitPreRun = sim$spreadFitPreRun), fireSenseUtils::escapeFireSetDeps()))),
