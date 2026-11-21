@@ -58,3 +58,42 @@ test_that("the spread formula has this ELF's climate variable only, not the ledg
   expect_identical(env$sim$fireSense_spreadFormula, "~ 0 + CMD + youngAge + fuelA")
   expect_setequal(env$sim$climateVariablesForFire$spread, c("CMD", "CMDsm"))
 })
+
+## spreadClimateSplit: a reused ledger fit keeps its own split, whatever the parameter says
+splitLedger <- function() {
+  ledger <- ownAndNeighbourLedger()
+  own <- ledger$params[[2]]
+  names(own)[names(own) == "CMD"] <- "CMD_yr"
+  own$CMD_dev <- 0
+  ledger$params[[2]] <- own
+  ledger
+}
+initSplit <- function(ledger, doFit, parSplit) {
+  e <- ledgerInitEnv(ledger)
+  e$sim$.ELFind <- "4.2.2"
+  e$sim$climateVariablesForFire <- list(ignition = c("CMD", "cumMDC", "CMDsm", "CMDsp"), spread = "auto")
+  e$Par$doFit <- doFit
+  e$Par$spreadClimateSplit <- parSplit
+  for (s in initBody()) suppressMessages(eval(s, e))
+  e
+}
+
+test_that("a reused fit with split terms rebuilds the split formula even when spreadClimateSplit is FALSE", {
+  e <- initSplit(splitLedger(), doFit = NA, parSplit = FALSE)
+  expect_identical(e$mod$spreadFormulaClimate, "CMD")        # the variable, found from CMD_yr and CMD_dev
+  expect_true(e$mod$spreadClimateSplit)
+  expect_true(useClimateSplit(e$mod, e$Par))
+})
+
+test_that("a reused fit without split terms stays unsplit, also when spreadClimateSplit is TRUE", {
+  e <- initSplit(ownAndNeighbourLedger(), doFit = NA, parSplit = TRUE)
+  expect_false(e$mod$spreadClimateSplit)
+  expect_false(useClimateSplit(e$mod, e$Par))
+})
+
+test_that("a refit follows the parameter", {
+  e <- initSplit(splitLedger(), doFit = TRUE, parSplit = FALSE)
+  expect_null(e$mod$spreadClimateSplit)
+  expect_false(useClimateSplit(e$mod, e$Par))
+  expect_true(useClimateSplit(e$mod, list(spreadClimateSplit = TRUE)))
+})

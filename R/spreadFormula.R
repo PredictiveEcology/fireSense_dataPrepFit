@@ -28,7 +28,8 @@ spreadInteractionClimateFuel <- "climate:fuel"
 #' The spread climate variable(s), `youngAge`, then the other covariates (fuel, non-forest), joined with
 #' `" + "`; then, with `spreadInteractions = "climate:fuel"`, one interaction term (`climate:fuel`) for each climate
 #' variable and each fuel covariate (`fireSenseUtils::spreadFuelCols()`: not `youngAge`, `nfLCC_*` or `treedWetland`),
-#' climate first, after all the main effects. Without interactions the string is what it always was, so the cache keys
+#' climate first, after all the main effects. With `climateSplit` the climate part of each is the between-year term
+#' (`C_yr:fuel`); the within-year term (`C_dev`) does not interact. Without interactions the string is what it always was, so the cache keys
 #' that hold it do not move.
 #'
 #' @param spreadCovariates the module's `spreadCovariates`: `"none"` gives `character()`, the null model; `"climate"`
@@ -37,15 +38,20 @@ spreadInteractionClimateFuel <- "climate:fuel"
 #' @param spreadVars character; the spread climate variable(s).
 #' @param vegColsForRHS character; the other covariates (not `youngAge` or the climate variables).
 #' @param spreadInteractions the module's `spreadInteractions`; `NULL` or `character(0)` for none.
+#' @param climateSplit the module's `spreadClimateSplit`: `TRUE` replaces each climate variable `C` by `C_yr` and
+#'   `C_dev` (`fireSenseUtils::climateSplitCols()`).
 #' @return a character string, or `character()` for the null model.
-spreadRHS <- function(spreadCovariates, spreadVars, vegColsForRHS, spreadInteractions = character()) {
+spreadRHS <- function(spreadCovariates, spreadVars, vegColsForRHS, spreadInteractions = character(), climateSplit = FALSE) {
   if (identical(spreadCovariates, "none")) return(character())
   fuel <- if (spreadInteractionClimateFuel %in% spreadInteractions) fireSenseUtils::spreadFuelCols(vegColsForRHS)
-  climateTerms <- if (!identical(spreadCovariates, "fuel")) paste0(spreadVars, collapse = " + ")
+  climCols <- if (isTRUE(climateSplit)) fireSenseUtils::climateSplitCols(spreadVars) else spreadVars
+  ## a split climate variable interacts through its between-year term only, never `_dev`
+  interClim <- if (isTRUE(climateSplit)) paste0(spreadVars, fireSenseUtils::climateSplitYrSuffix) else spreadVars
+  climateTerms <- if (!identical(spreadCovariates, "fuel")) paste0(climCols, collapse = " + ")
   fuelTerms <- if (!identical(spreadCovariates, "climate"))
     c(fireSenseUtils::youngAgeTxt, paste0(vegColsForRHS, collapse = " + "))
   paste(c(climateTerms, fuelTerms,
-          paste(rep(spreadVars, each = length(fuel)), rep(fuel, times = length(spreadVars)), sep = ":")),
+          paste(rep(interClim, each = length(fuel)), rep(fuel, times = length(interClim)), sep = ":")),
         collapse = " + ")
 }
 
