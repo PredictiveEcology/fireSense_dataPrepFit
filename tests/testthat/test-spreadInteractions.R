@@ -41,6 +41,55 @@ test_that("checkSpreadInteractions() allows character(0) and 'climate:fuel', and
   expect_error(checkSpreadInteractions("climate:fuel", "none"), "needs covariates")
 })
 
+test_that("spreadRHS() with a split climate variable interacts the between-year term (_yr) only, never _dev", {
+  expect_identical(
+    spreadRHS("all", "CMD", c("fuelA", "fuelB"), "climate:fuel", climateSplit = TRUE),
+    "CMD_yr + CMD_dev + youngAge + fuelA + fuelB + CMD_yr:fuelA + CMD_yr:fuelB")
+  expect_identical(
+    spreadRHS("all", c("CMD", "Tmax"), "fuelA", "climate:fuel", climateSplit = TRUE),
+    "CMD_yr + CMD_dev + Tmax_yr + Tmax_dev + youngAge + fuelA + CMD_yr:fuelA + Tmax_yr:fuelA")
+  rhs <- spreadRHS("all", "CMD", c("fuelA", "fuelB"), "climate:fuel", climateSplit = TRUE)
+  expect_false(grepl("_dev:|:[A-Za-z]*_dev", rhs))
+  ## the design columns: the interaction's source columns include CMD_yr and the fuels, not CMD
+  cols <- fireSenseUtils::spreadDesignCols(spreadFormula(rhs, TRUE))
+  expect_identical(fireSenseUtils::spreadInteractionCols(cols), c("CMD_yr:fuelA", "CMD_yr:fuelB"))
+  expect_false("CMD" %in% fireSenseUtils::spreadSourceCols(cols))
+  ## a split without interactions, and interactions without a split, are as before
+  expect_identical(spreadRHS("all", "CMD", "fuelA", character(0), climateSplit = TRUE), "CMD_yr + CMD_dev + youngAge + fuelA")
+  expect_identical(spreadRHS("all", "CMD", "fuelA", "climate:fuel", climateSplit = FALSE), "CMD + youngAge + fuelA + CMD:fuelA")
+})
+
+test_that("spreadCovariates 'climate' with a split is CMD_yr + CMD_dev; 'fuel' with a split has no climate term", {
+  expect_identical(spreadRHS("climate", "CMD", c("fuelA", "fuelB"), character(0), climateSplit = TRUE), "CMD_yr + CMD_dev")
+  expect_identical(spreadRHS("fuel", "CMD", c("fuelA", "fuelB"), character(0), climateSplit = TRUE), "youngAge + fuelA + fuelB")
+  expect_identical(spreadRHS("fuel", "CMD", "fuelA", character(0), climateSplit = TRUE),
+                   spreadRHS("fuel", "CMD", "fuelA", character(0), climateSplit = FALSE))
+  expect_identical(spreadRHS("none", "CMD", "fuelA", character(0), climateSplit = TRUE), character())
+  ## interactions need both parts, split or not
+  expect_error(checkSpreadInteractions("climate:fuel", "climate"), "lacks fuel")
+  expect_error(checkSpreadInteractions("climate:fuel", "fuel"), "lacks climate")
+})
+
+test_that("prepare_SpreadFit() builds _yr:fuel interactions for a split fit, whatever spreadClimateSplit says for a reused fit", {
+  stmts <- as.list(body(prepare_SpreadFit))[-1]
+  txt <- vapply(stmts, function(s) paste(deparse(s), collapse = " "), character(1))
+  idx <- sort(unique(unlist(lapply(c("^spreadVars <-", "^vegColsForRHS <-", "^checkSpreadInteractions", "^RHS <-"), grep, x = txt))))
+  build <- function(modSplit, parSplit) {
+    env <- new.env(parent = environment(prepare_SpreadFit))
+    env$sim <- new.env(); env$sim$climateVariablesForFire <- list(spread = "CMD")
+    env$mod <- new.env(); env$mod$spreadClimateSplit <- modSplit
+    env$Par <- list(spreadIntercept = TRUE, spreadCovariates = "all", spreadInteractions = "climate:fuel",
+                    spreadClimateSplit = parSplit)
+    env$vegCols <- c("class1", "class2")
+    for (i in idx) eval(stmts[[i]], env)
+    env$RHS
+  }
+  want <- "CMD_yr + CMD_dev + youngAge + class1 + class2 + CMD_yr:class1 + CMD_yr:class2"
+  expect_identical(build(modSplit = TRUE, parSplit = FALSE), want)
+  expect_identical(build(modSplit = NULL, parSplit = TRUE), want)
+  expect_match(build(modSplit = FALSE, parSplit = TRUE), "CMD:class1", fixed = TRUE)
+})
+
 test_that("the module defines spreadInteractions, character(0) by default, and Init() checks it", {
   def <- Filter(function(x) is.call(x) && identical(x[[1]], as.name("defineModule")),
                 parse(testthat::test_path("..", "..", "fireSense_dataPrepFit.R"), keep.source = FALSE))
@@ -49,7 +98,7 @@ test_that("the module defines spreadInteractions, character(0) by default, and I
   expect_false(is.na(i))
   expect_identical(params$paramClass[[i]], "character")
   expect_identical(params$default[[i]], character(0))
-  expect_match(paste(deparse(body(Init)), collapse = "\n"),
+  expect_match(paste(deparse(body(Init)), collapse = " "),
                "checkSpreadInteractions\\(Par\\$spreadInteractions, Par\\$spreadCovariates\\)")
 })
 
