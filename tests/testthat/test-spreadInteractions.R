@@ -41,6 +41,32 @@ test_that("checkSpreadInteractions() allows character(0) and 'climate:fuel', and
   expect_error(checkSpreadInteractions("climate:fuel", "none"), "needs covariates")
 })
 
+test_that("checkSpreadInteractions() refuses interactions with a split climate variable, and allows a split without them", {
+  expect_error(checkSpreadInteractions("climate:fuel", "all", climateSplit = TRUE), "cannot be combined")
+  expect_null(checkSpreadInteractions("climate:fuel", "all", climateSplit = FALSE))
+  expect_null(checkSpreadInteractions(character(0), "all", climateSplit = TRUE))
+  expect_null(checkSpreadInteractions(NULL, "all", climateSplit = TRUE))
+})
+
+test_that("prepare_SpreadFit() refuses interactions for a reused fit that is split, whatever spreadClimateSplit says", {
+  stmts <- as.list(body(prepare_SpreadFit))[-1]
+  txt <- vapply(stmts, function(s) paste(deparse(s), collapse = " "), character(1))
+  idx <- sort(unique(unlist(lapply(c("^spreadVars <-", "^vegColsForRHS <-", "^checkSpreadInteractions", "^RHS <-"), grep, x = txt))))
+  build <- function(modSplit, parSplit) {
+    env <- new.env(parent = environment(prepare_SpreadFit))
+    env$sim <- new.env(); env$sim$climateVariablesForFire <- list(spread = "CMD")
+    env$mod <- new.env(); env$mod$spreadClimateSplit <- modSplit
+    env$Par <- list(spreadIntercept = TRUE, spreadCovariates = "all", spreadInteractions = "climate:fuel",
+                    spreadClimateSplit = parSplit)
+    env$vegCols <- c("class1", "class2")
+    for (i in idx) eval(stmts[[i]], env)
+    env$RHS
+  }
+  expect_error(build(modSplit = TRUE, parSplit = FALSE), "cannot be combined")
+  expect_error(build(modSplit = NULL, parSplit = TRUE), "cannot be combined")
+  expect_match(build(modSplit = FALSE, parSplit = TRUE), "CMD:class1", fixed = TRUE)
+})
+
 test_that("the module defines spreadInteractions, character(0) by default, and Init() checks it", {
   def <- Filter(function(x) is.call(x) && identical(x[[1]], as.name("defineModule")),
                 parse(testthat::test_path("..", "..", "fireSense_dataPrepFit.R"), keep.source = FALSE))
@@ -49,8 +75,8 @@ test_that("the module defines spreadInteractions, character(0) by default, and I
   expect_false(is.na(i))
   expect_identical(params$paramClass[[i]], "character")
   expect_identical(params$default[[i]], character(0))
-  expect_match(paste(deparse(body(Init)), collapse = "\n"),
-               "checkSpreadInteractions\\(Par\\$spreadInteractions, Par\\$spreadCovariates\\)")
+  expect_match(paste(deparse(body(Init)), collapse = " "),
+               "checkSpreadInteractions\\(Par\\$spreadInteractions, Par\\$spreadCovariates,\\s+Par\\$spreadClimateSplit\\)")
 })
 
 test_that("prepare_SpreadFit() gives the formula it always gave, and with 'climate:fuel' the interactions of the fuels it keeps", {

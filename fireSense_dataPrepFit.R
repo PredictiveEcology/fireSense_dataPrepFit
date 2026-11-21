@@ -577,10 +577,7 @@ Init <- function(sim) {
   fireSenseUtils::escapeDefinitionOf(sim)
 
   checkSpreadCovariates(Par$spreadCovariates, Par$spreadIntercept)
-  checkSpreadInteractions(Par$spreadInteractions, Par$spreadCovariates)
-  if (length(Par$spreadInteractions) && isTRUE(Par$spreadClimateSplit))
-    stop("fireSense_dataPrepFit: spreadInteractions and spreadClimateSplit = TRUE cannot be combined yet: ",
-         "the interactions are built from the unsplit climate variable")
+  checkSpreadInteractions(Par$spreadInteractions, Par$spreadCovariates, Par$spreadClimateSplit)
 
   sim$nonEscapedFireSizesHa <- nonEscapedFireSizes(sim$ignitionFirePoints, Par$escapeSizeHa)
 
@@ -1085,6 +1082,8 @@ prepare_SpreadFit <- function(sim) {
   ## the formula lists them twice and terms() silently drops the duplicate, leaving one fewer term
   ## than parameters.
   vegColsForRHS <- setdiff(vegCols, c(youngAgeTxt, spreadVars))
+  ## a reused fit's split (mod$spreadClimateSplit) can differ from the parameter
+  checkSpreadInteractions(Par$spreadInteractions, Par$spreadCovariates, useClimateSplit(mod, Par))
   RHS <- spreadRHS(Par$spreadCovariates, spreadVars, vegColsForRHS, Par$spreadInteractions, useClimateSplit(mod, Par))
 
   ## this is a funny way to get years but avoids years with 0 fires

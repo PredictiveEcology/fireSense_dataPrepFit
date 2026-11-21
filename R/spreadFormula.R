@@ -70,13 +70,18 @@ checkSpreadCovariates <- function(spreadCovariates, spreadIntercept) {
 #'
 #' @param spreadInteractions the module's `spreadInteractions`.
 #' @param spreadCovariates the module's `spreadCovariates`.
+#' @param climateSplit whether the fit splits the climate variable (`spreadClimateSplit`, or a reused fit's split, see
+#'   `useClimateSplit()`); the interactions are built from the unsplit variable, so the two cannot be combined yet.
 #' @return `NULL`, invisibly; stops on a value that is not allowed.
-checkSpreadInteractions <- function(spreadInteractions, spreadCovariates) {
+checkSpreadInteractions <- function(spreadInteractions, spreadCovariates, climateSplit = FALSE) {
   if (length(spreadInteractions) && (!is.character(spreadInteractions) || !all(spreadInteractions %in% spreadInteractionClimateFuel)))
     stop("fireSense_dataPrepFit: parameter 'spreadInteractions' must be character(0) or \"", spreadInteractionClimateFuel, "\"; got: ",
          paste(format(spreadInteractions), collapse = ", "))
   if (length(spreadInteractions) && identical(spreadCovariates, "none"))
     stop("fireSense_dataPrepFit: spreadInteractions = \"", spreadInteractionClimateFuel, "\" needs covariates: ",
          "the null model (spreadCovariates = \"none\") has none")
+  if (length(spreadInteractions) && isTRUE(climateSplit))
+    stop("fireSense_dataPrepFit: spreadInteractions and spreadClimateSplit = TRUE cannot be combined yet: ",
+         "the interactions are built from the unsplit climate variable")
   invisible(NULL)
 }
