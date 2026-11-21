@@ -192,6 +192,7 @@ defineModule(sim, list(
                           "(bounded symmetrically, no sign constraint). Each is the product of the two covariates after each is",
                           "rescaled to 0-1 and centred (0 where `youngAge` cleared the fuel), so each main effect is the slope at the mean of the other covariate,",
                           "(`fireSenseUtils::spreadProbFromIntegerCovs()`), in the fit and in `fireSense_spreadPredict`.",
+                          "With `spreadClimateSplit` the climate part is the between-year term: `CMD_yr:fuel`, never `CMD_dev`.",
                           "Needs covariates (not `spreadCovariates = \"none\"`). Ignored if `sim$fireSense_spreadFormula` is supplied.",
                           "Needs a `fireSense_spreadFit` and a `fireSense_spreadPredict` that know interactions.")),
     defineParameter("spreadIntercept", "logical", TRUE, NA, NA,
@@ -577,7 +578,7 @@ Init <- function(sim) {
   fireSenseUtils::escapeDefinitionOf(sim)
 
   checkSpreadCovariates(Par$spreadCovariates, Par$spreadIntercept)
-  checkSpreadInteractions(Par$spreadInteractions, Par$spreadCovariates, Par$spreadClimateSplit)
+  checkSpreadInteractions(Par$spreadInteractions, Par$spreadCovariates)
 
   sim$nonEscapedFireSizesHa <- nonEscapedFireSizes(sim$ignitionFirePoints, Par$escapeSizeHa)
 
@@ -1083,7 +1084,7 @@ prepare_SpreadFit <- function(sim) {
   ## than parameters.
   vegColsForRHS <- setdiff(vegCols, c(youngAgeTxt, spreadVars))
   ## a reused fit's split (mod$spreadClimateSplit) can differ from the parameter
-  checkSpreadInteractions(Par$spreadInteractions, Par$spreadCovariates, useClimateSplit(mod, Par))
+  checkSpreadInteractions(Par$spreadInteractions, Par$spreadCovariates)
   RHS <- spreadRHS(Par$spreadCovariates, spreadVars, vegColsForRHS, Par$spreadInteractions, useClimateSplit(mod, Par))
 
   ## this is a funny way to get years but avoids years with 0 fires

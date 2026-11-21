@@ -24,7 +24,8 @@ spreadInteractionClimateFuel <- "climate:fuel"
 #' The spread climate variable(s), `youngAge`, then the other covariates (fuel, non-forest), joined with
 #' `" + "`; then, with `spreadInteractions = "climate:fuel"`, one interaction term (`climate:fuel`) for each climate
 #' variable and each fuel covariate (`fireSenseUtils::spreadFuelCols()`: not `youngAge`, `nfLCC_*` or `treedWetland`),
-#' climate first, after all the main effects. Without interactions the string is what it always was, so the cache keys
+#' climate first, after all the main effects. With `climateSplit` the climate part of each is the between-year term
+#' (`C_yr:fuel`); the within-year term (`C_dev`) does not interact. Without interactions the string is what it always was, so the cache keys
 #' that hold it do not move.
 #'
 #' @param spreadCovariates the module's `spreadCovariates`: `"none"` gives `character()`, the null model.
@@ -38,9 +39,11 @@ spreadRHS <- function(spreadCovariates, spreadVars, vegColsForRHS, spreadInterac
   if (identical(spreadCovariates, "none")) return(character())
   fuel <- if (spreadInteractionClimateFuel %in% spreadInteractions) fireSenseUtils::spreadFuelCols(vegColsForRHS)
   climCols <- if (isTRUE(climateSplit)) fireSenseUtils::climateSplitCols(spreadVars) else spreadVars
+  ## a split climate variable interacts through its between-year term only, never `_dev`
+  interClim <- if (isTRUE(climateSplit)) paste0(spreadVars, fireSenseUtils::climateSplitYrSuffix) else spreadVars
   paste(c(paste0(climCols, collapse = " + "), fireSenseUtils::youngAgeTxt,
           paste0(vegColsForRHS, collapse = " + "),
-          paste(rep(spreadVars, each = length(fuel)), rep(fuel, times = length(spreadVars)), sep = ":")),
+          paste(rep(interClim, each = length(fuel)), rep(fuel, times = length(interClim)), sep = ":")),
         collapse = " + ")
 }
 
@@ -70,18 +73,13 @@ checkSpreadCovariates <- function(spreadCovariates, spreadIntercept) {
 #'
 #' @param spreadInteractions the module's `spreadInteractions`.
 #' @param spreadCovariates the module's `spreadCovariates`.
-#' @param climateSplit whether the fit splits the climate variable (`spreadClimateSplit`, or a reused fit's split, see
-#'   `useClimateSplit()`); the interactions are built from the unsplit variable, so the two cannot be combined yet.
 #' @return `NULL`, invisibly; stops on a value that is not allowed.
-checkSpreadInteractions <- function(spreadInteractions, spreadCovariates, climateSplit = FALSE) {
+checkSpreadInteractions <- function(spreadInteractions, spreadCovariates) {
   if (length(spreadInteractions) && (!is.character(spreadInteractions) || !all(spreadInteractions %in% spreadInteractionClimateFuel)))
     stop("fireSense_dataPrepFit: parameter 'spreadInteractions' must be character(0) or \"", spreadInteractionClimateFuel, "\"; got: ",
          paste(format(spreadInteractions), collapse = ", "))
   if (length(spreadInteractions) && identical(spreadCovariates, "none"))
     stop("fireSense_dataPrepFit: spreadInteractions = \"", spreadInteractionClimateFuel, "\" needs covariates: ",
          "the null model (spreadCovariates = \"none\") has none")
-  if (length(spreadInteractions) && isTRUE(climateSplit))
-    stop("fireSense_dataPrepFit: spreadInteractions and spreadClimateSplit = TRUE cannot be combined yet: ",
-         "the interactions are built from the unsplit climate variable")
   invisible(NULL)
 }

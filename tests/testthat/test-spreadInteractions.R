@@ -41,14 +41,25 @@ test_that("checkSpreadInteractions() allows character(0) and 'climate:fuel', and
   expect_error(checkSpreadInteractions("climate:fuel", "none"), "needs covariates")
 })
 
-test_that("checkSpreadInteractions() refuses interactions with a split climate variable, and allows a split without them", {
-  expect_error(checkSpreadInteractions("climate:fuel", "all", climateSplit = TRUE), "cannot be combined")
-  expect_null(checkSpreadInteractions("climate:fuel", "all", climateSplit = FALSE))
-  expect_null(checkSpreadInteractions(character(0), "all", climateSplit = TRUE))
-  expect_null(checkSpreadInteractions(NULL, "all", climateSplit = TRUE))
+test_that("spreadRHS() with a split climate variable interacts the between-year term (_yr) only, never _dev", {
+  expect_identical(
+    spreadRHS("all", "CMD", c("fuelA", "fuelB"), "climate:fuel", climateSplit = TRUE),
+    "CMD_yr + CMD_dev + youngAge + fuelA + fuelB + CMD_yr:fuelA + CMD_yr:fuelB")
+  expect_identical(
+    spreadRHS("all", c("CMD", "Tmax"), "fuelA", "climate:fuel", climateSplit = TRUE),
+    "CMD_yr + CMD_dev + Tmax_yr + Tmax_dev + youngAge + fuelA + CMD_yr:fuelA + Tmax_yr:fuelA")
+  rhs <- spreadRHS("all", "CMD", c("fuelA", "fuelB"), "climate:fuel", climateSplit = TRUE)
+  expect_false(grepl("_dev:|:[A-Za-z]*_dev", rhs))
+  ## the design columns: the interaction's source columns include CMD_yr and the fuels, not CMD
+  cols <- fireSenseUtils::spreadDesignCols(spreadFormula(rhs, TRUE))
+  expect_identical(fireSenseUtils::spreadInteractionCols(cols), c("CMD_yr:fuelA", "CMD_yr:fuelB"))
+  expect_false("CMD" %in% fireSenseUtils::spreadSourceCols(cols))
+  ## a split without interactions, and interactions without a split, are as before
+  expect_identical(spreadRHS("all", "CMD", "fuelA", character(0), climateSplit = TRUE), "CMD_yr + CMD_dev + youngAge + fuelA")
+  expect_identical(spreadRHS("all", "CMD", "fuelA", "climate:fuel", climateSplit = FALSE), "CMD + youngAge + fuelA + CMD:fuelA")
 })
 
-test_that("prepare_SpreadFit() refuses interactions for a reused fit that is split, whatever spreadClimateSplit says", {
+test_that("prepare_SpreadFit() builds _yr:fuel interactions for a split fit, whatever spreadClimateSplit says for a reused fit", {
   stmts <- as.list(body(prepare_SpreadFit))[-1]
   txt <- vapply(stmts, function(s) paste(deparse(s), collapse = " "), character(1))
   idx <- sort(unique(unlist(lapply(c("^spreadVars <-", "^vegColsForRHS <-", "^checkSpreadInteractions", "^RHS <-"), grep, x = txt))))
@@ -62,8 +73,9 @@ test_that("prepare_SpreadFit() refuses interactions for a reused fit that is spl
     for (i in idx) eval(stmts[[i]], env)
     env$RHS
   }
-  expect_error(build(modSplit = TRUE, parSplit = FALSE), "cannot be combined")
-  expect_error(build(modSplit = NULL, parSplit = TRUE), "cannot be combined")
+  want <- "CMD_yr + CMD_dev + youngAge + class1 + class2 + CMD_yr:class1 + CMD_yr:class2"
+  expect_identical(build(modSplit = TRUE, parSplit = FALSE), want)
+  expect_identical(build(modSplit = NULL, parSplit = TRUE), want)
   expect_match(build(modSplit = FALSE, parSplit = TRUE), "CMD:class1", fixed = TRUE)
 })
 
@@ -76,7 +88,7 @@ test_that("the module defines spreadInteractions, character(0) by default, and I
   expect_identical(params$paramClass[[i]], "character")
   expect_identical(params$default[[i]], character(0))
   expect_match(paste(deparse(body(Init)), collapse = " "),
-               "checkSpreadInteractions\\(Par\\$spreadInteractions, Par\\$spreadCovariates,\\s+Par\\$spreadClimateSplit\\)")
+               "checkSpreadInteractions\\(Par\\$spreadInteractions, Par\\$spreadCovariates\\)")
 })
 
 test_that("prepare_SpreadFit() gives the formula it always gave, and with 'climate:fuel' the interactions of the fuels it keeps", {
