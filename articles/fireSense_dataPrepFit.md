@@ -1,6 +1,6 @@
 ---
 title: "fireSense_dataPrepFit Manual"
-subtitle: "v.1.3.0.9039"
+subtitle: "v.1.3.0.9040"
 date: "Last updated: 2026-11-21"
 output:
   bookdown::html_document2:
@@ -567,7 +567,7 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;">  </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Interaction terms of the spread formula. `character(0)` (the default): none, and the formula string is byte-identical to what it was. `"climate:fuel"`: one term for each spread climate variable and each fuel covariate (`fireSenseUtils::spreadFuelCols()`), e.g. `CMD:dom_agb_Pice_mar`, after the main effects; `fireSense_spreadFit` fits each with its own coefficient (bounded symmetrically, no sign constraint). Each is the product of the two covariates after each is rescaled to 0-1 and centred (0 where `youngAge` cleared the fuel), so each main effect is the slope at the mean of the other covariate, (`fireSenseUtils::spreadProbFromIntegerCovs()`), in the fit and in `fireSense_spreadPredict`. Needs climate and fuel covariates (`spreadCovariates = "all"`). Ignored if `sim$fireSense_spreadFormula` is supplied. Needs a `fireSense_spreadFit` and a `fireSense_spreadPredict` that know interactions. </td>
+   <td style="text-align:left;"> Interaction terms of the spread formula. `character(0)` (the default): none, and the formula string is byte-identical to what it was. `"climate:fuel"`: one term for each spread climate variable and each fuel covariate (`fireSenseUtils::spreadFuelCols()`), e.g. `CMD:dom_agb_Pice_mar`, after the main effects; `fireSense_spreadFit` fits each with its own coefficient (bounded symmetrically, no sign constraint). Each is the product of the two covariates after each is rescaled to 0-1 and centred (0 where `youngAge` cleared the fuel), so each main effect is the slope at the mean of the other covariate, (`fireSenseUtils::spreadProbFromIntegerCovs()`), in the fit and in `fireSense_spreadPredict`. With `spreadClimateSplit` the climate part is the between-year term: `CMD_yr:fuel`, never `CMD_dev`. Needs climate and fuel covariates (`spreadCovariates = "all"`). Ignored if `sim$fireSense_spreadFormula` is supplied. Needs a `fireSense_spreadFit` and a `fireSense_spreadPredict` that know interactions. </td>
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
@@ -577,6 +577,15 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> If `TRUE`, the spread formula has an intercept (`~ 1 + ...`) and `fireSense_spreadFit` fits it, with the covariates centred, so the coefficients describe variation and the intercept the level. Covariates are rescaled to 0-1 and so are all &gt;= 0: without an intercept the level of the linear predictor is set by the coefficients alone, and a climate coefficient trades off against the fuel and non-forest ones (ELF 13.1). `TRUE` is the default; `FALSE` gives `~ 0 + ...`. Ignored if `sim$fireSense_spreadFormula` is supplied. Needs a `fireSense_spreadFit` and a `fireSense_spreadPredict` that know the intercept. </td>
+   <td style="text-align:left;"> TRUE </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> spreadClimateSplit </td>
+   <td style="text-align:left;"> logical </td>
+   <td style="text-align:left;"> FALSE </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> `FALSE` (the default): the spread formula has one term for the climate variable, `C`, as always (the formula string is unchanged). `TRUE`: it has two, each with its own coefficient: `&lt;C&gt;_yr`, the year's median of `C` over the ELF's burnable pixels (the same value for every pixel of a year: the year-to-year swings), and `&lt;C&gt;_dev`, `C` minus that median (a pixel's departure from its year's median: the spatial gradient within a year). One coefficient for both let the gradient, which is confounded with fuel, set the year-to-year slope. The median is taken over the ELF's burnable pixels, not the fire buffers, so `fireSense_spreadPredict` computes the same value from a year's climate layer (`fireSenseUtils::splitSpreadClimate()`). `CMD ` and `MDC ` terms are bounded below by 0, as before; others are not. Ignored if `sim$fireSense_spreadFormula` is supplied. A prediction needs no setting: `fireSense_spreadPredict` reads the terms from the ledger row. A ledger fit that is reused (`doFit` FALSE) keeps its own split, whatever this says. </td>
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>

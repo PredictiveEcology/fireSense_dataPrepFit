@@ -19,7 +19,7 @@ pixel, so both have the same names and columns."><!-- mathjax --><script src="ht
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fireSense_dataPrepFit</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.0.9039</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.0.9040</span>
       </span>
     </div>
 
@@ -68,7 +68,8 @@ pixel, so both have the same names and columns.</p>
 <span>  <span class="va">burnablePixels</span>,</span>
 <span>  <span class="va">tsds</span>,</span>
 <span>  <span class="va">firePixelsByYear</span>,</span>
-<span>  <span class="va">cutoffForYoungAge</span></span>
+<span>  <span class="va">cutoffForYoungAge</span>,</span>
+<span>  climateSplit <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -95,11 +96,16 @@ pixel, so both have the same names and columns.</p>
 <dt id="arg-tsds-firepixelsbyyear-cutoffforyoungage">tsds, firePixelsByYear, cutoffForYoungAge<a class="anchor" aria-label="anchor" href="#arg-tsds-firepixelsbyyear-cutoffforyoungage"></a></dt>
 <dd><p>see <code><a href="addAnnualYoungAge.html">addAnnualYoungAge()</a></code>.</p></dd>
 
+
+<dt id="arg-climatesplit">climateSplit<a class="anchor" aria-label="anchor" href="#arg-climatesplit"></a></dt>
+<dd><p>logical; <code>TRUE</code> replaces each climate variable <code>C</code> by <code>C_yr</code>, the year's median of <code>C</code> over
+the burnable pixels, and <code>C_dev</code>, <code>C</code> minus it (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/climateSplit.html" class="external-link">fireSenseUtils::splitSpreadClimate()</a></code>).</p></dd>
+
 </dl></div>
     <div id="value">
     <h2>Value</h2>
     <p>list named by data year of lists named <code>year&lt;year&gt;</code> (every year of <code>allYears</code>, empty if no pixels)
-of data.tables of <code>pixelID</code>, the climate variables and <code>youngAge</code>.</p>
+of data.tables of <code>pixelID</code>, the climate variables (or their two terms) and <code>youngAge</code>.</p>
     </div>
 
   </div>
