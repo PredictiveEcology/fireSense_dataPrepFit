@@ -59,6 +59,17 @@ test_that("spreadRHS() with a split climate variable interacts the between-year 
   expect_identical(spreadRHS("all", "CMD", "fuelA", "climate:fuel", climateSplit = FALSE), "CMD + youngAge + fuelA + CMD:fuelA")
 })
 
+test_that("spreadCovariates 'climate' with a split is CMD_yr + CMD_dev; 'fuel' with a split has no climate term", {
+  expect_identical(spreadRHS("climate", "CMD", c("fuelA", "fuelB"), character(0), climateSplit = TRUE), "CMD_yr + CMD_dev")
+  expect_identical(spreadRHS("fuel", "CMD", c("fuelA", "fuelB"), character(0), climateSplit = TRUE), "youngAge + fuelA + fuelB")
+  expect_identical(spreadRHS("fuel", "CMD", "fuelA", character(0), climateSplit = TRUE),
+                   spreadRHS("fuel", "CMD", "fuelA", character(0), climateSplit = FALSE))
+  expect_identical(spreadRHS("none", "CMD", "fuelA", character(0), climateSplit = TRUE), character())
+  ## interactions need both parts, split or not
+  expect_error(checkSpreadInteractions("climate:fuel", "climate"), "lacks fuel")
+  expect_error(checkSpreadInteractions("climate:fuel", "fuel"), "lacks climate")
+})
+
 test_that("prepare_SpreadFit() builds _yr:fuel interactions for a split fit, whatever spreadClimateSplit says for a reused fit", {
   stmts <- as.list(body(prepare_SpreadFit))[-1]
   txt <- vapply(stmts, function(s) paste(deparse(s), collapse = " "), character(1))

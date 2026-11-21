@@ -69,3 +69,32 @@ test_that("prepare_SpreadFit() with spreadCovariates 'none' sets the formula '~ 
   expect_identical(formulaFor("all", FALSE), "~ 0 + CMD + youngAge + fuelA") # byte-identical, as before
   expect_identical(formulaFor("all", TRUE), "~ 1 + CMD + youngAge + fuelA")
 })
+
+## `spreadCovariates` "climate" and "fuel": the two halves of "all", for an ANOVA of spread-fit quality
+test_that("spreadCovariates 'climate' and 'fuel' split the terms of 'all': climate vs youngAge, fuel and non-forest", {
+  veg <- c("dom_agb_Pice_mar", "dom_agb_Pinu_con", "nfLCC_1_2")
+  expect_identical(spreadRHS("all", "CMD", veg), "CMD + youngAge + dom_agb_Pice_mar + dom_agb_Pinu_con + nfLCC_1_2")
+  expect_identical(spreadRHS("climate", "CMD", veg), "CMD")
+  expect_identical(spreadRHS("fuel", "CMD", veg), "youngAge + dom_agb_Pice_mar + dom_agb_Pinu_con + nfLCC_1_2")
+  expect_identical(spreadRHS("climate", c("CMD", "Tmax"), veg), "CMD + Tmax")
+  expect_identical(spreadFormula(spreadRHS("climate", "CMD", veg), TRUE), "~ 1 + CMD")
+  expect_identical(spreadFormula(spreadRHS("fuel", "CMD", veg), TRUE),
+                   "~ 1 + youngAge + dom_agb_Pice_mar + dom_agb_Pinu_con + nfLCC_1_2")
+  expect_identical(spreadFormula(spreadRHS("none", "CMD", veg), TRUE), "~ 1")
+  expect_null(checkSpreadCovariates("fuel", TRUE))
+  expect_null(checkSpreadCovariates("climate", FALSE))
+  expect_error(checkSpreadCovariates("climate ", TRUE), "must be one of")
+})
+
+test_that("prepare_SpreadFit() sets the formula of each spreadCovariates value", {
+  expect_identical(formulaFor("climate", TRUE), "~ 1 + CMD")
+  expect_identical(formulaFor("fuel", TRUE), "~ 1 + youngAge + fuelA")
+  expect_identical(formulaFor("fuel", FALSE), "~ 0 + youngAge + fuelA")
+})
+
+test_that("spreadInteractions 'climate:fuel' stops with 'fuel' and 'climate', which lack one of the two", {
+  expect_error(checkSpreadInteractions("climate:fuel", "fuel"), "needs covariates.*lacks climate")
+  expect_error(checkSpreadInteractions("climate:fuel", "climate"), "needs covariates.*lacks fuel")
+  expect_error(checkSpreadInteractions("climate:fuel", "none"), "needs covariates")
+  expect_null(checkSpreadInteractions(character(0), "fuel"))
+})
