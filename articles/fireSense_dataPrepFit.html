@@ -31,7 +31,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fireSense_dataPrepFit</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.0.9038</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.0.9039</span>
       </span>
     </div>
 
@@ -70,9 +70,9 @@
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>fireSense_dataPrepFit Manual</h1>
-            <h3 data-toc-skip class="subtitle">v.1.3.0.9038</h3>
+            <h3 data-toc-skip class="subtitle">v.1.3.0.9039</h3>
             
-            <h4 data-toc-skip class="date">Last updated: 2026-11-20</h4>
+            <h4 data-toc-skip class="date">Last updated: 2026-11-21</h4>
       
 
       <div class="hidden name"><code>fireSense_dataPrepFit.Rmd</code></div>
@@ -1288,7 +1288,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-<code>"all"</code> (the default): the spread formula has the covariates (climate, <code>youngAge</code>, fuel, non-forest). <code>"none"</code>: the null model, the formula <code>~ 1</code> (an intercept and no covariate), the baseline that a spread fit with covariates has to beat. The covariate tables are still made, so everything downstream finds its inputs. Needs <code>spreadIntercept = TRUE</code>. Ignored if <code>sim$fireSense_spreadFormula</code> is supplied. A hindcast of a null fit sets it too (<code>.globals</code>).
+<code>"all"</code> (the default): the spread formula has the covariates (climate, <code>youngAge</code>, fuel, non-forest). <code>"none"</code>: the null model, the formula <code>~ 1</code> (an intercept and no covariate), the baseline that a spread fit with covariates has to beat. <code>"climate"</code>: the intercept and the spread climate variable(s) only. <code>"fuel"</code>: the intercept and everything else <code>"all"</code> has: <code>youngAge</code>, fuel biomass classes and non-forest classes (vegetation state goes with fuel). With <code>"none"</code>, <code>"climate"</code> and <code>"fuel"</code> (arms of an ANOVA of spread-fit quality) the covariate tables are still made, so everything downstream finds its inputs. <code>"fuel"</code> has no climate covariate: <code>fireSense_spreadFit</code> stops with <code>spreadLink = "climateOutside"</code> or <code>spreadClimate = "activation"</code>. Needs <code>spreadIntercept = TRUE</code>. Ignored if <code>sim$fireSense_spreadFormula</code> is supplied. A hindcast of a null fit sets it too (<code>.globals</code>).
 </td>
 <td style="text-align:left;">
 TRUE
@@ -1310,7 +1310,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Interaction terms of the spread formula. <code>character(0)</code> (the default): none, and the formula string is byte-identical to what it was. <code>"climate:fuel"</code>: one term for each spread climate variable and each fuel covariate (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/spreadIndicators.html" class="external-link">fireSenseUtils::spreadFuelCols()</a></code>), e.g. <code>CMD:dom_agb_Pice_mar</code>, after the main effects; <code>fireSense_spreadFit</code> fits each with its own coefficient (bounded symmetrically, no sign constraint). Each is the product of the two covariates after each is rescaled to 0-1 and centred (0 where <code>youngAge</code> cleared the fuel), so each main effect is the slope at the mean of the other covariate, (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/spreadProbFromIntegerCovs.html" class="external-link">fireSenseUtils::spreadProbFromIntegerCovs()</a></code>), in the fit and in <code>fireSense_spreadPredict</code>. Needs covariates (not <code>spreadCovariates = "none"</code>). Ignored if <code>sim$fireSense_spreadFormula</code> is supplied. Needs a <code>fireSense_spreadFit</code> and a <code>fireSense_spreadPredict</code> that know interactions.
+Interaction terms of the spread formula. <code>character(0)</code> (the default): none, and the formula string is byte-identical to what it was. <code>"climate:fuel"</code>: one term for each spread climate variable and each fuel covariate (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/spreadIndicators.html" class="external-link">fireSenseUtils::spreadFuelCols()</a></code>), e.g. <code>CMD:dom_agb_Pice_mar</code>, after the main effects; <code>fireSense_spreadFit</code> fits each with its own coefficient (bounded symmetrically, no sign constraint). Each is the product of the two covariates after each is rescaled to 0-1 and centred (0 where <code>youngAge</code> cleared the fuel), so each main effect is the slope at the mean of the other covariate, (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/spreadProbFromIntegerCovs.html" class="external-link">fireSenseUtils::spreadProbFromIntegerCovs()</a></code>), in the fit and in <code>fireSense_spreadPredict</code>. Needs climate and fuel covariates (<code>spreadCovariates = "all"</code>). Ignored if <code>sim$fireSense_spreadFormula</code> is supplied. Needs a <code>fireSense_spreadFit</code> and a <code>fireSense_spreadPredict</code> that know interactions.
 </td>
 <td style="text-align:left;">
 TRUE
