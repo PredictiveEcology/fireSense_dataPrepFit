@@ -82,7 +82,7 @@ checkSpreadInteractions <- function(spreadInteractions, spreadCovariates) {
   if (length(spreadInteractions) && (!is.character(spreadInteractions) || !all(spreadInteractions %in% spreadInteractionClimateFuel)))
     stop("fireSense_dataPrepFit: parameter 'spreadInteractions' must be character(0) or \"", spreadInteractionClimateFuel, "\"; got: ",
          paste(format(spreadInteractions), collapse = ", "))
-  if (length(spreadInteractions) && spreadCovariates %in% c("none", "fuel", "climate"))
+  if (length(spreadInteractions) && !identical(spreadCovariates, "all"))
     stop("fireSense_dataPrepFit: spreadInteractions = \"", spreadInteractionClimateFuel, "\" needs covariates (both climate and fuel): ",
          "spreadCovariates = \"", spreadCovariates, "\" lacks ",
          switch(spreadCovariates, none = "both (the null model)", fuel = "climate", climate = "fuel"))
