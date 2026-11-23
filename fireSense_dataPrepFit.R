@@ -259,7 +259,8 @@ defineModule(sim, list(
                       list(spreadFitPreRun = sim$spreadFitPreRun), fireSenseUtils::escapeFireSetDeps()))),
                          prepSpreadFitFireData = list(.cacheExtra = quote(c(list(
                       fireSenseUtils::bufferToArea, fireSenseUtils::escapedFires, fireSenseUtils::escapeDefinitionOf,
-                      fireSenseUtils::fireCauseCodes, fireSenseUtils::modelledFires, fireSenseUtils::rasterFireBufferDT,
+                      fireSenseUtils::fireCauseCodes, fireSenseUtils::modelledFires, fireSenseUtils::prescribedFires,
+                      fireSenseUtils::rasterFireBufferDT,
                       fireSenseUtils::rasterFireSpreadPoints, spreadFitPreRun = sim$spreadFitPreRun),
                       fireSenseUtils::harmonizeFireDataDeps(), fireSenseUtils::escapeFireSetDeps()))),
                          prepSpreadFitData = list(.cacheExtra = quote(c(list(
@@ -270,7 +271,7 @@ defineModule(sim, list(
                       fireSenseUtils::dataYearFor, fireSenseUtils::emptySpreadCovariates,
                       fireSenseUtils::escapedFires, fireSenseUtils::escapeDefinitionOf, fireSenseUtils::fireCauseCodes, fireSenseUtils::fireSenseCovariatesCreate, fireSenseUtils::firePixelsByYear,
                       fireSenseUtils::harmonizeFireData, fireSenseUtils::lccFlammableShare,
-                      fireSenseUtils::makeMutuallyExclusive, fireSenseUtils::modelledFires, fireSenseUtils::rasterFireBufferDT,
+                      fireSenseUtils::makeMutuallyExclusive, fireSenseUtils::modelledFires, fireSenseUtils::prescribedFires, fireSenseUtils::rasterFireBufferDT,
                       fireSenseUtils::rasterFireSpreadPoints, fireSenseUtils::splitSpreadClimate, fireSenseUtils::spreadFuelCols, fireSenseUtils::stopIfNonForestCannotBeYoung, fireSenseUtils::tsdTable,
                       fireSenseUtils::youngAgeAtYear,
                       spreadFitPreRun = sim$spreadFitPreRun),
@@ -2071,7 +2072,7 @@ runBorealDP_forCohortData <- function(sim) {
       studyArea = sim$studyArea,
       years = P(sim)$fireYears,
       causes = P(sim)$fireCauses) |>
-      Cache(omitArgs = "shp", .cacheExtra = list(basename(nfdbShp), nfdbFirePoints, modelledFires, dropRepeatedFirePoints),
+      Cache(omitArgs = "shp", .cacheExtra = list(basename(nfdbShp), nfdbFirePoints, modelledFires, prescribedFires, dropRepeatedFirePoints),
             userTags = c("ignitionFirePoints", P(sim)$.studyAreaName)) |>
       postProcessTo(projectTo = sim$rasterToMatch)
     if (nrow(sim$ignitionFirePoints) == 0) {
