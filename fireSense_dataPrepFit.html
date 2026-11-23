@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">fireSense_dataPrepFit</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.0.9040</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.0.9041</span>
       </span>
     </div>
 
@@ -1103,7 +1103,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Interaction terms of the spread formula. <code>character(0)</code> (the default): none, and the formula string is byte-identical to what it was. <code>"climate:fuel"</code>: one term for each spread climate variable and each fuel covariate (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/spreadIndicators.html" class="external-link">fireSenseUtils::spreadFuelCols()</a></code>), e.g. <code>CMD:dom_agb_Pice_mar</code>, after the main effects; <code>fireSense_spreadFit</code> fits each with its own coefficient (bounded symmetrically, no sign constraint). Each is the product of the two covariates after each is rescaled to 0-1 and centred (0 where <code>youngAge</code> cleared the fuel), so each main effect is the slope at the mean of the other covariate, (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/spreadProbFromIntegerCovs.html" class="external-link">fireSenseUtils::spreadProbFromIntegerCovs()</a></code>), in the fit and in <code>fireSense_spreadPredict</code>. Needs climate and fuel covariates (<code>spreadCovariates = "all"</code>). Ignored if <code>sim$fireSense_spreadFormula</code> is supplied. Needs a <code>fireSense_spreadFit</code> and a <code>fireSense_spreadPredict</code> that know interactions.
+Interaction terms of the spread formula. <code>character(0)</code> (the default): none, and the formula string is byte-identical to what it was. <code>"climate:fuel"</code>: one term for each spread climate variable and each fuel covariate (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/spreadIndicators.html" class="external-link">fireSenseUtils::spreadFuelCols()</a></code>), e.g. <code>CMD:dom_agb_Pice_mar</code>, after the main effects; <code>fireSense_spreadFit</code> fits each with its own coefficient (bounded symmetrically, no sign constraint). Each is the product of the two covariates after each is rescaled to 0-1 and centred (0 where <code>youngAge</code> cleared the fuel), so each main effect is the slope at the mean of the other covariate, (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/spreadProbFromIntegerCovs.html" class="external-link">fireSenseUtils::spreadProbFromIntegerCovs()</a></code>), in the fit and in <code>fireSense_spreadPredict</code>. With <code>spreadClimateSplit</code> the climate part is the between-year term: <code>CMD_yr:fuel</code>, never <code>CMD_dev</code>. Needs climate and fuel covariates (<code>spreadCovariates = "all"</code>). Ignored if <code>sim$fireSense_spreadFormula</code> is supplied. Needs a <code>fireSense_spreadFit</code> and a <code>fireSense_spreadPredict</code> that know interactions.
 </td>
 <td style="text-align:left;">
 TRUE
@@ -1125,6 +1125,27 @@ NA
 </td>
 <td style="text-align:left;">
 If <code>TRUE</code>, the spread formula has an intercept (<code>~ 1 + ...</code>) and <code>fireSense_spreadFit</code> fits it, with the covariates centred, so the coefficients describe variation and the intercept the level. Covariates are rescaled to 0-1 and so are all &gt;= 0: without an intercept the level of the linear predictor is set by the coefficients alone, and a climate coefficient trades off against the fuel and non-forest ones (ELF 13.1). <code>TRUE</code> is the default; <code>FALSE</code> gives <code>~ 0 + ...</code>. Ignored if <code>sim$fireSense_spreadFormula</code> is supplied. Needs a <code>fireSense_spreadFit</code> and a <code>fireSense_spreadPredict</code> that know the intercept.
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+</tr><tr><td style="text-align:left;">
+spreadClimateSplit
+</td>
+<td style="text-align:left;">
+logical
+</td>
+<td style="text-align:left;">
+FALSE
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+<code>FALSE</code> (the default): the spread formula has one term for the climate variable, <code>C</code>, as always (the formula string is unchanged). <code>TRUE</code>: it has two, each with its own coefficient: <code>&amp;lt;C&amp;gt;_yr</code>, the year’s median of <code>C</code> over the ELF’s burnable pixels (the same value for every pixel of a year: the year-to-year swings), and <code>&amp;lt;C&amp;gt;_dev</code>, <code>C</code> minus that median (a pixel’s departure from its year’s median: the spatial gradient within a year). One coefficient for both let the gradient, which is confounded with fuel, set the year-to-year slope. The median is taken over the ELF’s burnable pixels, not the fire buffers, so <code>fireSense_spreadPredict</code> computes the same value from a year’s climate layer (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/climateSplit.html" class="external-link">fireSenseUtils::splitSpreadClimate()</a></code>). <code>CMD</code> and <code>MDC</code> terms are bounded below by 0, as before; others are not. Ignored if <code>sim$fireSense_spreadFormula</code> is supplied. A prediction needs no setting: <code>fireSense_spreadPredict</code> reads the terms from the ledger row. A ledger fit that is reused (<code>doFit</code> FALSE) keeps its own split, whatever this says.
 </td>
 <td style="text-align:left;">
 TRUE
