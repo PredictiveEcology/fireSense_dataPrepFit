@@ -17,7 +17,7 @@ defineModule(sim, list(
   reqdPkgs = list("data.table", "digest", "fastDummies", "googledrive", "httr2", "qs2", "Require",
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9042)", # CacheGeo re-reads a changed local file
                   "PredictiveEcology/climateData@development (>= 2.2.3.9006)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9186)", # 9186: splitSpreadClimate(), climateSplitCols(), climateSplitRefPixels(), isClimateSplitCol() (fireSenseUtils#244); 9184: addCoreFraction(), coreFractionByYear() (moved from this module); 9179: readSpreadFitLedger(escapeDefinition); 9169: fitDataNeeded() (#234); 9161: coreFractionTxt; 9159: climateCovRanges Tmaxsm, PPTsm (#224); 9141: spreadFitLedgerInputs(), spreadFitLedgerInputLists(); 9135: fireSenseFireCauses; 9131: fireCauseCodes(); 9130: climateRasterToDataTable(Index) reads only those cells; 9128: burnableHaTxt
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9190)", # 9190: modelledFires() (fireSenseUtils#261; set to the real version after merge); 9186: splitSpreadClimate(), climateSplitCols(), climateSplitRefPixels(), isClimateSplitCol() (fireSenseUtils#244); 9184: addCoreFraction(), coreFractionByYear() (moved from this module); 9179: readSpreadFitLedger(escapeDefinition); 9169: fitDataNeeded() (#234); 9161: coreFractionTxt; 9159: climateCovRanges Tmaxsm, PPTsm (#224); 9141: spreadFitLedgerInputs(), spreadFitLedgerInputLists(); 9135: fireSenseFireCauses; 9131: fireCauseCodes(); 9130: climateRasterToDataTable(Index) reads only those cells; 9128: burnableHaTxt
                   "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
                   "ggplot2", "methods", "parallel", "purrr", "raster", "sf", "sp", "stats", "utils",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9015)",
@@ -259,7 +259,8 @@ defineModule(sim, list(
                       list(spreadFitPreRun = sim$spreadFitPreRun), fireSenseUtils::escapeFireSetDeps()))),
                          prepSpreadFitFireData = list(.cacheExtra = quote(c(list(
                       fireSenseUtils::bufferToArea, fireSenseUtils::escapedFires, fireSenseUtils::escapeDefinitionOf,
-                      fireSenseUtils::fireCauseCodes, fireSenseUtils::rasterFireBufferDT,
+                      fireSenseUtils::fireCauseCodes, fireSenseUtils::modelledFires, fireSenseUtils::prescribedFires,
+                      fireSenseUtils::rasterFireBufferDT,
                       fireSenseUtils::rasterFireSpreadPoints, spreadFitPreRun = sim$spreadFitPreRun),
                       fireSenseUtils::harmonizeFireDataDeps(), fireSenseUtils::escapeFireSetDeps()))),
                          prepSpreadFitData = list(.cacheExtra = quote(c(list(
@@ -270,7 +271,7 @@ defineModule(sim, list(
                       fireSenseUtils::dataYearFor, fireSenseUtils::emptySpreadCovariates,
                       fireSenseUtils::escapedFires, fireSenseUtils::escapeDefinitionOf, fireSenseUtils::fireCauseCodes, fireSenseUtils::fireSenseCovariatesCreate, fireSenseUtils::firePixelsByYear,
                       fireSenseUtils::harmonizeFireData, fireSenseUtils::lccFlammableShare,
-                      fireSenseUtils::makeMutuallyExclusive, fireSenseUtils::rasterFireBufferDT,
+                      fireSenseUtils::makeMutuallyExclusive, fireSenseUtils::modelledFires, fireSenseUtils::prescribedFires, fireSenseUtils::rasterFireBufferDT,
                       fireSenseUtils::rasterFireSpreadPoints, fireSenseUtils::splitSpreadClimate, fireSenseUtils::spreadFuelCols, fireSenseUtils::stopIfNonForestCannotBeYoung, fireSenseUtils::tsdTable,
                       fireSenseUtils::youngAgeAtYear,
                       spreadFitPreRun = sim$spreadFitPreRun),
@@ -1371,8 +1372,11 @@ prepare_SpreadFitFire_Vector <- function(sim) {
     rm(PointsAndPolys)
   }
 
-  ## fires of the requested causes only
-  ofCauses <- lapply(sim$spreadFirePolys, polysOfCauses, causes = fireSenseUtils::fireCauseCodes(Par$fireCauses, "nbac"))
+  ## fires of the requested causes only, and no prescribed burn
+  ofCauses <- lapply(sim$spreadFirePolys, function(p) {
+    p <- fireSenseUtils::modelledFires(p, Par$fireCauses, "nbac")
+    if (NROW(p)) p
+  })
   sim$spreadFirePolys <- ofCauses[!sapply(ofCauses, is.null)]
   if (length(sim$spreadFirePolys) == 0) {
     stop("no fire polygons of cause ", paste(Par$fireCauses, collapse = ", "), " (fireCauses)")
@@ -2068,7 +2072,7 @@ runBorealDP_forCohortData <- function(sim) {
       studyArea = sim$studyArea,
       years = P(sim)$fireYears,
       causes = P(sim)$fireCauses) |>
-      Cache(omitArgs = "shp", .cacheExtra = list(basename(nfdbShp), nfdbFirePoints, pointsOfCauses, dropRepeatedFirePoints),
+      Cache(omitArgs = "shp", .cacheExtra = list(basename(nfdbShp), nfdbFirePoints, modelledFires, prescribedFires, dropRepeatedFirePoints),
             userTags = c("ignitionFirePoints", P(sim)$.studyAreaName)) |>
       postProcessTo(projectTo = sim$rasterToMatch)
     if (nrow(sim$ignitionFirePoints) == 0) {
