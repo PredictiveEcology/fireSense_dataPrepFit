@@ -21,25 +21,13 @@ test_that("Init errors when another module's fireCauses differs", {
 sqWkt <- function(x0, y0, w) sprintf("POLYGON ((%f %f, %f %f, %f %f, %f %f, %f %f))",
                                      x0, y0, x0 + w, y0, x0 + w, y0 + w, x0, y0 + w, x0, y0)
 
-test_that("polysOfCauses keeps the polygons of the given causes, and none without a value", {
-  polys <- terra::vect(sqWkt(c(0, 200, 400, 600), 0, 100), crs = "EPSG:3978")
-  polys$FIRECAUS <- c("Natural", "Human", "Undetermined", NA)
-  expect_identical(polysOfCauses(polys, "Natural")$FIRECAUS, "Natural")
-  expect_identical(polysOfCauses(polys, fireSenseUtils::fireCauseCodes(c("natural", "unknown"), "nbac"))$FIRECAUS,
-                   c("Natural", "Undetermined", NA))
-  expect_identical(polysOfCauses(polys, c("Natural", "Human"))$FIRECAUS, c("Natural", "Human"))
-  expect_null(polysOfCauses(polys, "Lightning"))
-  expect_null(polysOfCauses(NULL, "Natural"))
-  polys$FIRECAUS <- NULL
-  expect_error(polysOfCauses(polys, "Natural"), "FIRECAUS")
-})
-
-test_that("prepare_SpreadFitFire_Vector: the default fireCauses keeps natural + unknown fires, 'natural' only natural", {
-  polys <- terra::vect(sqWkt(c(0, 2000, 4000), 0, 1000), crs = "EPSG:3978") # 100 ha each
+test_that("prepare_SpreadFitFire_Vector: the default fireCauses keeps natural + unknown fires, 'natural' only natural; never a prescribed burn", {
+  polys <- terra::vect(sqWkt(c(0, 2000, 4000, 6000), 0, 1000), crs = "EPSG:3978") # 100 ha each
   polys$YEAR <- 2000L
-  polys$NFIREID <- c(1, 2, 3)
+  polys$NFIREID <- c(1, 2, 3, 4)
   polys$POLY_HA <- 100
-  polys$FIRECAUS <- c("Natural", "Human", "Undetermined")
+  polys$FIRECAUS <- c("Natural", "Human", "Undetermined", "Natural")
+  polys$PRESCRIBED <- c(NA, NA, NA, "true") # polygon 4 is a prescribed burn of a natural cause
   pts <- terra::centroids(polys)
 
   run <- function(causes) {
@@ -78,6 +66,7 @@ test_that("prepare_SpreadFitFire_Vector: the default fireCauses keeps natural + 
   expect_identical(natUnk$spreadFirePoints$year2000$NFIREID, c(1, 3))
 
   expect_error(run("other"), "fireCauses")
+  expect_identical(run(c("natural", "unknown", "human"))$spreadFirePolys$year2000$NFIREID, c(1, 2, 3))
 })
 
 test_that("prepare_IgnitionFit: an unknown-cause polygon with no point adds an ignition only when fireCauses has unknown", {
