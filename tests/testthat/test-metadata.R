@@ -51,7 +51,7 @@ test_that("outputs are the expected names and classes", {
   outputs <- stats::setNames(md$outputObjects$objectClass, md$outputObjects$objectName)
   expect_identical(
     outputs[order(names(outputs))],
-    c(climateHingeKnots                      = "list",
+    c(climateCurvePars                      = "list",
       climateVariables                       = "list",
       climateVariablesForFire                = "list",
       escapeFireSet                          = "SpatVector",
@@ -103,7 +103,7 @@ test_that("parameters are the expected names", {
            "forestedLCC", "fuelClassCol", "fuelCovariates", "heldOutFold", "igAggFactor",
            "minBufferSize", "minBurnableFireSizeHa", "minCovariateProp", "nonflammableLCC",
            "nonForestCanBeYoungAge", "scanfiVersion", "sppEquivCol", "spreadClimateCandidates", "spreadFitFilename",
-           "spreadFitGoogleDriveFolder", "skipUnusedFitPrep", "spreadClimateHinge", "spreadClimateSplit", "spreadCovariates", "spreadInteractions", "spreadIntercept", "targetFuelClasses",
+           "spreadFitGoogleDriveFolder", "skipUnusedFitPrep", "spreadClimateCurve", "spreadClimateSplit", "spreadCovariates", "spreadInteractions", "spreadIntercept", "targetFuelClasses",
            "useRasterizedFireForSpread", "seedVegInit", "wholeLandscapeSpreadCovariates", "whichModulesToPrepare"))
   )
   ## a new user sees the plots; the tests set .plots = NA (helper-dataPrepBuild.R)

@@ -1,6 +1,6 @@
 ## Fixtures shared by several test files: test files do not see each other's functions, helpers are sourced into all.
 
-## the whole-landscape fixture (test-wholeLandscapeSpreadCovariates.R, test-spreadClimateHinge.R)
+## the whole-landscape fixture (test-wholeLandscapeSpreadCovariates.R, test-spreadClimateCurve.R)
 wholeFixture <- function() {
   r <- terra::rast(nrows = 4, ncols = 5)
   years <- 2001:2004
@@ -19,7 +19,7 @@ wholeFixture <- function() {
        fires = list(`2003` = 9L))
 }
 
-## a ledger with this ELF (4.2.2, CMD) and a neighbour (4.2.1, CMDsm) (test-spreadClimateOwnELF.R, test-spreadClimateHinge.R)
+## a ledger with this ELF (4.2.2, CMD) and a neighbour (4.2.1, CMDsm) (test-spreadClimateOwnELF.R, test-spreadClimateCurve.R)
 ownAndNeighbourLedger <- function() {
   own <- oneELFLedger()                     # 4.2.2, fitted with CMD
   nb <- oneELFLedger()
