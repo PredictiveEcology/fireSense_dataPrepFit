@@ -3,17 +3,6 @@
 ## "auto", no variable was chosen, and the spread formula had both CMD and CMDsm, two near-collinear terms.
 ## The union is still prepared (prediction blends neighbour ELFs); the formula takes this ELF's own.
 
-ownAndNeighbourLedger <- function() {
-  own <- oneELFLedger()                     # 4.2.2, fitted with CMD
-  nb <- oneELFLedger()
-  nb[[fireSenseUtils::polygonIDTxt]] <- "4.2.1"
-  nbPars <- own$params[[1]]
-  names(nbPars)[names(nbPars) == "CMD"] <- "CMDsm"
-  ledger <- rbind(nb, own)
-  ledger$params <- list(nbPars, own$params[[1]])
-  ledger
-}
-
 initWithLedger <- function(doFit) {
   e <- ledgerInitEnv(ownAndNeighbourLedger())
   e$sim$.ELFind <- "4.2.2"
