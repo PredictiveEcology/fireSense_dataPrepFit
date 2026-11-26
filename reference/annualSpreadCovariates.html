@@ -19,7 +19,7 @@ pixel, so both have the same names and columns."><!-- mathjax --><script src="ht
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fireSense_dataPrepFit</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.0.9041</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.0.9042</span>
       </span>
     </div>
 
@@ -69,7 +69,8 @@ pixel, so both have the same names and columns.</p>
 <span>  <span class="va">tsds</span>,</span>
 <span>  <span class="va">firePixelsByYear</span>,</span>
 <span>  <span class="va">cutoffForYoungAge</span>,</span>
-<span>  climateSplit <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  climateSplit <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  climateCurve <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -101,11 +102,18 @@ pixel, so both have the same names and columns.</p>
 <dd><p>logical; <code>TRUE</code> replaces each climate variable <code>C</code> by <code>C_yr</code>, the year's median of <code>C</code> over
 the burnable pixels, and <code>C_dev</code>, <code>C</code> minus it (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/climateSplit.html" class="external-link">fireSenseUtils::splitSpreadClimate()</a></code>).</p></dd>
 
+
+<dt id="arg-climatecurve">climateCurve<a class="anchor" aria-label="anchor" href="#arg-climatecurve"></a></dt>
+<dd><p><code>FALSE</code> (none); <code>TRUE</code>, which adds <code>C_curve = softplus(C - k, s)</code> for each climate variable <code>C</code>, with <code>k</code> and <code>s</code>
+the median and sd of <code>C</code> over the burnable pixels of all the years (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/climateCurve.html" class="external-link">fireSenseUtils::climateCurvePars()</a></code>); or the
+<code>c(k = , s = )</code> of each variable (a named list) of a reused fit, used as they are (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/climateCurve.html" class="external-link">fireSenseUtils::addClimateCurve()</a></code>). <code>C</code> stays.</p></dd>
+
 </dl></div>
     <div id="value">
     <h2>Value</h2>
     <p>list named by data year of lists named <code>year&lt;year&gt;</code> (every year of <code>allYears</code>, empty if no pixels)
-of data.tables of <code>pixelID</code>, the climate variables (or their two terms) and <code>youngAge</code>.</p>
+of data.tables of <code>pixelID</code>, the climate variables (or their terms) and <code>youngAge</code>. With <code>climateCurve</code> its attribute
+<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fireSenseUtils-constants.html" class="external-link">fireSenseUtils::spreadFitClimateCurveParsTxt</a></code> is <code>k</code> and <code>s</code> of each variable.</p>
     </div>
 
   </div>

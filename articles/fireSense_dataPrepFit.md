@@ -1,7 +1,7 @@
 ---
 title: "fireSense_dataPrepFit Manual"
-subtitle: "v.1.3.0.9041"
-date: "Last updated: 2026-11-23"
+subtitle: "v.1.3.0.9042"
+date: "Last updated: 2026-11-26"
 output:
   bookdown::html_document2:
     toc: true
@@ -589,6 +589,15 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
+   <td style="text-align:left;"> spreadClimateCurve </td>
+   <td style="text-align:left;"> logical </td>
+   <td style="text-align:left;"> FALSE </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> `FALSE` (the default): the spread formula is unchanged. `TRUE`: it has an extra term for each spread climate variable `C`, `&lt;C&gt;_curve = softplus(C - k, s)` (`fireSenseUtils::softplus()`: smooth, no corner), with its own coefficient, so the climate response can steepen above `k` when the coefficient is positive; a negative one flattens the dry side (the sign is free). `k` and `s` are the median and sd of `C` can steepen (or flatten) above `k` (dry years); `C` keeps its own term. `k` is the ELF's median of `C` over the burnable pixels in all the fit's years, one number for the ELF. It is stored in the ledger row (`fireSenseUtils::spreadFitClimateCurveParsTxt`), and `fireSense_spreadPredict` builds the term from it (`fireSenseUtils::addClimateCurve()`). With `spreadClimateSplit` the curve is of `C`, the pixel's value, beside the `_yr` and `_dev` terms. Ignored if `sim$fireSense_spreadFormula` is supplied. A prediction needs no setting: it reads `k` and `s` from the ledger row. A ledger fit that is reused (`doFit` FALSE) keeps its own curve terms and their `k` and `s`, whatever this says. Needs a `fireSense_spreadFit` that writes them. </td>
+   <td style="text-align:left;"> TRUE </td>
+  </tr>
+  <tr>
    <td style="text-align:left;"> targetFuelClasses </td>
    <td style="text-align:left;"> numeric </td>
    <td style="text-align:left;"> 5 </td>
@@ -795,6 +804,12 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-dataP
    <td style="text-align:left;"> fireSense_annualSpreadFitCovariates </td>
    <td style="text-align:left;"> list </td>
    <td style="text-align:left;"> List of data.tables, one per fire year, of `pixelID` and the spread climate covariates in the fire buffers (every flammable pixel with `wholeLandscapeSpreadCovariates`). </td>
+   <td style="text-align:left;"> prepSpre.... </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> climateCurvePars </td>
+   <td style="text-align:left;"> list </td>
+   <td style="text-align:left;"> With `spreadClimateCurve`, `k` and `s` of each spread climate variable's curve term (`fireSenseUtils::climateCurvePars()`), which `fireSense_spreadFit` stores in the ledger row; `NULL` without curve terms. </td>
    <td style="text-align:left;"> prepSpre.... </td>
   </tr>
   <tr>
