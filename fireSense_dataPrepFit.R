@@ -17,7 +17,7 @@ defineModule(sim, list(
   reqdPkgs = list("data.table", "digest", "fastDummies", "googledrive", "httr2", "qs2", "Require",
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9042)", # CacheGeo re-reads a changed local file
                   "PredictiveEcology/climateData@development (>= 2.2.3.9006)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9193)", # 9193 (placeholder until the climate curve PR (fireSenseUtils) merges and is bumped): climateCurvePars(), addClimateCurve(), climateCurveCols(), ledgerClimateCurvePars(), isClimateCurveCol(); 9190: modelledFires() (fireSenseUtils#261; set to the real version after merge); 9186: splitSpreadClimate(), climateSplitCols(), climateSplitRefPixels(), isClimateSplitCol() (fireSenseUtils#244); 9184: addCoreFraction(), coreFractionByYear() (moved from this module); 9179: readSpreadFitLedger(escapeDefinition); 9169: fitDataNeeded() (#234); 9161: coreFractionTxt; 9159: climateCovRanges Tmaxsm, PPTsm (#224); 9141: spreadFitLedgerInputs(), spreadFitLedgerInputLists(); 9135: fireSenseFireCauses; 9131: fireCauseCodes(); 9130: climateRasterToDataTable(Index) reads only those cells; 9128: burnableHaTxt
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9193)", # 9193 (placeholder until the climate curve PR (fireSenseUtils) merges and is bumped): climateCurvePars(), addClimateCurve(), softplus(), climateTermCols(), isClimateTermCol(), ledgerClimateCurvePars(); 9190: modelledFires() (fireSenseUtils#261; set to the real version after merge); 9186: splitSpreadClimate(), climateSplitCols(), climateSplitRefPixels(), isClimateSplitCol() (fireSenseUtils#244); 9184: addCoreFraction(), coreFractionByYear() (moved from this module); 9179: readSpreadFitLedger(escapeDefinition); 9169: fitDataNeeded() (#234); 9161: coreFractionTxt; 9159: climateCovRanges Tmaxsm, PPTsm (#224); 9141: spreadFitLedgerInputs(), spreadFitLedgerInputLists(); 9135: fireSenseFireCauses; 9131: fireCauseCodes(); 9130: climateRasterToDataTable(Index) reads only those cells; 9128: burnableHaTxt
                   "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
                   "ggplot2", "methods", "parallel", "purrr", "raster", "sf", "sp", "stats", "utils",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9015)",
@@ -276,7 +276,7 @@ defineModule(sim, list(
                       fireSenseUtils::harmonizeFireDataDeps(), fireSenseUtils::escapeFireSetDeps()))),
                          prepSpreadFitData = list(.cacheExtra = quote(c(list(
                       fireSenseUtils::addClimateCurve, fireSenseUtils::bufferToArea, fireSenseUtils::chooseDomSecFuelClasses,
-                      fireSenseUtils::climateCurveCols, fireSenseUtils::climateCurvePars, fireSenseUtils::softplus,
+                      fireSenseUtils::climateCurvePars, fireSenseUtils::climateTermCols, fireSenseUtils::softplus,
                       fireSenseUtils::climateRasterToDataTable, fireSenseUtils::climateSplitCols, fireSenseUtils::climateSplitRefPixels,
                       fireSenseUtils::dataYearBefore,
                       fireSenseUtils::dataYearElement,
@@ -700,7 +700,7 @@ Init <- function(sim) {
       any(fireSenseUtils::isClimateSplitCol(colnames(sim$spreadFitPreRun$params[[ownRow]])))
     ## a reused fit keeps its curve terms, and the `k` and `s` it was fitted with
     mod$spreadClimateCurve <- if (reuseOwnFit)
-      any(fireSenseUtils::isClimateCurveCol(colnames(sim$spreadFitPreRun$params[[ownRow]])))
+      any(fireSenseUtils::isClimateTermCol(colnames(sim$spreadFitPreRun$params[[ownRow]]), fireSenseUtils::climateCurveSuffix))
     mod$climateCurvePars <- if (isTRUE(mod$spreadClimateCurve))
       fireSenseUtils::ledgerClimateCurvePars(sim$spreadFitPreRun, ownRow)
     ## spread: the union, for prediction; ignition (xgboost) can use every one of them

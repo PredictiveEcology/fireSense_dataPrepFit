@@ -21,6 +21,18 @@ test_that("addAnnualYoungAge puts youngAge in each fire year's table, from the d
   expect_true(all(c("pixelID", "CMD") %in% names(out$year2004)))
 })
 
+test_that("addAnnualYoungAge returns the list it was given, its tables changed in place (annualSpreadCovariates() relies on it)", {
+  tsds <- list(year2000 = tsdRaster(c(100, 3, 100, 100)))
+  tab <- data.table::data.table(pixelID = 1:3, CMD = 1)
+  ac <- list(`2000` = list(year2001 = tab))
+  out <- addAnnualYoungAge(ac, tsds, list(), 15)
+  expect_identical(names(out), names(ac))
+  expect_identical(names(out[["2000"]]), names(ac[["2000"]]))
+  expect_true("youngAge" %in% names(tab))                                # the given table was changed by reference
+  expect_identical(data.table::address(out[["2000"]]$year2001), data.table::address(tab))
+  expect_identical(out, ac)
+})
+
 test_that("addAnnualYoungAge keeps the empty table of a year without fires", {
   tsds <- list(year2000 = tsdRaster(c(100, 3, 100, 100)))
   ac <- list(`2000` = list(year2001 = data.table::data.table(pixelID = 1:3, CMD = 1),

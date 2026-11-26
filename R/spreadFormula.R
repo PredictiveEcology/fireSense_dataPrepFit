@@ -40,7 +40,7 @@ spreadInteractionClimateFuel <- "climate:fuel"
 #' @param spreadInteractions the module's `spreadInteractions`; `NULL` or `character(0)` for none.
 #' @param climateSplit the module's `spreadClimateSplit`: `TRUE` replaces each climate variable `C` by `C_yr` and
 #'   `C_dev` (`fireSenseUtils::climateSplitCols()`).
-#' @param climateCurve `TRUE` adds each variable's curve term (`C_curve`, `fireSenseUtils::climateCurveCols()`) after its
+#' @param climateCurve `TRUE` adds each variable's curve term (`C_curve`, `fireSenseUtils::climateTermCols()`) after its
 #'   other climate terms; it does not interact.
 #' @return a character string, or `character()` for the null model.
 spreadRHS <- function(spreadCovariates, spreadVars, vegColsForRHS, spreadInteractions = character(), climateSplit = FALSE,
@@ -48,7 +48,7 @@ spreadRHS <- function(spreadCovariates, spreadVars, vegColsForRHS, spreadInterac
   if (identical(spreadCovariates, "none")) return(character())
   fuel <- if (spreadInteractionClimateFuel %in% spreadInteractions) fireSenseUtils::spreadFuelCols(vegColsForRHS)
   climCols <- if (isTRUE(climateSplit)) fireSenseUtils::climateSplitCols(spreadVars) else spreadVars
-  if (isTRUE(climateCurve)) climCols <- c(climCols, fireSenseUtils::climateCurveCols(spreadVars))
+  if (isTRUE(climateCurve)) climCols <- c(climCols, fireSenseUtils::climateTermCols(spreadVars, fireSenseUtils::climateCurveSuffix))
   ## a split climate variable interacts through its between-year term only, never `_dev`
   interClim <- if (isTRUE(climateSplit)) paste0(spreadVars, fireSenseUtils::climateSplitYrSuffix) else spreadVars
   climateTerms <- if (!identical(spreadCovariates, "fuel")) paste0(climCols, collapse = " + ")
