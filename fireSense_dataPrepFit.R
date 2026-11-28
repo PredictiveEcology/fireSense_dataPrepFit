@@ -160,6 +160,14 @@ defineModule(sim, list(
                                  "`.globals = list(skipUnusedFitPrep = FALSE)`; init stops if they differ on it or on `doFit`.",
                                  "Not part of the cache keys."),
                     cacheKey = FALSE),
+    defineParameter("saveFitTables", "character", character(0), NA, NA,
+                    paste("Which fit tables to write to `outputPath(sim)` as qs2 files, `\"ignition\"`",
+                          "(`fireSense_ignitionCovariates`) and/or `\"escape\"` (`fireSense_escapeCovariates`); default none.",
+                          "Each file is the exact table the fit is trained on (every covariate, `pixelID`, `year`, the response),",
+                          "named for the table and the run's ELF (`sim$.ELFind`), and listed in `outputs(sim)`.",
+                          "They are written by their own, never cached event after the prep events, so a cached",
+                          "`prepIgnitionFitData` still writes them. Changes no table. Not part of the cache keys."),
+                    cacheKey = FALSE),
     defineParameter("spreadClimateCandidates", "character",
                     c(fireSenseUtils::defaultClimateVariablesForFire$ignition, "Tmax_sm", "PPT_sm"), NA, NA,
                     paste("The climate variables `climateVariablesForFire$spread = \"auto\"` chooses among (ClimateNA names,",
@@ -253,8 +261,9 @@ defineModule(sim, list(
     defineParameter(".useCache", "logical", FALSE, NA, NA,
                     paste("Should this entire module be run with caching activated? This is intended",
                           "for data-type modules, where stochasticity and time are not relevant")),
-    defineParameter(".neverCache", "character", "init", NA, NA,
+    defineParameter(".neverCache", "character", c("init", "saveFitTables"), NA, NA,
                     paste("Events that are never cached, whatever `.useCache` says (read by SpaDES.core, 3.2.1.9037 or later):",
+                          "`saveFitTables` writes files, which a cache hit would skip.",
                           "`init` asks Google Drive whether the spread-fit ledger already has parameters for this study area, and a cached `init` replays an older answer.")),
     defineParameter(".useCacheArgs", "list",
                     list(dataPrepBuild = list(.cacheExtra = quote(list(
@@ -551,6 +560,9 @@ doEvent.fireSense_dataPrepFit = function(sim, eventTime, eventType) {
       for (ev in prepEventsToSchedule(P(sim)$whichModulesToPrepare, fitPrepNeeded(sim), fitPrepNeeded(sim, "fireSense_ignitionFit")))
         sim <- scheduleEvent(sim, start(sim), "fireSense_dataPrepFit", ev, eventPriority = 1)
 
+      for (ev in saveFitTablesEvents(P(sim)$saveFitTables))
+        sim <- scheduleEvent(sim, start(sim), "fireSense_dataPrepFit", ev, eventPriority = 2)  # after the prep events (1)
+
       sim <- Init(sim)
       ## Priority 0 runs dataPrepBuild straight after this event and ahead of every other module's
       ## init (those are at .first(), i.e. 1).
@@ -570,6 +582,9 @@ doEvent.fireSense_dataPrepFit = function(sim, eventTime, eventType) {
     },
     prepSpreadFitData = {
       sim <- prepare_SpreadFit(sim)
+    },
+    saveFitTables = {
+      sim <- saveFitTables(sim)
     },
     prepSpreadFitFireData = {
       sim <- prepare_SpreadFitFires(sim)
