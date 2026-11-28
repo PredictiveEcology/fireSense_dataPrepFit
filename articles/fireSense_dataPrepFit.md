@@ -1,7 +1,7 @@
 ---
 title: "fireSense_dataPrepFit Manual"
-subtitle: "v.1.3.0.9042"
-date: "Last updated: 2026-11-26"
+subtitle: "v.1.3.0.9043"
+date: "Last updated: 2026-11-28"
 output:
   bookdown::html_document2:
     toc: true
@@ -526,6 +526,15 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
    <td style="text-align:left;"> FALSE </td>
   </tr>
   <tr>
+   <td style="text-align:left;"> saveFitTables </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;">  </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Which fit tables to write to `outputPath(sim)` as qs2 files, `"ignition"` (`fireSense_ignitionCovariates`) and/or `"escape"` (`fireSense_escapeCovariates`); default none. Each file is the exact table the fit is trained on (every covariate, `pixelID`, `year`, the response), named for the table and the run's ELF (`sim$.ELFind`), and listed in `outputs(sim)`. They are written by their own, never cached event after the prep events, so a cached `prepIgnitionFitData` still writes them. Changes no table. Not part of the cache keys. </td>
+   <td style="text-align:left;"> FALSE </td>
+  </tr>
+  <tr>
    <td style="text-align:left;"> spreadClimateCandidates </td>
    <td style="text-align:left;"> character </td>
    <td style="text-align:left;"> CMD, cum.... </td>
@@ -663,10 +672,10 @@ Parameters are in Table \@ref(tab:moduleParams-fireSense-dataPrepFit).
   <tr>
    <td style="text-align:left;"> .neverCache </td>
    <td style="text-align:left;"> character </td>
-   <td style="text-align:left;"> init </td>
+   <td style="text-align:left;"> init, sa.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Events that are never cached, whatever `.useCache` says (read by SpaDES.core, 3.2.1.9037 or later): `init` asks Google Drive whether the spread-fit ledger already has parameters for this study area, and a cached `init` replays an older answer. </td>
+   <td style="text-align:left;"> Events that are never cached, whatever `.useCache` says (read by SpaDES.core, 3.2.1.9037 or later): `saveFitTables` writes files, which a cache hit would skip. `init` asks Google Drive whether the spread-fit ledger already has parameters for this study area, and a cached `init` replays an older answer. </td>
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>

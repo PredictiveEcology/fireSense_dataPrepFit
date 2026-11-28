@@ -32,7 +32,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">fireSense_dataPrepFit</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.0.9042</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.0.9043</span>
       </span>
     </div>
 
@@ -1334,6 +1334,29 @@ TRUE
 </tr>
 <tr>
 <td style="text-align:left;">
+spreadClimateCurve
+</td>
+<td style="text-align:left;">
+logical
+</td>
+<td style="text-align:left;">
+FALSE
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+<code>FALSE</code> (the default): the spread formula is unchanged. <code>TRUE</code>: it has an extra term for each spread climate variable <code>C</code>, <code>&amp;lt;C&amp;gt;_curve = softplus(C - k, s)</code> (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/softplus.html" class="external-link">fireSenseUtils::softplus()</a></code>: smooth, no corner), with its own coefficient, so the climate response can steepen above <code>k</code> when the coefficient is positive; a negative one flattens the dry side (the sign is free). <code>k</code> and <code>s</code> are the median and sd of <code>C</code> can steepen (or flatten) above <code>k</code> (dry years); <code>C</code> keeps its own term. <code>k</code> is the ELF’s median of <code>C</code> over the burnable pixels in all the fit’s years, one number for the ELF. It is stored in the ledger row (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fireSenseUtils-constants.html" class="external-link">fireSenseUtils::spreadFitClimateCurveParsTxt</a></code>), and <code>fireSense_spreadPredict</code> builds the term from it (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/climateCurve.html" class="external-link">fireSenseUtils::addClimateCurve()</a></code>). With <code>spreadClimateSplit</code> the curve is of <code>C</code>, the pixel’s value, beside the <code>_yr</code> and <code>_dev</code> terms. Ignored if <code>sim$fireSense_spreadFormula</code> is supplied. A prediction needs no setting: it reads <code>k</code> and <code>s</code> from the ledger row. A ledger fit that is reused (<code>doFit</code> FALSE) keeps its own curve terms and their <code>k</code> and <code>s</code>, whatever this says. Needs a <code>fireSense_spreadFit</code> that writes them.
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
 targetFuelClasses
 </td>
 <td style="text-align:left;">
@@ -1749,6 +1772,20 @@ list
 </td>
 <td style="text-align:left;">
 List of data.tables, one per fire year, of <code>pixelID</code> and the spread climate covariates in the fire buffers (every flammable pixel with <code>wholeLandscapeSpreadCovariates</code>).
+</td>
+<td style="text-align:left;">
+prepSpre….
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+climateCurvePars
+</td>
+<td style="text-align:left;">
+list
+</td>
+<td style="text-align:left;">
+With <code>spreadClimateCurve</code>, <code>k</code> and <code>s</code> of each spread climate variable’s curve term (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/climateCurve.html" class="external-link">fireSenseUtils::climateCurvePars()</a></code>), which <code>fireSense_spreadFit</code> stores in the ledger row; <code>NULL</code> without curve terms.
 </td>
 <td style="text-align:left;">
 prepSpre….
