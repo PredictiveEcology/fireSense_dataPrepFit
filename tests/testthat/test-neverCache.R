@@ -3,7 +3,7 @@
 test_that(".neverCache is declared and SpaDES.core refuses to cache those events whatever .useCache says", {
   md <- SpaDES.core::moduleMetadata(module = moduleName, path = modulePath)
   declared <- md$parameters$default[[which(md$parameters$paramName == ".neverCache")]]
-  expect_setequal(declared, c("init"))
+  expect_setequal(declared, c("init", "saveFitTables"))
   eventIsCached <- utils::getFromNamespace(".eventIsCached", "SpaDES.core")
   for (useCache in list(c(".inputObjects", declared), TRUE)) {
     for (ev in declared)

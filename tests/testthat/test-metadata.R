@@ -103,7 +103,7 @@ test_that("parameters are the expected names", {
            "forestedLCC", "fuelClassCol", "fuelCovariates", "heldOutFold", "igAggFactor",
            "minBufferSize", "minBurnableFireSizeHa", "minCovariateProp", "nonflammableLCC",
            "nonForestCanBeYoungAge", "scanfiVersion", "sppEquivCol", "spreadClimateCandidates", "spreadFitFilename",
-           "spreadFitGoogleDriveFolder", "skipUnusedFitPrep", "spreadClimateCurve", "spreadClimateSplit", "spreadCovariates", "spreadInteractions", "spreadIntercept", "targetFuelClasses",
+           "spreadFitGoogleDriveFolder", "saveFitTables", "skipUnusedFitPrep", "spreadClimateCurve", "spreadClimateSplit", "spreadCovariates", "spreadInteractions", "spreadIntercept", "targetFuelClasses",
            "useRasterizedFireForSpread", "seedVegInit", "wholeLandscapeSpreadCovariates", "whichModulesToPrepare"))
   )
   ## a new user sees the plots; the tests set .plots = NA (helper-dataPrepBuild.R)
